@@ -1,0 +1,176 @@
+---
+title: "Looking at Wildlife Computer data instead of using IGOR"
+author: "Johanna Wren"
+date: "December 9, 2020"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+  html_notebook:
+    code_folding: hide
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+<script>
+$(document).ready(function() {
+  $items = $('div#TOC li');
+  $items.each(function(idx) {
+    num_ul = $(this).parentsUntil('#TOC').length;
+    $(this).css({'text-indent': num_ul * 10, 'padding-left': 0});
+  });
+
+});
+</script>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = 'C:/Users/Nerea/Desktop/NOAA/PROJECTS & COLLABORATIONS/PROJECTS/HAWAII/YFT/ALEX/')  # this sets the default working directory for your script. Change it to fit the folder you are working in
+```
+
+# Description
+A quick bit of code to use to investigate tag data instead of IGOR which I cannot get to work on my mac. 
+
+This code plots time series of depth and temperature (if there is temp) as well as Dawn/Dusk plots. It also plots a Depth time series with colored temperature so we can see if there was a predation event by a thermoregulator etc. 
+
+```{r message=FALSE}
+# Clear workspace
+rm(list=ls())
+
+# Load libraries
+library(RchivalTag)
+library(oceanmap)
+library(kableExtra)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+# Load data for tag number 
+
+Read in the temp, depth, light levels data. This is really handy with the `RchivalTag` package.
+
+The file structure I was working from was the main folder called 'Archive-1_DI' and within that folder there was a folder for each tag that was named after the ptt number, then inside that folder are all the .csv, .pxp files etc. 
+
+You have to manually change the tagnum below but once that is done the script goes to that folder and grabs the .csv files it needs.
+_I have not yet tested this script on data that doesn't have a temperature in the timeseries data so if that is the case the code won't run._ 
+
+Not all tags have a PDT file so I put some if loops in to skip them if they don't exist but use them for the Time-Depth-Temp plot if they do. 
+
+```{r}
+tagnum <- 163475  # This needs to be changed manually for each tag! 
+# Read in the timeseries data
+setwd("C:\\Users\\Nerea\\Desktop\\NOAA\\PROJECTS & COLLABORATIONS\\PROJECTS\\HAWAII\\YFT\\ALEX\\")
+ts <- read_TS(paste0(tagnum, '/', tagnum, '-Series.csv'))
+# Read in the PDT data if it exists
+if (file.exists(paste0(tagnum, '/', tagnum, '-PDTs.csv'))) {
+pdt <- read_PDT(paste0(tagnum, '/', tagnum, '-PDTs.csv')) }
+
+# Make sure it read the data in properly
+head(ts)
+
+# Read in the ARGOs data just as a csv file, not using the RchivalTag package here. 
+argo <- read.csv(paste0(tagnum, '/', tagnum, '-Argos.csv'))
+# Subset to only the first row that has >= class 2 location data
+argoSub <- argo[which(argo$LocationQuality %in% c(2,3)),][1,]
+
+# Adding the pop-off date to the timeseries data so the figure can shade day/night in the background
+ts$Lon <- argoSub$Lon
+ts$Lat <- argoSub$Lat
+
+# Reading in twilight or dawndusk data from the light location csv file.
+twilight <- read.csv(paste0(tagnum, '/', tagnum, '-LightLoc.csv'))
+# Because I read this in as a csv file I need to manually change the date to a datetime object. RchivalTag does this automatically is you use their 'read_*' functions
+twilight$datetime <- as.POSIXct(paste(twilight$Day, twilight$Time), format="%d-%b-%Y %H:%M:%S")
+# Put all the column data into one dataset with just one LL column
+# Grab the columns we want (all the LL columns plus a couple of extra)
+idx <- c(ncol(twilight), grep('LL', names(twilight)))
+# Then turn into long format for use in ggplot
+test3 <- tidyr::gather(twilight[,idx], Variable, Value, 2:(length(idx)))
+```
+
+# Pop-off date
+Get the first class 2 or 3 ARGOS location or date. This is for comparison or use for the pop-off date given by the wildlife computers portal. It might not match exactly but it should be ballpark.
+
+Here I just query the *-Argos.csv file for the earliest date that has a location quality of 2 or better. 
+```{r}
+# Prints a nice looking table in the html document
+#kbl(t(data.frame(Date=argoSub$Date, Lat=argoSub$Latitude, Lon=argoSub$Longitude, ArgoClass=argoSub$LocationQuality)), caption='Deployment End Date and Location from the first class 2 or 3 ARGOS point from the *-argos.csv file') %>%
+ # kable_paper("hover")
+data.frame(Date=argoSub$Date, Lat=argoSub$Latitude, Lon=argoSub$Longitude, ArgoClass=argoSub$LocationQuality)
+print(data.frame(Date=argoSub$Date, Lat=argoSub$Latitude, Lon=argoSub$Longitude, ArgoClass=argoSub$LocationQuality))
+```
+
+
+# Plot some diagnostic plots
+Plotting some time series data that makes it easier to verify pop-off date and fate date, as well as what happened to the tag. 
+
+## Timeseries plots 
+I'm using the `dy_DepthTS` function from the `RchivalTag` package so the figures are interactive and we can zoom and get the date easily from the plot.
+
+The bottom figure, the 'Twilight' or 'DawnDusk' figure is a bit different from IGOR and from the time-depth and time-temp figures above it. It's crude, but it shows you when the light levels get kind of messed up. Use this one with caution though and always check with the Time-Depth-Temp plot on the bottom of this script. The unit on the y-axis I think it light level, but it's not really important. 
+
+_You can zoom using the slider at the bottom of the figure, and it zooms from either direction. When you hover the mouse over the time series plot it gives you the values of that point in the top right corner of the plot. It's a bit annoying because often the text covers the surface interval of the dag when it's floating so it can be hard to see the fate date and pop-off date._
+
+```{r fig.height=4, fig.width=8, fig.align='center', warning=F}
+# # For the full time series
+dy_DepthTS(ts, y='Depth', color='black')
+dy_DepthTS(ts, y='Temperature', plot_DayTimePeriods=T)
+dy_TS(test3, y='Value', drawPoints=T, pointSize=1)
+```
+
+Or a different version using ggplot2 but the same data. It still looks a bit messed up but it gets more of the dawn/dusk cycles than the above did.
+```{r fig.height=4, fig.width=8, fig.align='center', warning=F}
+# And plot with ggplot
+ggplot(na.omit(test3), aes(datetime, Value)) + 
+  geom_line(na.rm=T) +
+  scale_x_datetime(breaks='1 day') +
+  theme_bw() +
+  theme(panel.grid.minor.x=element_blank(), panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank(), axis.text.x=element_text(angle=90)) +
+  ylab(NULL) +
+  ggtitle(paste('Tag ID', tagnum))
+```
+
+## Colored timeseries plot
+
+This plots the depth with temp as color time series. 
+
+If there is a .pdt file present (quite a few of the tuna tags don't have .pdt files) it will use those data to make a temperature-depth timeseries figure like the one in IGOR. If there is temperature data in the timeseries, it will also make an identical figure using that data, but only the last 15 days of the time series for a more detailed, zoomed in look. 
+
+If there isn't any .pdt data, it will make a figure of the last 30 days of the tag from timeseries temperature data. This can take some time, so I limited it to the last 30 days if the tag stays on longer. If you want to see the full time span, just comment out the if statement and un-commenting the line that is commented out on the bottom of the chunk. 
+
+```{r fig.height=5, fig.width=8, fig.align='center', results='hide'}
+# Plot temperature histogram but only the last 30 days max
+if (file.exists(paste0(tagnum, '/', tagnum, '-PDTs.csv'))) {
+  # Interpolate the pdt data
+  m <- interpolate_PDTs(pdt)
+  # Make the tempdepth profile plot
+  image_TempDepthProfiles(m$station.1, main=paste('The PDT temp-depth data for tag', tagnum))
+  
+  # If there is time series temperature we want to plot that for the last 15 days for a higher resolution zoomed look
+  if (length(is.na(ts$Temperature))!=nrow(ts)) {
+    plot_DepthTempTS_resampled_PDT(ts, pdt, y='Depth', z='Temperature', xlim=c(max(pdt$date)-14, max(pdt$date)))
+  }
+} else {
+  if (as.numeric(max(ts$date)-min(ts$date)) <= 30) {
+    plot_DepthTempTS_resampled(ts, y='Depth', z='Temperature')
+  } else {
+    plot_DepthTempTS_resampled(ts, y='Depth', z='Temperature', xlim=c(max(ts$date)-29, max(ts$date)))
+  }
+}
+
+# # Plot the full time series (this takes a while of really long)
+# plot_DepthTempTS_resampled_PDT(ts, pdt, y='Depth', z='Temperature')
+```
+
+
+
+
+

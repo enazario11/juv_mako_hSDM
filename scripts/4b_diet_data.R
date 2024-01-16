@@ -1,0 +1,152 @@
+#load packages
+library(tidyverse)
+library(RColorBrewer)
+library(tidyquant)
+
+rm(list = ls())
+options(scipen=999) #scientific notation turned off
+
+##### Data loading and tidying #############
+#load diet and location data files
+dat_coll <- read.csv("data/diet/collection.csv")
+dat_pred <- read.csv("data/diet/predator.csv")
+dat_prey <- read.csv("data/diet/prey_comp.csv")
+dat_prey_size <- read.csv("data/diet/prey_size.csv")
+
+loc_dat <- read.csv("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/tdl_scbE.csv")
+maxS_lat <- max(loc_dat$Lat)
+minS_lat <- min(loc_dat$Lat)
+maxS_long <- max(loc_dat$Lon)
+minS_long <- min(loc_dat$Lon)
+
+#FL info for male and female sharks 
+FL_male <- loc_dat %>%
+  filter(Sex == "Male")
+min(FL_male$FL) #125
+max(FL_male$FL) #177
+
+FL_female <- loc_dat %>%
+  filter(Sex == "Female")
+min(FL_female$FL) #145
+max(FL_female$FL) #201
+
+#explore components of diet data 
+list(unique(dat_coll$Region))
+max_lat <- max(dat_coll$Latitude)
+min_lat <- min(dat_coll$Latitude)
+max_long <- max(dat_coll$Longitude)
+min_long <- min(dat_coll$Longitude)
+
+  #limits diet data to SCB Ecoregion
+scbE_coll <- dat_coll %>% 
+  filter(Latitude < 35 & Latitude > 25 & Longitude > -123 & Longitude < -113)
+
+  #filters predator DF based on IDs from SCB Ecoregion described above. Filters out FL that weren't in the loc DF
+dat_pred <- dat_pred %>% #filters out measurement entries that are blank
+  filter(Predator_Measurement_2 == "FL") %>%
+  filter()
+list(unique(dat_pred$Predator_Measurement_2))
+
+scbE_coll_id <- scbE_coll$Collection_ID #438 IDs
+scbE_pred <- dat_pred[dat_pred$Collection_ID %in% scbE_coll_id, ]
+length(unique(scbE_pred$Collection_ID)) #kept 435 IDs
+
+FL_femaleD <- scbE_pred %>%
+  filter(Predator_Sex == "F") %>%
+  filter(Predator_Length_2 < 249 & Predator_Length_2 > 100)
+
+FL_maleD <- scbE_pred %>%
+  filter(Predator_Sex == "M") %>%
+  filter(Predator_Length_2 < 180 & Predator_Length_2 > 100)
+
+scbE_pred2 <- rbind(FL_femaleD, FL_maleD)
+min(scbE_pred2$Predator_Length_2) #101
+max(scbE_pred2$Predator_Length_2) #234
+
+  #filters prey DF based on IDs from SCB and FL filtered predator DF 
+scbE_pred_id <- scbE_pred2$Predator_ID #117 IDs
+scbE_prey <- dat_prey[dat_prey$Predator_ID %in% scbE_pred_id, ]
+length(unique(scbE_prey$Predator_ID)) #kept 244 IDs
+#######
+
+#### RMPQ and GII Calculations -- all years#####
+scbE_prey <- scbE_prey %>%
+  mutate(freq_metric = 1)
+
+sum(scbE_prey$Prey_N) #1272 total prey
+length(unique(scbE_prey$Predator_ID)) #244 unique predator IDs in the prey DF (244 unique stomachs -- used to calculate perc_F)
+
+rmpq_prey <- scbE_prey %>%
+  group_by(Common_Name) %>%
+  summarise(N = sum(Prey_N), 
+            W = sum(Prey_Wt), 
+            Freq = sum(freq_metric), 
+            perc_N = (N/1272)*100, 
+            perc_W = (W/77327.22)*100, 
+            perc_F = (Freq/244)*100, 
+            GII = (perc_N + perc_W + perc_F)/sqrt(3), 
+            perc_GII = (perc_N + perc_W + perc_F)/3)
+
+sum(rmpq_prey$N) #1272 total prey count -- used to calculate perc_N
+sum(rmpq_prey$W) #77327.22 total prey weight -- used to calculate perc_W
+
+rmpq_prey %>%
+  filter(GII > 0.58) %>% #25% quantile value
+  ggplot(aes(x = reorder(Common_Name, -GII), y = GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=12), 
+        axis.title=element_text(size=12)) +
+  xlab('') +
+  ggtitle("All years")
+
+ggsave("images/diet/all_yr.png", width = 300, height = 200, units = c("mm"))
+
+##### Annual diet data summaries #######
+#open scbE_coll, scbE_pred2, and scbE_prey DFs
+#seasonal comparisons not possible (diet data collected Aug - Jan). Complete annual changes in GII (all species). Then do same but for top 5-10 species
+#Annual comparisons all -- GII (geometric index of importance)
+
+#Match dfs by IDs and bring over the collection year to the prey DF
+yr_coll <- scbE_coll %>%
+  subset(select = c("Collection_ID", "Year"))
+
+scbE_pred3 <- merge(scbE_pred2, yr_coll, by = "Collection_ID", all = T)
+yr_pred <- scbE_pred3 %>%
+  subset(select = c("Year", "Predator_ID"))
+
+scbE_prey2 <- merge(scbE_prey, yr_pred, by = "Predator_ID", all = T) %>%
+  drop_na(Prey_ID)
+
+#calculate the RMPQ values by species and year
+rmpq_prey_year <- scbE_prey2 %>%
+  group_by(Year) %>%
+  mutate(pred_metric = length(unique(Predator_ID))) %>%
+  ungroup() %>%
+  group_by(Year, Common_Name) %>%
+  summarise(N = sum(Prey_N), 
+            W = sum(Prey_Wt), 
+            Freq = sum(freq_metric), 
+            pred_metric = unique(pred_metric)) %>%
+  ungroup() %>%
+  filter(Year != 1998)
+
+#calculate the GII by year using the by species data
+rmpq_prey_year2 <- rmpq_prey_year %>%
+  group_by(Year) %>%
+  mutate(perc_N = (N/sum(N))*100, 
+         perc_W = (W/sum(W))*100, 
+         perc_F = (Freq/pred_metric)*100,
+         GII = (perc_N + perc_W + perc_F)/sqrt(3), 
+         perc_GII = (perc_N + perc_W + perc_F)/3)
+
+#plot all prey data across years in my study
+rmpq_prey_year2 %>%
+  filter(GII > 0.58 & Year <= 2009 & Year >= 2004) %>% #25% quantile value
+  ggplot(aes(x = reorder(Common_Name, -GII), y = GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95)) +
+  xlab('') +
+  facet_wrap(~Year, scales = "free_x")

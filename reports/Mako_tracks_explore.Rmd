@@ -1,0 +1,937 @@
+---
+title: "Mako tracks exploration"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+  theme: paper
+---
+```{r setup, include=FALSE}
+#Load the packages
+library(tidyverse)
+library(lubridate)
+library(tidyquant)
+library(rmdformats)
+library(ggpubr)
+library(chron)
+library(scales)
+library(mapview)
+library(kableExtra)
+library(RchivalTag)
+library(png)
+library(grid)
+library(gridExtra)
+library(tidync)
+library(data.table)
+library(ggOceanMaps)
+library(ggOceanMapsData)
+library(raster)
+library(ncdf4)
+library(RColorBrewer)
+library(viridis)
+
+```
+
+## Load the data
+Below is just a glimpse at the type data I am working with so far for each individual.
+```{r, echo=FALSE, results='asis'}
+shark_locs <- read.csv("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/shark_AgeLocs.csv")
+
+shark_locs <- shark_locs %>%
+  mutate(date_time = as.character(paste0(Date, " ", Time)))
+shark_locs$posix = as.POSIXct(strptime(shark_locs$date_time,                               format = "%m/%d/%Y %H:%M"))
+shark_locs$Time = format(as.POSIXct(shark_locs$posix), format = "%H:%M")
+shark_locs$Date = format(as.POSIXct(shark_locs$posix), format = "%m/%d/%Y")
+
+shark_locs_s <- shark_locs %>%
+  summarise(PTT = PTT, 
+            Lat = Lat, 
+            Lon = Lon, 
+            Sex = Sex, 
+            FL = FL, 
+            `Age Class` = Age.Class,
+            posix = posix)
+
+knitr::kable(head(shark_locs_s, n=3), "simple")
+```
+
+
+## All sharks deployment summary
+Below is a table for all mako tracks available. This includes all age classes (YOY to adults).
+```{r, echo=FALSE, message=FALSE, results='asis'}
+dat_sum <- shark_locs %>% 
+  group_by(PTT, Sex, Age.Class) %>%
+  summarise(start= first(posix),
+            end = last(posix), 
+            n = n()) %>% #The number of locations for each shark 
+  mutate(dur = as.numeric(difftime(end, start, units = "days"))) 
+
+#knitr::kable(dat_sum,
+            # col.names = c('Shark ID', 'Start date', 'End date', 'Number of locations', 'Number of days'), 
+             #digits = 1)
+
+rmarkdown::paged_table(dat_sum)
+```
+
+## Preliminary maps {.tabset} 
+### All maps 
+Below are some initial maps of the tracking data separated by PTT, sex, and age class.
+```{r, fig.align = "center",fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig. 1 - Tracks of the 26 sharks across all months where tracking data was collected", fig.pos = "placeHere"}
+
+north_map = map_data("world") %>% 
+  group_by(group)
+shore = north_map[north_map$region== "USA" #find USA map without Alaska
+    | north_map$region=="Mexico"
+    | north_map$region=="Canada",]
+ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -110), ylim = c(15, 40))+
+  geom_point(data=shark_locs, aes(Lon,Lat,colour=as.factor(month)), size=0.2) +
+  # coord_map("azequidistant", xlim=c(-60,0), ylim=c(43,78)) +
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  labs(color = "Month")+
+  guides(colour = guide_legend(override.aes = list(size=3))) +
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        legend.margin=margin(0,0,0,0),
+        axis.text.x = element_text(angle = 45),
+        strip.text = element_text(colour='white',size=10,face="bold",
+                                  margin=margin(0.1,0.1,0.1,0.1,"cm")))+
+  facet_wrap(~PTT)
+```
+
+### By sex
+Below are some initial maps of the tracking data separated by PTT, sex, and age class.
+```{r, fig.height=4, fig.align='center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig. 2 - Tracks of the 26 sharks across all months where tracking data was collected and separated by sex", fig.pos = "placeHere"}
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -110), ylim = c(15, 40))+
+  geom_point(data=shark_locs, aes(Lon,Lat,colour=as.factor(month)), size=0.2)+
+  # coord_map("azequidistant", xlim=c(-60,0), ylim=c(43,78)) +
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  labs(color = "Month")+
+  guides(colour = guide_legend(override.aes = list(size=3))) +
+  scale_x_continuous(guide = guide_axis(n.dodge=3))+
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        legend.margin=margin(0,0,0,0),
+        axis.text.x = element_text(angle = 45),
+        strip.text = element_text(colour='white',size=10,face="bold",
+                                  margin=margin(0.1,0.1,0.1,0.1,"cm")))+
+  facet_wrap(~Sex)
+```
+
+### By age class
+```{r, fig.height=6, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.3 - Tracks of the 26 sharks across all months where tracking data was collected and separated by age class. Age classes were based on FL.", fig.pos = "placeHere"}
+levels(shark_locs$Age.Class) <- c("YOY", "Age-2", "SA", "Adult")
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -110), ylim = c(15, 40))+
+  geom_point(data=shark_locs, aes(Lon,Lat,colour=as.factor(month)), size=0.2) +
+  # coord_map("azequidistant", xlim=c(-60,0), ylim=c(43,78)) +
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  labs(color = "Month")+
+  guides(colour = guide_legend(override.aes = list(size=3))) +
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        axis.text.x = element_text(angle = 45),
+        legend.margin=margin(0,0,0,0),
+        strip.text = element_text(colour='white',size=10,face="bold",
+                                  margin=margin(0.1,0.1,0.1,0.1,"cm")))+
+  facet_wrap(~Age.Class)
+```
+
+### By season and age class
+```{r, fig.height=6, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.4 - Tracks of the 26 sharks separated by season and age class. Age classes were based on FL.", fig.pos = "placeHere"}
+shark_locs = shark_locs %>%
+  mutate(Date = substr(posix, 1, 10))
+getSeason <- function(DATES) {
+  WS <- as.Date("2012-12-15", format = "%Y-%m-%d") # Winter Solstice
+  SE <- as.Date("2012-3-15",  format = "%Y-%m-%d") # Spring Equinox
+  SS <- as.Date("2012-6-15",  format = "%Y-%m-%d") # Summer Solstice
+  FE <- as.Date("2012-9-15",  format = "%Y-%m-%d") # Fall Equinox
+  
+  # Convert dates from any year to 2012 dates
+  d <- as.Date(strftime(DATES, format="2012-%m-%d"))
+  
+  ifelse (d >= WS | d < SE, "Winter",
+          ifelse (d >= SE & d < SS, "Spring",
+                  ifelse (d >= SS & d < FE, "Summer", "Fall")))
+}
+
+shark_locs$Season <- getSeason(shark_locs$Date)
+levels(shark_locs$Age.Class) <- c("YOY", "Age-2", "SA", "Adult")
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -110), ylim = c(15, 40))+
+  geom_point(data=shark_locs, aes(Lon,Lat,colour=Age.Class), size=0.2) +
+  # coord_map("azequidistant", xlim=c(-60,0), ylim=c(43,78)) +
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  labs(color = "Age Class")+
+  guides(colour = guide_legend(override.aes = list(size=3))) +
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        axis.text.x = element_text(angle = 45),
+        legend.margin=margin(0,0,0,0),
+        strip.text = element_text(colour='white',size=10,face="bold",
+                                  margin=margin(0.1,0.1,0.1,0.1,"cm")))+
+  facet_wrap(~Season)
+```
+
+## Dive depth and temperature data
+### Loading the combined location, depth, and temperature data for all sharks
+```{r, echo=FALSE, results='asis', warning = FALSE, message = FALSE, fig.align='center'}
+dat <- read.csv("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/tdl.csv")
+#reformat columns in data file. May need to change how time is logged. Can do this later if an issue.
+dat <- dat %>%
+  mutate(ptt = as.factor(ptt),
+         Sex = as.factor(Sex),
+         posix = as.POSIXct(strptime(posix, format = "%m/%d/%Y %H:%M")), 
+         time = substr(posix, 11, 18),
+         hour = hour(posix),
+         date = substr(posix, 1, 10),
+         month = str_pad(month, 2, pad = "0"),
+         day = str_pad(day, 2, pad = "0"),
+         mo_day = paste0(month,day), 
+         mo_day = as.numeric(mo_day), 
+         year = as.factor(year),
+         depth_neg = med_depth*-1,
+         age_class = as.factor(age_class), 
+         ID = as.factor(ID), 
+         region = as.factor(region)) %>%
+  filter(med_depth < 120, 
+         max_depth < 1000, 
+         avg_depth < 120) %>%
+  rename(sex = Sex)
+dat$age_class <- factor(dat$age_class, levels = c("Adult", "SA", "Age-2", "YOY"))
+
+dat_table <- dat %>%
+  subset(select = c(ptt, date, Lat, Lon, sex, FL, age_class, avg_depth, med_depth, max_depth, avg_temp, med_temp, max_temp, min_temp, region))
+
+kbl(dat_table, col.names = c("PTT",
+                       "Date", 
+                       "Lat", 
+                       "Lon", 
+                       "Sex", 
+                       "FL (cm)", 
+                       "Age class", 
+                       "Mean depth (m)",
+                       "Median depth (m)",
+                       "Max depth (m)", 
+                       "Mean temp (C)", 
+                       "Median temp (C)", 
+                       "Max temp (C)", 
+                       "Min temp (C)",
+                       "Region")) %>%
+  kable_paper("striped") %>%
+  scroll_box(width = "100%", height = "400px")
+
+```
+
+## Dive depth and temperature figures {.tabset}
+On the left are the average dive depths across all sharks by month and faceted by year. On the right are the average temperatures collected by the tag at depth across all sharks by month and faceted by year.
+
+### Depth and temp ~ year
+```{r, fig.height=7, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.5 - Median dive depth and temperature across all sharks averaged by deployment year.", fig.pos = "placeHere"}
+dy <- ggplot(dat, aes(x = mo_day, y = depth_neg)) +
+  geom_smooth(se = F, method = "gam", color = "#537380")+
+  theme_tq()+
+  ylab("Depth (m)")+
+  xlab("")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_x_continuous(breaks= c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200),
+                     labels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+#temp
+ty <- ggplot(dat, aes(x = mo_day, y = med_temp)) +
+  geom_smooth(se = F, method = "gam", color = "#537380")+
+  theme_tq()+
+  ylab("Temp (C)")+
+  xlab("")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_x_continuous(breaks= c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200),
+                     labels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+
+ggarrange(dy, ty, nrow = 1, common.legend = T)
+```
+
+### Depth and temp ~ region
+```{r, fig.height=7, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.5.1 - Median dive depth and temperature across all sharks grouped by region.", fig.pos = "placeHere"}
+#smooth lines of depth and temp by region
+#depth
+dr <- ggplot(dat, aes(x = mo_day, y = depth_neg, color = region)) +
+  geom_smooth(se = F)+
+  theme_tq()+
+  ylab("Depth (m)")+
+  xlab("")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_x_continuous(breaks= c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200),
+                     labels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  scale_color_manual(values = c("#537380","goldenrod2"))
+#temp
+tr <- ggplot(dat, aes(x = mo_day, y = med_temp, color = region)) +
+  geom_smooth(se = F)+
+  theme_tq()+
+  ylab("Temp (C)")+
+  xlab("")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_x_continuous(breaks= c(100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200),
+                     labels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  scale_color_manual(values = c("#537380", "goldenrod2"))
+
+ggarrange(dr, tr, nrow = 1, common.legend = T)
+
+```
+
+### Depth and temp ~ region and age class
+```{r, fig.height=7, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.5.2 - Median dive depth and temperature across all sharks grouped by region and age class.", fig.pos = "placeHere"}
+#smooth lines averaged by age class and region
+#depth
+dar <- ggplot(dat, aes(x = mo_day, y = depth_neg)) +
+  geom_smooth(se = F, color = "#537380")+
+  theme_tq()+
+  ylab("Depth (m)")+
+  xlab("")+ 
+  facet_grid(rows = vars(region), cols = vars(age_class), scales = "free")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_x_continuous(breaks= c(100, 300, 500, 700, 900, 1100),
+                     labels=c("Jan", "Mar", "May", "Jul", "Sep", "Nov"))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+
+#temp
+tar <- ggplot(dat, aes(x = mo_day, y = med_temp)) +
+  geom_smooth(se = F, color = "#537380")+
+  theme_tq()+
+  ylab("Temp (C)")+
+  xlab("")+ 
+  facet_grid(rows = vars(region), cols = vars(age_class), scales = "free")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_x_continuous(breaks= c(100, 300, 500, 700, 900, 1100),
+                     labels=c("Jan", "Mar", "May", "Jul", "Sep", "Nov"))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+
+ggarrange(dar, tar, nrow = 1, common.legend = T)
+```
+
+### Depth and temp histos 
+```{r, fig.height=7, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.6 - Average dive depth and temperature histogram all sharks grouped by deployment year.", fig.pos = "placeHere"}
+setwd("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/pdt")
+files = list.files("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/pdt")
+
+pdt.comb = NULL
+for (i in 1:length(unique(files))) {
+  id = read.csv(files[[i]]) %>%
+    as_tibble()
+  id = id %>%
+    filter(!is.na(Date)) %>% #filter out NA
+    subset(select = c(Ptt, Date, Depth1, MaxTemp1, Depth2, MaxTemp2, Depth3, MaxTemp3, Depth4, MaxTemp4, Depth5, MaxTemp5, Depth6, MaxTemp6, Depth7, MaxTemp7, Depth8, MaxTemp8, Depth9, MaxTemp9, Depth10, MaxTemp10, Depth11, MaxTemp11, Depth12, MaxTemp12))
+  #changes date/time to format R can better interpret
+  id$Date = as.Date(id$Date, origin = "1900-01-01")
+  pdt.comb = rbind(pdt.comb, id) #adds extra rows at bottom to combine all pdt files
+}
+
+pdt.comb_L <- gather(pdt.comb, depth_num, depth_v, Depth1, Depth2, Depth3, Depth4, Depth5, Depth6, Depth7, Depth8, Depth9, Depth10, Depth11, Depth12)
+pdt.comb_L <- pdt.comb_L %>% 
+  gather(temp_type, temp_v, MaxTemp1, MaxTemp2, MaxTemp3, MaxTemp4, MaxTemp5, MaxTemp6, MaxTemp7, MaxTemp8, MaxTemp9, MaxTemp10, MaxTemp11, MaxTemp12)  %>%
+  filter(depth_v < 3500) %>%
+  mutate(depth_v = depth_v * -1, 
+         year = substr(Date, 1, 4)) %>%
+  filter(Ptt != 77178 | 77181)
+
+dh_0 <- ggplot(pdt.comb_L, aes(x = depth_v))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  xlim(0,-400) + 
+  facet_wrap(~year, scales = "free")+
+  xlab("Depth (m)")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+#temp
+th_0 <- ggplot(pdt.comb_L, aes(x = temp_v))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~year, scales = "free")+
+  xlab("Temp (C)")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggarrange(dh_0, th_0, nrow = 1)
+```
+
+## Dive depth, temperature, and location figures 
+## Depth exploration {.tabset}
+### By region 
+```{r, fig.height=6, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.7 - Median and max depth grouped by region (either in Baja or the Southern California Bight).", fig.pos = "placeHere"}
+dr_med <- ggplot(dat, aes(x = med_depth))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("Median Depth (m)")
+
+dr_max <- ggplot(dat, aes(x = max_depth))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("Max Depth (m)")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggarrange(dr_med, dr_max)
+```
+
+### By age class
+```{r, fig.height=6, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.8 - Median and max depth grouped by age class.", fig.pos = "placeHere"}
+ac_med <- ggplot(dat, aes(x = med_depth))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_grid(rows = vars(region), cols = vars(age_class), scales = "free")+
+  xlab("Median Depth (m)")+ 
+  scale_x_continuous(breaks = round(seq(min(dat$med_depth, na.rm = T), max(dat$med_depth, na.rm = T), by = 25),1))
+
+ac_max <- ggplot(dat, aes(x = max_depth))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_grid(rows = vars(region), cols = vars(age_class), scales = "free")+
+  xlab("Max Depth (m)")+ 
+  scale_x_continuous(breaks = round(seq(min(dat$max_depth, na.rm = T), max(dat$max_depth, na.rm = T), by = 50),1))+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggarrange(ac_med, ac_max)
+```
+
+### Depth by time of day
+```{r, fig.height=6, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.9 - Dive depth grouped by time of day presented as back to back histograms (includes one adult, sub-adult, and age two shark.", fig.pos = "placeHere"}
+df_archive <- get(load("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/archive/df_archive.RData"))
+
+#hist of depth (max and med) by time of day 
+df_archive <- df_archive %>%
+  mutate(day_per = ifelse(Time@hour > 7 & 19 > Time@hour, "Day", "Night")) %>%
+  filter(day_per != "NA")
+
+#back to back night and day histogram (ggplot version of RchivalTag output)
+day_depth <- df_archive %>%
+  filter(day_per == "Day") %>%
+  ggplot(aes(x = Depth, fill = day_per, color = day_per))+
+  geom_histogram(bins = 50)+
+  theme_tq()+
+  #facet_grid(rows = vars(day_per), cols = vars(age_class), scales = "free")+
+  xlab("Depth (m)")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  scale_fill_manual(values = "goldenrod2")+
+  scale_color_manual(values = "goldenrod3") + 
+  coord_flip()+
+  scale_x_reverse()+
+  scale_y_reverse()+
+  theme(legend.position = "none")+
+  xlim(175,0)+
+  geom_vline(aes(xintercept = mean(Depth, na.rm = TRUE)), color = "black", linetype = 2)+
+  theme(plot.margin = margin(t = 0,  # Top margin
+                             r = 0.5,  # Right margin
+                             b = 0,  # Bottom margin
+                             l = 0)) # Left margin
+
+night_depth <- df_archive %>%
+  filter(day_per == "Night") %>%
+  ggplot(aes(x = Depth, fill = day_per, color = day_per))+
+  geom_histogram(bins = 50)+
+  theme_tq()+
+  #facet_grid(rows = vars(day_per), cols = vars(age_class), scales = "free")+
+  xlab("Median Depth (m)")+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  scale_fill_manual(values = "#81a9ad")+
+  scale_color_manual(values = "#537380")+
+  coord_flip()+
+  scale_x_reverse()+
+  theme(legend.position = "none", 
+        axis.text.y = element_blank())+
+  xlab("")+
+  xlim(175,0)+
+  geom_vline(aes(xintercept = mean(Depth, na.rm = TRUE)), color = "black", linetype = 2)+
+  theme(plot.margin = margin(t = 0,  # Top margin
+                             r = 0,  # Right margin
+                             b = 0,  # Bottom margin
+                             l = 0)) # Left margin
+  
+
+ggarrange(day_depth, night_depth, nrow = 1)
+```
+
+## Depth and temperature exploration by date and region {.tabset}
+### Depth
+```{r, fig.height=6, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.10 - Median and max depth grouped by date and region (either Baja or the Southern California Bight).", fig.pos = "placeHere"}
+dat_time <- dat %>%
+  mutate(time = times(time), 
+         day_per = ifelse(hour > 7 & 19 > hour, "Day", "Night")) %>%
+  filter(day_per != "NA")
+
+#median depth (panel a) and max depth (panel b) vs date by region
+dat_time <- dat_time %>%
+  mutate(date = format(as.Date(date), "%m-%d"), 
+         month = as.factor(month))
+
+#median
+date_depth_region_med <- ggplot(dat_time, aes(x = date, y = med_depth, color = month))+
+  geom_point(na.rm = TRUE)+
+  theme_tq()+
+  facet_grid(rows = vars(region), scales = "free")+
+  ylab("Median Depth (m)")+ 
+  xlab("")+
+  scale_color_manual(values = c("#537380", "#81a9ad","#de9b71", "#c67b6f", "goldenrod2", "#f57946", "#516823", "#00496f", "grey60"))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) 
+
+#max
+date_depth_region_max <- ggplot(dat_time, aes(x = date, y = max_depth, color = month))+
+  geom_point(na.rm = TRUE)+
+  theme_tq()+
+  facet_grid(rows = vars(region), scales = "free")+
+  ylab("Maximum Depth (m)")+ 
+  xlab("")+
+  scale_color_manual(values = c("#537380", "#81a9ad","#de9b71", "#c67b6f", "goldenrod2", "#f57946", "#516823", "#00496f", "grey60"))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+ggarrange(date_depth_region_med, date_depth_region_max, common.legend = T)
+```
+
+### Temp
+```{r, fig.height=6, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.11 - Median and max temp grouped by date and region (either Baja or the Southern California Bight).", fig.pos = "placeHere"}
+#median -- consider changing to average instead of median for temp data??
+date_temp_region_med <- ggplot(dat_time, aes(x = date, y = med_temp, color = month))+
+  geom_point(na.rm = TRUE)+
+  theme_tq()+
+  facet_grid(rows = vars(region), scales = "free")+
+  ylab("Median temperature (C)")+ 
+  xlab("")+
+  scale_color_manual(values = c("#537380", "#81a9ad","#de9b71", "#c67b6f", "goldenrod2", "#f57946", "#516823", "#00496f", "grey60"))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) 
+
+#max
+date_temp_region_max <- ggplot(dat_time, aes(x = date, y = max_temp, color = month))+
+  geom_point(na.rm = TRUE)+
+  theme_tq()+
+  facet_grid(rows = vars(region), scales = "free")+
+  ylab("Maximum temperature (C)")+ 
+  xlab("")+
+  scale_color_manual(values = c("#537380", "#81a9ad","#de9b71", "#c67b6f", "goldenrod2", "#f57946", "#516823", "#00496f", "grey60"))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+ggarrange(date_temp_region_med, date_temp_region_max, common.legend = T)
+```
+
+### Depth vs. temp by region 
+```{r, fig.height=6, fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.12 - Median depth and temperature grouped by month and region.", fig.pos = "placeHere"}
+ggplot(dat_time, aes(x = med_depth, y = med_temp))+
+  geom_point(na.rm = TRUE)+
+  theme_tq()+
+  facet_grid(rows = vars(region), cols = vars(month), scales = "free")+
+  xlab("Median depth (m)")+
+  ylab("Median temp (C)")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+## Maps with depth and temperature data {.tabset}
+### Median depth 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.13 - Median depth plotted with location data in the SCB Ecoregion", fig.pos = "placeHere"}
+
+dat_med <- dat %>%
+  filter(med_depth != "NA")
+map_depth_med <- ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -112), ylim = c(27, 40))+
+  geom_point(data=dat_med, aes(Lon,Lat,colour=med_depth), size=1)+
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  theme(legend.position = "right") +
+  facet_wrap(~month) + 
+  scale_color_viridis_c(option = "magma")
+map_depth_med
+```
+
+### Max depth 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.14 - Max depth plotted with location data in the SCB Ecoregion", fig.pos = "placeHere"}
+dat_max <- dat %>%
+  filter(max_depth != "NA")
+map_depth_max <- ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -112), ylim = c(27, 40))+
+  geom_point(data=dat_max, aes(Lon,Lat,colour=max_depth), size=1)+
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  theme(legend.position = "right") +
+  facet_wrap(~month) + 
+  scale_color_viridis_c(option = "magma")
+map_depth_max
+```
+
+### Median temp 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.15 - Median temp plotted with location data in the SCB Ecoregion", fig.pos = "placeHere"}
+dat_medT <- dat %>%
+  filter(med_temp != "NA")
+map_temp_med <- ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -112), ylim = c(27, 40))+
+  geom_point(data=dat_medT, aes(Lon,Lat,colour=med_temp), size=1)+
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  theme(legend.position = "right") +
+  facet_wrap(~month) + 
+  scale_color_viridis_c(option = "magma")
+map_temp_med
+```
+
+### Max temp 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.16 - Maximum temp plotted with location data in the SCB Ecoregion", fig.pos = "placeHere"}
+dat_maxT <- dat %>%
+  filter(max_temp != "NA")
+map_temp_max <- ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -112), ylim = c(27, 40))+
+  geom_point(data=dat_maxT, aes(Lon,Lat,colour=max_temp), size=1)+
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  theme(legend.position = "right") +
+  facet_wrap(~month) + 
+  scale_color_viridis_c(option = "magma")
+map_temp_max
+```
+
+### Min temp 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.cap = "Fig.17 - Minimum temp plotted with location data in the SCB Ecoregion", fig.pos = "placeHere"}
+dat_minT <- dat %>%
+  filter(min_temp != "NA")
+map_temp_min <- ggplot(shore, aes(long, lat)) +
+  coord_map("azequidistant", xlim = c(-125, -112), ylim = c(27, 40))+
+  geom_point(data=dat_minT, aes(Lon,Lat,colour=min_temp), size=1)+
+  geom_polygon(aes(group=group), fill="lightgrey",lwd=1) +
+  theme_tq() +
+  theme(legend.position = "right") +
+  facet_wrap(~month) + 
+  scale_color_viridis_c(option = "magma")
+map_temp_min
+```
+
+## Rchival Tag Package Figures {.tabset}
+### Depth vs. temp profile -- YOY
+```{r, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere",fig.width=10}
+
+setwd("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/images/YOY_depth_sst")
+
+img1 <- rasterGrob(as.raster(readPNG("depthsst_72812.png")), interpolate = FALSE)
+img2 <- rasterGrob(as.raster(readPNG("depthsst_77162.png")), interpolate = FALSE)
+grid.arrange(img1, img2, ncol = 2)
+```
+
+### Depth vs. temp profile -- Age Two
+```{r,fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+setwd("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/images/AgeTwo_depth_sst")
+
+img1 <-  rasterGrob(as.raster(readPNG("depthsst_61952.png")), interpolate = FALSE)
+img2 <-  rasterGrob(as.raster(readPNG("depthsst_78138.png")), interpolate = FALSE)
+img3 <-  rasterGrob(as.raster(readPNG("depthsst_78156.png")), interpolate = FALSE)
+grid.arrange(img1, img2, ncol = 2)
+grid.arrange(img3)
+```
+
+### Depth vs. temp profile -- SA
+```{r,fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+setwd("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/images/SA_depth_sst")
+
+img1 <-  rasterGrob(as.raster(readPNG("depthsst_41770.png")), interpolate = FALSE)
+img2 <-  rasterGrob(as.raster(readPNG("depthsst_41774.png")), interpolate = FALSE)
+img3 <-  rasterGrob(as.raster(readPNG("depthsst_54570.png")), interpolate = FALSE)
+img4 <-  rasterGrob(as.raster(readPNG("depthsst_54574.png")), interpolate = FALSE)
+img5 <-  rasterGrob(as.raster(readPNG("depthsst_54575.png")), interpolate = FALSE)
+img6 <-  rasterGrob(as.raster(readPNG("depthsst_61953.png")), interpolate = FALSE)
+img7 <-  rasterGrob(as.raster(readPNG("depthsst_63984.png")), interpolate = FALSE)
+img8 <-  rasterGrob(as.raster(readPNG("depthsst_68285.png")), interpolate = FALSE)
+img9 <-  rasterGrob(as.raster(readPNG("depthsst_72808.png")), interpolate = FALSE)
+img10 <-  rasterGrob(as.raster(readPNG("depthsst_72809.png")), interpolate = FALSE)
+img11 <-  rasterGrob(as.raster(readPNG("depthsst_72811.png")), interpolate = FALSE)
+img12 <-  rasterGrob(as.raster(readPNG("depthsst_72814.png")), interpolate = FALSE)
+img13 <-  rasterGrob(as.raster(readPNG("depthsst_72816.png")), interpolate = FALSE)
+img14 <-  rasterGrob(as.raster(readPNG("depthsst_77161.png")), interpolate = FALSE)
+img15 <-  rasterGrob(as.raster(readPNG("depthsst_78143.png")), interpolate = FALSE)
+img16 <-  rasterGrob(as.raster(readPNG("depthsst_78151.png")), interpolate = FALSE)
+grid.arrange(img1, img2, ncol = 2)
+grid.arrange(img3, img4, ncol = 2)
+grid.arrange(img5, img6, ncol = 2)
+grid.arrange(img7, img8, ncol = 2)
+grid.arrange(img9, img10, ncol = 2)
+grid.arrange(img11, img12, ncol = 2)
+grid.arrange(img13, img14, ncol = 2)
+grid.arrange(img15, img16, ncol = 2)
+```
+
+### Depth vs. temp profile -- Adult
+```{r,fig.width = 10, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere", fig.show = 'hold'}
+setwd("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/images/A_depth_sst")
+
+img1 <-  rasterGrob(as.raster(readPNG("depthsst_60646.png")), interpolate = FALSE)
+img2 <-  rasterGrob(as.raster(readPNG("depthsst_72813.png")), interpolate = FALSE)
+img3 <-  rasterGrob(as.raster(readPNG("depthsst_78155.png")), interpolate = FALSE)
+grid.arrange(img1, img2, ncol = 2)
+grid.arrange(img3)
+```
+
+## Static and dynamic environmental factors data exploration {.tabset}
+```{r, include = FALSE}
+#load and format enviro data for the sst, mld, and do figures 
+
+  #where I extracted all the enviro data to from the points_enviro_viz script
+loc_enviro <- read.csv("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/loc_enviro.csv")
+
+  #the csv file with the presence, age class, and sex data 
+loc_dat <- read.csv("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/tdl.csv")
+
+  #format the presence csv file
+loc_dat <- loc_dat %>%
+  mutate(ptt = as.factor(ptt),
+         Sex = as.factor(Sex),
+         posix = as.POSIXct(strptime(posix, format = "%m/%d/%Y %H:%M")), 
+         time = substr(posix, 11, 18),
+         hour = hour(posix),
+         date = substr(posix, 1, 10),
+         month = str_pad(month, 2, pad = "0"),
+         day = str_pad(day, 2, pad = "0"),
+         mo_day = paste0(month,day), 
+         mo_day = as.numeric(mo_day), 
+         year = as.factor(year),
+         depth_neg = med_depth*-1,
+         age_class = as.factor(age_class), 
+         ID = as.factor(ID), 
+         region = as.factor(region)) %>%
+  filter(med_depth < 120, 
+         max_depth < 1000, 
+         avg_depth < 120) %>%
+  rename(sex = Sex)
+
+loc_dat$age_class <- factor(loc_dat$age_class, levels = c("Adult", "SA", "Age-2", "YOY"))
+loc_dat$yr_mo <- loc_enviro$yr_mo
+loc_dat$season <- loc_enviro$season
+loc_dat$sst <- loc_enviro$sst
+loc_dat$mld <- loc_enviro$mld
+loc_dat$DO100 <- loc_enviro$DO100
+loc_dat$DO500 <- loc_enviro$DO500
+loc_dat$bathy <- loc_enviro$bathy
+
+#loads the lowres bathy data to create maps with from GEBCO
+df_bathy <- get(load("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/bathy/df_bathy.RData"))
+
+#loads the sst data to create maps with from CMEMS
+df_sst <- get(load("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/phys_vars/df_sst.RData"))
+
+#loads the mld data to create maps with from CMEMS
+df_mld <- get(load("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/phys_vars/df_mld.RData"))
+
+#loads the DO100 data to create maps with from CMEMS
+df_do100 <- get(load("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/biol_vars/df_do100.RData"))
+
+#loads the DO500 data to create maps with from CMEMS
+df_do500 <- get(load("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/biol_vars/df_do500.RData"))
+```
+
+### Bathymetry 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+#get enough colors for figure
+mycolors <- c("#08306B","#023858", "#034B76", "#0B559F", "#045D92","#0469A6","#1379B4","#2F8BBD","#6BAED6", "#509AC6","#74A9CF","#88BEDC", "#90B4D5","#ACBFDC","#C4CBE2" )
+
+#plot map of bathy
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim=c(-126, -110), ylim=c(25,39)) +
+  geom_polygon(aes(group=group), fill="grey60",lwd=1) +
+  geom_contour_filled(data=df_bathy, 
+                      aes(x,y,z=Elevation.relative.to.sea.level)) +#breaks=seq(0,1,by=0.2)
+  scale_fill_manual(values = mycolors)+
+  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "goldenrod", shape = 1, alpha = 0.8)+
+  theme_tq()+
+  theme(legend.position = "right")+
+  guides(fill=guide_legend(title="Bathymetry (m)"))
+
+##histo of bathy by age class 
+ggplot(loc_dat, aes(x = bathy))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~age_class, scales = "free")+
+  xlab("Bathymetry (m)")
+
+  ##histo of bathy be region
+ggplot(loc_dat, aes(x = bathy))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("Bathymetry (m)")
+
+##histo of bathy by season
+loc_dat %>%
+  filter(season != "Spring") %>%
+  ggplot(aes(x = bathy))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~season, scales = "free")+
+  xlab("Bathymetry (m)")
+```
+
+### SST
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+#plot map w/ tracks limited to the SCB
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim=c(-125, -109), ylim=c(26,38)) +
+  geom_polygon(aes(group=group), fill="grey60",lwd=1) +
+  geom_contour_filled(data=df_sst, 
+                      aes(longitude,latitude,z=thetao), alpha = 0.7) +#breaks=seq(0,1,by=0.2)
+  scale_fill_manual(values = rev(brewer.pal(9, "RdYlBu")))+
+  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "black", shape = 1)+
+  theme_tq()+
+  theme(legend.position = "right")
+
+#histos by age class
+ggplot(loc_dat, aes(x = sst))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~age_class, scales = "free")+
+  xlab("SST (C)")
+
+#histos by region 
+ggplot(loc_dat, aes(x = sst))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("SST (C)")
+
+#histos by season -- spring removed because not enough data for histo
+loc_dat %>%
+  filter(season != "Spring") %>%
+  ggplot(aes(x = sst))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~season, scales = "free")+
+  xlab("SST (C)")
+```
+
+### MLD 
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim=c(-125, -109), ylim=c(26,38)) +
+  geom_polygon(aes(group=group), fill="grey60",lwd=1) +
+  geom_contour_filled(data=df_mld, 
+                      aes(longitude,latitude,z=mlotst), alpha = 0.7) +#breaks=seq(0,1,by=0.2)
+  scale_fill_manual(values = c("#C4CBE2","#90B4D5","#6BAED6", "#0469A6","#034B76","#023858", "#08306B")) +
+  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "gold", shape = 1)+
+  theme_tq()+
+  theme(legend.position = "right")
+
+#histos by age class
+ggplot(loc_dat, aes(x = mld))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~age_class, scales = "free")+
+  xlab("MLD (m)")
+
+#histos by region 
+ggplot(loc_dat, aes(x = mld))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("MLD (m)")
+
+#histos by season -- spring removed because not enough data for histo
+loc_dat %>%
+  filter(season != "Spring") %>%
+  ggplot(aes(x = mld))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~season, scales = "free")+
+  xlab("MLD (m)")
+```
+
+### DO at 100m
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+#map of tracks over DO values at 100m depth
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim=c(-125, -109), ylim=c(26,38)) +
+  geom_polygon(aes(group=group), fill="grey60",lwd=1) +
+  geom_contour_filled(data=df_do100, 
+                      aes(longitude,latitude,z=o2), alpha = 0.7) +#breaks=seq(0,1,by=0.2)
+  scale_fill_manual(values = c("#08306B","#023858", "#034B76", "#0B559F", "#045D92","#0469A6","#1379B4","#2F8BBD","#6BAED6", "#509AC6","#74A9CF","#88BEDC", "#90B4D5","#ACBFDC","#C4CBE2")) +
+  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "gold", shape = 1)+
+  facet_wrap(~age_class)+
+  theme_tq()+
+  theme(legend.position = "right")+
+  guides(fill=guide_legend(title="DO at 100m (mmol/m^3)"))
+  
+
+#histos by age class
+ggplot(loc_dat, aes(x = DO100))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~age_class, scales = "free")+
+  xlab("DO at 100m (mmol/m^3)")
+
+#histos by region 
+ggplot(loc_dat, aes(x = DO100))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("DO at 100m (mmol/m^3)")
+
+#histos by season -- spring removed because not enough data for histo
+loc_dat %>%
+  filter(season != "Spring") %>%
+  ggplot(aes(x = DO100))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~season, scales = "free")+
+  xlab("DO at 100m (mmol/m^3)")
+```
+
+### DO at 500m
+```{r, fig.height=7, fig.width = 9, fig.align = 'center', echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "placeHere"}
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim=c(-125, -109), ylim=c(26,38)) +
+  geom_polygon(aes(group=group), fill="grey60",lwd=1) +
+  geom_contour_filled(data=df_do500, 
+                      aes(longitude,latitude,z=o2), alpha = 0.7) +#breaks=seq(0,1,by=0.2)
+  scale_fill_manual(values = c("#08306B","#023858", "#034B76", "#0B559F", "#045D92","#0469A6","#1379B4","#2F8BBD","#6BAED6", "#509AC6","#74A9CF","#88BEDC", "#90B4D5","#ACBFDC","#C4CBE2")) +
+  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "gold", shape = 1)+
+  facet_wrap(~age_class)+
+  theme_tq()+
+  theme(legend.position = "right")+
+  guides(fill=guide_legend(title="DO at 500m (mmol/m^3)"))
+
+#histos by age class
+ggplot(loc_dat, aes(x = DO500))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~age_class, scales = "free")+
+  xlab("DO at 500m (mmol/m^3)")
+
+#histos by region 
+ggplot(loc_dat, aes(x = DO500))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~region, scales = "free")+
+  xlab("DO at 500m (mmol/m^3)")
+
+#histos by season -- spring removed because not enough data for histo
+loc_dat %>%
+  filter(season != "Spring") %>%
+  ggplot(aes(x = DO500))+
+  geom_histogram(fill = "grey", color = "black", bins = 10)+
+  theme_tq()+
+  facet_wrap(~season, scales = "free")+
+  xlab("DO at 500m (mmol/m^3)")
+
+```

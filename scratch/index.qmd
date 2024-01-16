@@ -1,0 +1,197 @@
+---
+title: "aniMotum SSM and PA generation"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| label: Load libraries
+#| include: false
+
+library(tidyverse)
+library(tidyquant)
+library(aniMotum)
+library(sf)
+library(here)
+library(tmvtnorm)
+library(terra)
+
+```
+
+## Raw mako tracks for all sharks
+
+Here is a preview of the imported data that is used to develop the SSM using the aniMotum package. The original csv file was modified to fit the requirements of the imported data for the `fit_ssm()` function to run (renamed column headers, added a location quality column which is just an arbitrary value, and changed the dates to POSIX)
+
+```{r}
+#| message: false 
+#| label: import data and modift for aniMotum 
+
+loc_dat <- read.csv(here("data/presence_locs/tdl.csv"))
+
+ssm_dat <- loc_dat %>% 
+  select(id = "ptt", date ="posix", lat = "Lat",lon = "Lon") %>%
+  mutate(lc = "G", 
+         date = as.POSIXct(strptime(date, format = "%Y-%m-%d")))
+
+head(ssm_dat)
+
+```
+
+## Fit SSM
+
+I selected a CRW approach for the sharks. When first exploring SSM development, I compared the RW and CRW results, and after visually inspected the maps, diagnostic plots, and residuals, concluded that the CRW model was a better approach. I chose a time step of 24 hours.
+
+```{r}
+#| message: false 
+#| warning: false
+#| results: 'hide'
+#| label: fit ssm
+
+ssm_crw <- fit_ssm(ssm_dat, model = "crw", time.step = 24, vmax = 4) 
+
+```
+
+I then cropped the SSM locations to the ROMS domain bounding box.
+
+```{r}
+#| message: false 
+#| label: crop ssm
+
+for (i in 1:23) {
+  pred_deg <- st_transform(ssm_crw$ssm[[i]]$predicted$geometry, crs = st_crs("+proj=longlat +datum=WGS84 "))
+  pred_filt <- st_crop(pred_deg, xmin=-134, xmax=-110, ymin=30, ymax=48)
+  filt_merc <- st_transform(pred_filt, crs = st_crs("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs "))
+
+  ssm_crw$ssm[[i]]$predicted <- dplyr::filter(ssm_crw$ssm[[i]]$predicted, geometry %in% filt_merc)
+  
+}
+
+```
+
+Here is a map of the fitted data and the cropped predicted locations.
+
+```{r}
+#| message: false 
+#| warning: false
+#| label: plot ssm (fitted and crop)
+
+aniMotum::map(ssm_crw, what = "f")|aniMotum::map(ssm_crw, what = "p")
+
+```
+
+## Distance gradient for `sim_fit()` and pseudo-absence generation
+
+Now that I have my SSM locations bound by the ROMS domain (see min and max values in crop code chunk), I went to develop the distance gradient that would be supplied to the `grad` argument in the `sim_fit()` function for pseudo-absence generation. To develop the distance gradient, I first created a bounding box for the ROMS domain.
+
+```{r}
+#| message: false 
+#| label: bounding box
+
+ylims <- c(30, 48)
+xlims <- c(-134, -110)
+box_coords <- tibble(x = xlims, y = ylims) %>% 
+  st_as_sf(coords = c("x", "y")) %>% 
+  st_set_crs(st_crs(4326))
+
+bounding_box <- st_bbox(box_coords) %>% st_as_sfc()
+
+```
+
+I then read in a shape file for land masses that I would use to crop the bounding box so that the rectangle would exclude land within the ROMS domain.
+
+```{r}
+#| message: false 
+#| label: land
+
+land_vect <- read_sf(here("data/enviro/continents_shp/World_Continents.shp"))
+
+#crop world continents file to zoom into the ROMS domain region
+land_subset <- st_intersection(land_vect, bounding_box)
+
+#only keep the difference between land and the bounding box to have a region that just corresponds to the marine area (or area of interest from the ROMS domain)
+grad_poly <- st_difference(bounding_box, land_subset)
+mapview::mapview(grad_poly)
+```
+
+I then converted the marine ROMS domain polygon generated from the previous code chunk to a spatVector, the preferred file format when using the `distance()` function. I also created a raster of an area that is three times as large as the true domain that I have ROMS data for.
+
+```{r}
+#| message: false 
+#| label: gradient polygon to spatVector 
+
+#convert to spatVector
+df <- data.frame(id = seq(length(grad_poly)))
+df$geometry <- grad_poly
+grad_sf <- st_as_sf(df)
+
+grad_spatVect <- vect(grad_poly)
+
+#large area raster
+ROMS_large_rast <- rast(
+  crs = 'EPSG:4326',
+  extent = ext(-146, -110, 24, 54), 
+  resolution = 0.25,
+)
+
+```
+
+I then calculated the distance gradient of all cells in the large ROMS raster to the marine ROMS polygon. Prior to plotting, I squared these distance values so they became exponentially larger the farther we move away from the marine ROMS polygon.
+
+```{r}
+#| message: false 
+#| label: calculate distance
+
+dist_grad <- distance(ROMS_large_rast, grad_spatVect, unit = "km", rasterize = TRUE)
+dist_grad2 <- dist_grad^2
+plot(dist_grad2)
+
+```
+
+## Supplying the distance gradient to `sim_fit()`
+
+The `grad` argument in `sim_fit()` requires that the gradient file is a 2 layer spatRaster (one layer is for distances along the x plane, and the second layer is for distances along the y plane). As the distance I calculated in the distance gradient file are diagonal, I thought an easy solution would be to copy this gradient as each of my spatRaster layers. I also re-projected my distance gradient to align with the SSM CRS.
+
+```{r}
+#| message: false 
+#| label: modify distance grad for sim_fit()
+
+dist_grad3 <- dist_grad2
+dist_grad4 <- c(dist_grad2, dist_grad3)
+
+grad_merc <- project(dist_grad4, crs("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs"))
+```
+
+The CRS of the predicted SSM for the sharks is here. This is pulled from the first shark, but would be the same for all animals.
+
+```{r}
+#| message: false 
+#| label: ssm crs 
+
+ st_crs(ssm_crw$ssm[[1]]$predicted$geometry)
+```
+
+I then attempt to use the re-projected distance gradient and simulate my tracks within the marine ROMS domain. This is just for the first animal with 50 reps to make things easier when testing the use of the new gradient document.
+
+```{r}
+#| label: PA generation 
+
+#pa_crw <- sim_fit(ssm_crw[1,], what = "predicted", grad = grad_merc, beta = c(-300, -300), reps = 50)
+
+#running the above causes this error: Error in if (mu[2] < y_rng[1]) { : missing value where TRUE/FALSE needed
+```
+
+However, this has consistently triggered the above error. The section of code from the `sim_fit()` function can be found [here on the sim_fit script from the aniMotum GitHub page](https://github.com/ianjonsen/aniMotum/blob/80654ab968ce7306af219dd16521d9bfbfdc3fe9/R/sim_fit.R) in the reflect_y helper function described on lines 115-121 and when it is called in the sim_fit() function on lines 202 and 255. Originally, I thought this was because SSM locations were outside of the gradient file I was supplying, which is why I went back and cropped the values, but this is still triggering the same error. What ends up causing the function to break, is happening on line 257 when pv is being calculated, from the mu1 that is created using the reflect_y helper function on line 255. For instances where the function breaks, I am getting mu1 values that are irregular relative to the other mu1 values from other locations and the calculated pv is NA. I identified this by downloading the script and adding print statements for each iteration.
+
+Thank you so much for helping me work out this error!
+
+Emily
