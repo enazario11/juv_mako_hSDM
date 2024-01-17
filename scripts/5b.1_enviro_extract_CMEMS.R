@@ -127,15 +127,22 @@ xtracto_cmem = function(input_file, nc_file){
   input_file <- getvarCMEM(nc_file, "o2", input_file, 0.25, mean, "mean")
 }
 
-all_dat_cmem <- xtracto_cmem(input_file[1:6619,], cmem_nc0)
-all_dat_cmem_0m <- all_dat_cmem
-saveRDS(all_dat_cmem_0m, here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
-head(all_dat_cmem)
+all_dat_cmem_0m <- xtracto_cmem(input_file, cmem_nc0)
+
+#combine with bathy above
+
+all_cmem_covar_0m <- cbind(all_dat_cmem_0m, all_dat_bathy_cmem$bathy, all_dat_bathy_cmem$bathy_sd)
+all_cmem_covar_0m <- all_cmem_covar_0m %>% 
+  rename("bathy" = "all_dat_bathy_cmem$bathy", 
+         "bathy_sd" = "all_dat_bathy_cmem$bathy_sd")
+
+saveRDS(all_cmem_covar_0m, here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
+head(all_cmem_covar_0m)
 
     #explore
-ggplot(all_dat_cmem_0m, aes(o2_mean)) + geom_histogram(bins = 30, color = "grey") + facet_wrap(~PA, scales = "free") + theme_bw()
+ggplot(all_cmem_covar_0m, aes(o2_mean)) + geom_histogram(bins = 30, color = "grey") + facet_wrap(~PA, scales = "free") + theme_bw()
 
-cmem_0m_long <- gather(all_dat_cmem_0m, covar, value, thetao_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+cmem_0m_long <- gather(all_cmem_covar_0m, covar, value, thetao_mean:bathy_sd) %>% mutate(PA = as.factor(PA))
 
 ggplot(cmem_0m_long, aes(x = value, fill = PA)) + 
   geom_density(alpha = 0.5) + 
@@ -143,7 +150,7 @@ ggplot(cmem_0m_long, aes(x = value, fill = PA)) +
   theme_bw()+
   scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
 
-all_dat_cmem_0m %>% 
+all_cmem_covar_0m %>% 
   group_by(PA) %>% 
   summarise(mean_sst = mean(thetao_mean, na.rm = TRUE), 
             mean_sal = mean(so_mean, na.rm = TRUE), 

@@ -9,7 +9,7 @@ library(here)
 #create template raster to resample to -- all on same grid and resolution
 template_rast <- rast(
     crs = 'EPSG:4326',
-    extent = ext(-140.5, -109.5, 9.5, 50.5), #cmems domain
+    extent = ext(-153, -100, -3, 55), #cmems domain
     resolution = 0.25
   )
 
