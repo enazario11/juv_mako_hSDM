@@ -42,6 +42,36 @@ Lastly, for each collection of a shark's observed positions, there are 32 replic
 ## CMEM figures
 
 ::: panel-tabset
+### Map of obsv. positions
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 9
+
+#define map for figure
+north_map = map_data("world") %>% group_by(group)
+shore     = north_map[north_map$region=="Canada" 
+                      | north_map$region=="USA"
+                      | north_map$region=="Mexico",]
+
+cmem_dat2 <- cmem_dat %>% filter(PA == 0)
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim = c(-140, -110), ylim = c(10, 50))+
+  geom_point(data=cmem_dat2, aes(lon, lat, colour=as.factor(tag))) +
+  geom_polygon(aes(group=group), fill="grey60",lwd=1) +
+  scale_color_manual(values = met.brewer("Hokusai2", 23))+
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        legend.margin=margin(0,0,0,0))
+
+```
+
 ### Density
 
 ```{r}
@@ -324,6 +354,8 @@ cmem_dat %>%
 ## ROMS figures
 
 ::: panel-tabset
+### Map of obsv. positions
+
 ### Density
 
 ### Boxplots
@@ -348,28 +380,373 @@ cmem_dat %>%
 :::
 
 ## Select shark analyses
-
-::: panel-tabset
-### CMEM
-
-include how covar values change over time or latitude or longitude (scatter plot?) as it travels through its track
-
+I randomly selected three tag IDs to include for this next analysis.
 ```{r}
 set.seed(1004)
 sample(1:23, 3) #randomly select 3 sharks: 11, 22, and 1
 
+#filter to only keep the tag IDs of the above three sharks.
+cmem_dat_sub <- cmem_dat %>% filter(tag == "41770" | tag == "68285" | tag == "78151")
+cmem_obsv_sub <- cmem_dat_sub %>% filter(PA == 0)
+```
+
+I then randomly select which repetition number I want to include as a representative for this series of analyses. I am left with a subset of the data which will be used for the Select Shark Analyses portion of this document.
+```{r}
+sample(1:32, 1) 
+cmem_rep_sub = NULL
+for(i in 1:length(unique(cmem_dat_sub$tag))){
+  curr_ID <- unique(cmem_dat_sub$tag)[i]
+  temp_df <- cmem_dat_sub[cmem_dat_sub$tag %in% curr_ID,]
+  temp_df <- temp_df %>% group_by(rep)
+  
+  curr_rep <- unique(temp_df$rep)[13] #number randomly selected above
+  temp_df2 <- temp_df[temp_df$rep %in% curr_rep,]
+  
+  cmem_rep_sub <- rbind(cmem_rep_sub, temp_df2)
+}
+
+cmem_dat_sub2 <- rbind(cmem_obsv_sub, cmem_rep_sub)
+```
+
+### CMEM DO
+These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
+
+::: panel-tabset
+#### track values vs. space/time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 10
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim = c(-140, -110), ylim = c(10, 50))+
+  geom_point(data = cmem_dat_sub2, aes(lon, lat, colour = o2_mean), size = 2) +
+  geom_polygon(aes(group = group), fill = "grey60",lwd = 1) +
+  facet_grid(tag~PA)+
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        legend.margin=margin(0,0,0,0))
+
 
 ```
 
-### ROMS
+#### track values vs. time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = dt, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))+
+  xlab("")
+
+```
+
+#### track values vs. lat
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = lat, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))
+
+```
+
+#### track values vs. lon
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = lon, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))
+
+```
+:::
+
+### CMEM Temp.
+These figures track how temp. changes through a shark's track for both its observed positions ('0') and PA positions ('1').
+
+::: panel-tabset
+#### track values vs. space/time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 10
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim = c(-140, -110), ylim = c(10, 50))+
+  geom_point(data = cmem_dat_sub2, aes(lon, lat, colour = thetao_mean), size = 2) +
+  geom_polygon(aes(group = group), fill = "grey60",lwd = 1) +
+  facet_grid(tag~PA)+
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        legend.margin=margin(0,0,0,0))
+
+
+```
+
+#### track values vs. time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = dt, y = thetao_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))+
+  xlab("")
+
+```
+
+#### track values vs. lat
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = lat, y = thetao_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))
+
+```
+
+#### track values vs. lon
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = lon, y = thetao_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))
+
+```
+:::
+
+### ROMS DO
+These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
+
+::: panel-tabset
+#### track values vs. space/time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 10
+
+
+
+```
+
+#### track values vs. time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
+
+#### track values vs. lat
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
+
+#### track values vs. lon
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
+:::
+
+### ROMS Temp.
+These figures track how temp. changes through a shark's track for both its observed positions ('0') and PA positions ('1').
+
+::: panel-tabset
+#### track values vs. space/time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 10
+
+
+
+```
+
+#### track values vs. time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
+
+#### track values vs. lat
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
+
+#### track values vs. lon
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
 :::
 
 ## Maps
 
-Plot values over space for a few representative dates for sanity check of mapped values
+Plot DO and temp. values over space for a few representative dates for sanity check of mapped values. Randomly selected three days (day)
 
-::: panel-tabset
 ### CMEM
 
+::: panel-tabset
+#### DO (mmol/L)
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+set.seed(1004)
+#sample(1:2192, 3) #gives the date layers selected below
+cmem_rast <- rast(here("data/enviro/CMEMS/processed/CMEM_SST_SAL_MLD_SSH_UO_VO_CHL_NPP_DO_0m_Jan2004_Dec2009_0.25_D.nc"))
+
+plot(cmem_rast$o2_1419)
+plot(cmem_rast$o2_1878)
+plot(cmem_rast$o2_52)
+```
+
+#### Temp.(*C)
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+plot(cmem_rast$thetao_1419)
+plot(cmem_rast$thetao_1878)
+plot(cmem_rast$thetao_52)
+
+```
+
+#### Bathy (m)
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+bathy_rast <- rast(here("data/enviro/bathy/processed/gebco_bathy_cmems_domain.nc"))
+plot(bathy_rast)
+```
+:::
+
 ### ROMS
+
+::: panel-tabset
+#### DO
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+```
+
+#### Temp.
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+
+
+```
 :::
