@@ -1,0 +1,375 @@
+---
+title: "Mako hSDM covariate explore (ROMS and CMEM domains)"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(here)
+library(terra)
+library(tidyquant)
+library(MetBrewer)
+library(tidyquant)
+
+cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
+
+theme_set(theme_tq() +
+  theme(strip.text = element_text(size = 16), 
+        axis.text = element_text(size = 14, color = "black"), 
+        axis.title = element_text(size = 16), 
+        legend.text = element_text(size = 16)))
+
+```
+
+For each of the figures below, I have visualized what the covariate values are for the CRW PA positions and observed positions. Some values were extracted using the ROMS data, and thus limiting the position range to this domain. I have also explored the covariate values using the full range of the available positions using covariate files from Copernicus (CMEM). Please note that the lists of covariates selected for each data source do vary depending on what was recommended and available.
+
+The covariate values explored on this page are all from the surface, and thus depth is not yet considered in this analysis.
+
+Lastly, for each collection of a shark's observed positions, there are 32 replicate PA CRW tracks for the CMEM domain and 16 replicate tracks for the ROMS domain.
+
+# Covariate summary plots for all sharks
+
+## CMEM figures
+
+::: panel-tabset
+### Density
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 8
+
+cmem_0m_long <- gather(cmem_dat, covar, value, thetao_mean:bathy_sd) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_0m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.35) + 
+  facet_wrap(~covar, scales = "free") + 
+  scale_fill_manual(values = c("#ABC9C8", "#0E3F61"))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Boxplots
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 10
+
+ggplot(cmem_0m_long, aes(x = PA, y = value, fill = PA)) + 
+  geom_boxplot() + 
+  facet_wrap(~covar, scales = "free")+ 
+  scale_fill_manual(values = c("#ABC9C8", "#0E3F61"))
+```
+
+### Time vs. covar scatter
+
+The figures below only represent covariate values for observed positions. PA positions were omitted from this analysis due to the quantity.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 10
+
+cmem_0m_long %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = dt, y = value, color = covar)) + 
+  geom_point(alpha = 0.2) +
+  geom_smooth(color = "grey20", se = FALSE)+
+  facet_wrap(~covar, scales = "free") + 
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 11))+
+  xlab("")
+```
+:::
+
+### Covar vs. covar scatter
+
+Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
+
+Still need to do: DO vs. AGI, Temp vs. AGI, lat vs. AGI, lon vs. AGI,
+
+::: panel-tabset
+#### Temp vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### DO vs. MLD
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = o2_mean, y = mlotst_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lat vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lon vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lon, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Bathy vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = bathy, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lat vs. Bathy
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = bathy, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lon vs. Bathy
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lon, y = bathy, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lat vs. Temp
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = thetao_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lat vs. Temp vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = thetao_mean, color = o2_mean)) + 
+  geom_point(alpha = 0.3)+
+  theme(legend.position = "right")
+```
+
+#### Lon vs. Temp vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lon, y = thetao_mean, color = o2_mean)) + 
+  geom_point(alpha = 0.3)+
+  theme(legend.position = "right")
+```
+
+#### Temp vs. MLD
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = mlotst_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lat vs. MLD
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = mlotst_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+:::
+
+## ROMS figures
+
+::: panel-tabset
+### Density
+
+### Boxplots
+
+### Time vs. covar value scatter
+:::
+
+### Covar vs. covar scatter
+
+::: panel-tabset
+#### Temp vs. DO
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+
+#null 4 now
+```
+:::
+
+## Select shark analyses
+
+::: panel-tabset
+### CMEM
+
+include how covar values change over time or latitude or longitude (scatter plot?) as it travels through its track
+
+```{r}
+set.seed(1004)
+sample(1:23, 3) #randomly select 3 sharks: 11, 22, and 1
+
+
+```
+
+### ROMS
+:::
+
+## Maps
+
+Plot values over space for a few representative dates for sanity check of mapped values
+
+::: panel-tabset
+### CMEM
+
+### ROMS
+:::

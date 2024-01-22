@@ -8,6 +8,10 @@ library(ncdf4)
 library(here)
 library(raster)
 
+#load ROMSextract, CMEMextract, and pseudo depth functions
+source(here("functions/enviro_extract_functions.R"))
+
+set.seed(1004)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #load the data ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -44,9 +48,9 @@ hist(dat_dep$max_depth) #peaks at 150m and tapers until about 400m
 hist(dat_dep$avg_depth) #peaks at 30m and tapers until about 150m
 dat_loc_dep %>% group_by(id) %>% summarise(totals = sum(!is.na(max_depth))) %>% print(n = 25)
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #join locs and PAs together####
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 dat_locs_comb <- dat_locs %>% 
   subset(select = -c(geometry))
 names(dat_locs_comb) <- c("tag", "date", "lon", "lat", "PA", "rep")
@@ -57,9 +61,6 @@ names(pa_locs_comb) <- c("tag", "rep", "date", "lon", "lat", "PA")
 pa_locs_comb <- pa_locs_comb[, c(1, 3, 4, 5, 6, 2)]
 
 all_locs <- rbind(dat_locs_comb, pa_locs_comb)
-
-#load ROMSextract function
-source(here("functions/enviro_extract_functions.R"))
 
 #set loc df for extraction
     #locs
@@ -160,60 +161,64 @@ all_cmem_covar_0m %>%
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # by depth layer extract ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#generate pseudo dive depth data for PA locations 
-get_pseudo_depths <- function(input_depths, dat_PA){
-  #create hist
-  x = input_depths
-  samplesize = nrow(dat_PA)
-  hist_med = hist(x$med_depth, freq = FALSE)
-  hist_mean = hist(x$avg_depth, freq = FALSE)
-  hist_max = hist(x$max_depth, freq = FALSE)
-  
-  #median hist samples
-    #choose a bin
-  bins_med = with(hist_med, sample(length(mids), samplesize, replace = TRUE, p = density))
-  # sample a uniform in it
-  result_med = runif(length(bins_med),hist_med$breaks[bins_med],hist_med$breaks[bins_med+1]) 
-  dat_PA$med_depth_PA <- result_med
-  
-  #mean hist samples
-    #choose a bin
-  bins_mean = with(hist_mean, sample(length(mids), samplesize, replace = TRUE, p = density))
-    # sample a uniform in it
-  result_mean = runif(length(bins_mean),hist_mean$breaks[bins_mean],hist_mean$breaks[bins_mean+1]) 
-  dat_PA$mean_depth_PA <- result_mean
-  
-  #max hist samples
-    #choose a bin
-  bins_max = with(hist_max, sample(length(mids), samplesize, replace = TRUE, p = density))
-    # sample a uniform in it
-  result_max = runif(length(bins_max),hist_max$breaks[bins_max],hist_max$breaks[bins_max+1]) 
-  dat_PA$max_depth_PA <- result_max
-  
-  return(dat_PA)
-  
-}
-
-
+#for each shark, simulate depth data from their dive depth histograms
+input_depths = dat_loc_dep
+pa_loc_dep = NULL
 for(i in 1:length(unique(pa_locs$id))){
-  #subset dive depth DF for just rows with that id (dat_dep)
-  #subset PA DF for just rows with that id (dat_PA)
-  #save steps one and two as new DFs that will be used as inputs for function
-  pa_locs_dep <- get_pseudo_depths(input_depths, PA_locs)
+  curr_ID <- unique(pa_locs$id)[i]
+  temp_df <- pa_locs[pa_locs$id %in% curr_ID,]
+  PA_locs = temp_df
   
+  #save steps one and two as new DFs that will be used as inputs for function
+  temp_pa <- get_pseudo_depths(input_depths, PA_locs)
+  pa_loc_dep = rbind(pa_loc_dep, temp_pa)
 }
 
-#wil need to filter each shark and depth layer combo so the PAs and locs have a 1:1 ratio. Will also need to filter to observed sharks so there are no NAs.
+head(pa_loc_dep)
 
+#clean dat and pa depth DFs to match 
+dat_loc_dep2 <- dat_loc_dep %>%
+  subset(select = -c(geometry, dep_id)) %>%
+  filter(med_depth != "NA" | max_depth != "NA" | avg_depth != "NA")
+pa_loc_dep2 <- pa_loc_dep %>%
+  subset(select = -c(model, x, y, domain))
+
+#For each shark depth bin combo, filter the PAs so there is a 1:1 ratio
+#### think of how I will do.....
+
+
+
+#rather than setting bins to extract, have depths pair to nearest number from my sequence of depth layers (0:250 every 50m)
 
 ##### SCRATCH #######
 
-#add depth range column -- consider making 400m the maximum depth we create a layer for
+
+
+#set bins
+#observed data
 dat_loc_dep <- dat_loc_dep %>% 
-  mutate(dep_layer = ifelse(max_depth <= 10, "0", ifelse(max_depth > 10 & max_depth <=50, "50", ifelse(max_depth > 50 & max_depth <= 150, "150", ifelse(max_depth > 150 & max_depth <= 250, "250", ifelse(max_depth > 250, "250+", "NA"))))))
-dat_loc_dep %>% group_by(id, dep_layer) %>% summarise(totals = sum(!is.na(max_depth))) %>% print(n = 25)
+  mutate(max_dep_layer = ifelse(max_depth > 0 & max_depth <=50, "50", 
+                                ifelse(max_depth > 50 & max_depth <= 100, "100",
+                                       ifelse(max_depth > 100 & max_depth <= 150, "150", 
+                                              ifelse(max_depth > 150 & max_depth <= 250, "250", 
+                                                     ifelse(max_depth > 250, "250+", "NA"))))), 
+         mean_dep_layer = ifelse(max_depth > 0 & max_depth <=50, "50", 
+                                 ifelse(max_depth > 50 & max_depth <= 100, "100",
+                                        ifelse(max_depth > 100 & max_depth <= 150, "150", 
+                                               ifelse(max_depth > 150 & max_depth <= 250, "250", 
+                                                      ifelse(max_depth > 250, "250+", "NA"))))))
 
+dat_loc_dep %>% group_by(max_dep_layer) %>% summarise(totals = sum(!is.na(max_depth)))
 
+#PA data
+pa_locs_dep <- pa_locs_dep %>% 
+  mutate(max_dep_layer = ifelse(max_depth <= 10, "0", 
+                                ifelse(max_depth > 10 & max_depth <=50, "50", 
+                                       ifelse(max_depth > 50 & max_depth <= 150, "150", 
+                                              ifelse(max_depth > 150 & max_depth <= 250, "250", 
+                                                     ifelse(max_depth > 250, "250+", "NA"))))))
+
+pa_locs_dep %>% group_by(id, dep_layer) %>% summarise(totals = sum(!is.na(max_depth))) %>% print(n = 25)
 
 
 

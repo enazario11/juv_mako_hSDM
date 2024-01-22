@@ -123,5 +123,38 @@ getBathy <- function(nc,inpts,bathy_inpt,desired.resolution){
 }
 
 
+#generate pseudo dive depth data for PA locations 
+get_pseudo_depths <- function(input_depths, dat_PA){
+  #create hist
+  x = input_depths
+  samplesize = nrow(dat_PA)
+  hist_med = hist(x$med_depth, freq = FALSE)
+  hist_mean = hist(x$avg_depth, freq = FALSE)
+  hist_max = hist(x$max_depth, freq = FALSE)
+  
+  #median hist samples
+  #choose a bin
+  bins_med = with(hist_med, sample(length(mids), samplesize, replace = TRUE, p = density))
+  # sample a uniform in it
+  result_med = runif(length(bins_med),hist_med$breaks[bins_med],hist_med$breaks[bins_med+1]) 
+  dat_PA$med_depth_PA <- result_med
+  
+  #mean hist samples
+  #choose a bin
+  bins_mean = with(hist_mean, sample(length(mids), samplesize, replace = TRUE, p = density))
+  # sample a uniform in it
+  result_mean = runif(length(bins_mean),hist_mean$breaks[bins_mean],hist_mean$breaks[bins_mean+1]) 
+  dat_PA$mean_depth_PA <- result_mean
+  
+  #max hist samples
+  #choose a bin
+  bins_max = with(hist_max, sample(length(mids), samplesize, replace = TRUE, p = density))
+  # sample a uniform in it
+  result_max = runif(length(bins_max),hist_max$breaks[bins_max],hist_max$breaks[bins_max+1]) 
+  dat_PA$max_depth_PA <- result_max
+  
+  return(dat_PA)
+  
+}
 
 
