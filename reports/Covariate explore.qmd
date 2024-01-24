@@ -21,7 +21,8 @@ library(tidyquant)
 library(MetBrewer)
 library(tidyquant)
 
-cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
+cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGI_0m.rds"))
+cmem_dat <- cmem_dat %>% rename("pO2_0_atm" = "pO2_0") #removes oxy (atm) col. Was needed to calc AGI
 
 theme_set(theme_tq() +
   theme(strip.text = element_text(size = 16), 
@@ -78,10 +79,10 @@ ggplot(shore, aes(long, lat)) +
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-width: 10
-#| fig-height: 8
+#| fig-width: 12
+#| fig-height: 12
 
-cmem_0m_long <- gather(cmem_dat, covar, value, thetao_mean:bathy_sd) %>% mutate(PA = as.factor(PA))
+cmem_0m_long <- gather(cmem_dat, covar, value, thetao_mean:AGI_0m) %>% mutate(PA = as.factor(PA))
 
 ggplot(cmem_0m_long, aes(x = value, fill = PA)) + 
   geom_density(alpha = 0.35) + 
@@ -97,7 +98,7 @@ ggplot(cmem_0m_long, aes(x = value, fill = PA)) +
 #| warning: false
 #| message: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 ggplot(cmem_0m_long, aes(x = PA, y = value, fill = PA)) + 
   geom_boxplot() + 
@@ -124,7 +125,7 @@ cmem_0m_long %>%
   facet_wrap(~covar, scales = "free") + 
   theme(legend.position = "none", 
         axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_color_manual(values = met.brewer("Hokusai2", 11))+
+  scale_color_manual(values = met.brewer("Hokusai2", 13))+
   xlab("")
 ```
 :::
@@ -133,10 +134,8 @@ cmem_0m_long %>%
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-Still need to do: DO vs. AGI, Temp vs. AGI, lat vs. AGI, lon vs. AGI,
-
 ::: panel-tabset
-#### Temp vs. DO
+#### DO (atm) vs. AGI
 
 ```{r}
 #| echo: false
@@ -148,13 +147,49 @@ Still need to do: DO vs. AGI, Temp vs. AGI, lat vs. AGI, lon vs. AGI,
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = o2_mean, color = as.factor(PA))) + 
+  ggplot(aes(x = pO2_0_atm, y = AGI_0m, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
 ```
 
-#### DO vs. MLD
+#### Temp vs. AGI
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Temp vs. DO (atm)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = pO2_0_atm, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### DO (mmol/m^3) vs. MLD
 
 ```{r}
 #| echo: false
@@ -172,7 +207,25 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lat vs. DO
+#### Lat vs. AGI
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lat vs. DO (mmol/m^3)
 
 ```{r}
 #| echo: false
@@ -190,7 +243,25 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lon vs. DO
+#### Lon vs. AGI
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lon, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Lon vs. DO (mmol/m^3)
 
 ```{r}
 #| echo: false
@@ -208,7 +279,25 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Bathy vs. DO
+#### Bathy vs. AGI
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = bathy, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Bathy vs. DO (mmol/m^3)
 
 ```{r}
 #| echo: false
@@ -280,7 +369,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lat vs. Temp vs. DO
+#### Lat vs. Temp vs. DO (mmol/m^3)
 
 ```{r}
 #| echo: false
@@ -297,7 +386,7 @@ cmem_dat %>%
   theme(legend.position = "right")
 ```
 
-#### Lon vs. Temp vs. DO
+#### Lon vs. Temp vs. DO (mmol/m^3)
 
 ```{r}
 #| echo: false
@@ -407,6 +496,86 @@ for(i in 1:length(unique(cmem_dat_sub$tag))){
 
 cmem_dat_sub2 <- rbind(cmem_obsv_sub, cmem_rep_sub)
 ```
+
+### CMEM AGI
+These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
+
+::: panel-tabset
+#### track values vs. space/time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 10
+
+ggplot(shore, aes(long, lat)) +
+  coord_map("mercator", xlim = c(-140, -110), ylim = c(10, 50))+
+  geom_point(data = cmem_dat_sub2, aes(lon, lat, colour = AGI_0m), size = 2) +
+  geom_polygon(aes(group = group), fill = "grey60",lwd = 1) +
+  facet_grid(tag~PA)+
+  theme(legend.position = "right", 
+        legend.key.size = unit(0.75,'cm'), 
+        legend.text = element_text(size = 10), 
+        panel.spacing.x = unit(0, "lines"),
+        panel.spacing.y = unit(0, "lines"),
+        legend.margin=margin(0,0,0,0))
+
+
+```
+
+#### track values vs. time
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = dt, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))+
+  xlab("")
+
+```
+
+#### track values vs. lat
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = lat, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))
+
+```
+
+#### track values vs. lon
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(cmem_dat_sub2, aes(x = lon, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE)+
+  facet_grid(~tag, scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_color_manual(values = met.brewer("Hokusai2", 2))
+
+```
+:::
 
 ### CMEM DO
 These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
@@ -681,6 +850,7 @@ Plot DO and temp. values over space for a few representative dates for sanity ch
 ### CMEM
 
 ::: panel-tabset
+
 #### DO (mmol/L)
 ```{r}
 #| echo: false

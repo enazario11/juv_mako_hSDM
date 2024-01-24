@@ -2,15 +2,16 @@
 ### load packages ####
 library(tidyverse)
 library(here)
+library(tidyquant)
 
 ### read data ####
 dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
 
-#### convert DO to atm ####
+### convert DO to atm ####
 source(here("functions/oxy_demand_functions.R"))
 dat_DO_atm <- DO_to_atm(dat, depth = 0)
 
-### Static constants ####
+### static constants ####
 # W = 51807.63 #average mass in g for juv. makos as estimated by length-weight relationship. Used average FL of 177.7 cm (from study animals)
 # d = 0.700
 # K = 0.070 #adult numbers for K (VBGP) for california animals (fishbase.org)
@@ -35,15 +36,14 @@ dat_DO_atm <- DO_to_atm(dat, depth = 0)
 #LwA -> additional value needed to estimate asymptotic weight. Values were pulled from mixed individuals from New Zealand. No West Coast USA data available. 
 #lwB -> additional value needed to estimate asymptotic weight. Values were pulled from mixed individuals from New Zealand. No West Coast USA data available. 
 
-#### Mako specific constants ####
+### mako specific constants ####
 #calculate O2 thresh -- as per Clarke et al., 2021
 quantile(dat_DO_atm$pO2_0, probs = c(0, 0.10, 0.5, 0.75, 1), na.rm = T) #10 percentile at surface is 0.1376230, used as threshold value (atm)
-OxyThresh = 0.1376230
+OxyThresh = 0.1376611
 hist(dat_DO_atm$pO2_0)
-mean(dat$FL) #177.7 cm
 Tpref = median(dat_DO_atm$thetao_mean, na.rm = T) #19.19*C
 
-### oxy demand function ####
+### oxy demand calc ####
 #Function to estimate the oxygen demand of a species at a temperature (rTempNewST) given its temperature preference and oxygen threshold.
     #Tpref: species temperature preference
     #OxyThresh: species oxygen threshold
@@ -62,12 +62,14 @@ sd(dat_DO_atm$AGI_0m, na.rm = T)
 
 hist(O2_demand)
 
+saveRDS(dat_DO_atm, here("data/locs_w_covar/cmems/cmem_locs_covar_AGI_0m.rds"))
+
 #calculate AGI critical value (10th percentile)
-AGIcrit <- quantile(dat_DO_atm$AGI_0m, c(.10), na.rm = T) #3.33
+AGIcrit <- quantile(dat_DO_atm$AGI_0m, c(.10), na.rm = T) #1.29
 
 map_DO_atm <- dat_DO_atm %>%
   filter(PA == 0) %>%
-  mutate(AGI_crit = ifelse(AGI_0m > 3.33, "yes", "no")) #yes or no above AGIcrit
+  mutate(AGI_crit = ifelse(AGI_0m > 1.29, "yes", "no")) #yes or no above AGIcrit
 
 #coarse look at where the sharks were above the mean AGI 
 north_map = map_data("world") %>% group_by(group)

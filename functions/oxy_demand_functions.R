@@ -48,7 +48,7 @@ DO_to_atm <- function(loc_enviro_dat, depth){
   DO_mol_kg = loc_enviro_dat$o2_mean[i]/1025000 #convert from mmol/m^3 to mol/kg
 
   #calc partial pressure O2 at any loc and depth 
-  pO2 = (DO_mol_kg*roh)/(sol_depth)
+  pO2 = (DO_mol_kg*rho)/(sol_depth)
   
   #create column to save O2 in atm 
   loc_enviro_dat[i, paste0("pO2","_", depth)] <- pO2
