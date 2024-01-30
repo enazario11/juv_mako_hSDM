@@ -81,3 +81,41 @@ OxyDemand <- function(Tpref,OxyThresh,rTempNewST, W, d, K, j2, j1, Linf, LwA, Lw
   OrigBasalMetO2Index <- rktemp1*(exp(rTArrhCoef[2]/(273.15+rTempNewST)))*W^(1-d)/(a*(exp(rTArrhCoef[1]/(273.15+rTempNewST))))
   OxyDemand <- OrigBasalMetO2Index
 } 
+
+#revised
+
+#caclulated metabolic demand
+OxyDemand_mako <- function(Tpref,PO2_thresh,T_C, W = 51807.63, d = 0.700, K = 0.070, j2 = 8, j1 = 4.5, Linf = 321, LwA = 0.01670, LwB = 2.847){
+
+  # removing K/(1-d) because it cancels out in numerator and denominator, right?
+  # Convert C to K temperatues
+  T_K <- T_C + 273.15 
+  Tpref_K <- Tpref + 273.15
+  # Convert length to weight using scaling relationship
+  Winf <- LwA * Linf**LwB
+
+  O2_demand <- W**(1 - d) * exp(-j2 / T_K) * PO2_thresh * exp(-j1 / Tpref_K) / 
+    (Winf**(1 - d) * exp(-j1 / T_K) * exp(-j2 / Tpref_K))
+  
+  O2_demand
+  
+  TprefK = Tpref + 273.15
+  amb_tempK = rTempNewST + 273.15
+  rktemp1=K/(1-d)
+  
+  rTArrhCoef=c(j1,j2) #Arrhenius coefficients, j1 and j2 described in the methods
+  
+  
+  
+  rTAnaCatCoef=numeric()
+  rTAnaCatCoef[1]=rktemp1*rTWinf**(1-d) # anabolism coefficient
+  rTAnaCatCoef[1]=rTAnaCatCoef[1]/exp(rTArrhCoef[1]/(TprefK)) # Temperature dependence of the anabolism coefficient
+  rTAnaCatCoef[2]=rktemp1/(exp(rTArrhCoef[2]/(TprefK))) # Temperature dependent catabolism coefficient
+
+   numerator = (W**(1-d))*rktemp1*exp(-rTAnaCatCoef[2]/amb_tempK)*OxyThresh*exp(-rTAnaCatCoef[1]/TprefK)
+   denom = (rTWinf**(1-d))*rktemp1*exp(-rTAnaCatCoef[1]/TprefK)*exp(-rTAnaCatCoef[2]/TprefK)
+   
+   oxy_maint = numerator/denom
+  
+  return(oxy_maint)
+} 
