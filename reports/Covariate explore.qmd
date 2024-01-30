@@ -42,8 +42,19 @@ Lastly, for each collection of a shark's observed positions, there are 32 replic
 
 ## CMEM figures
 
+#### Covariate selection justification
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+covar_just <- read.csv(here("data/enviro/CMEMS/covar-just.csv"))
+rmarkdown::paged_table(covar_just)
+```
+
 ::: panel-tabset
 ### Map of obsv. positions
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -153,6 +164,24 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
+#### DO (mmol/m\^3) vs. AGI
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = o2_mean, y = AGI_0m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
 #### Temp vs. AGI
 
 ```{r}
@@ -189,7 +218,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### DO (mmol/m^3) vs. MLD
+#### DO (mmol/m\^3) vs. MLD
 
 ```{r}
 #| echo: false
@@ -225,7 +254,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lat vs. DO (mmol/m^3)
+#### Lat vs. DO (mmol/m\^3)
 
 ```{r}
 #| echo: false
@@ -261,7 +290,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lon vs. DO (mmol/m^3)
+#### Lon vs. DO (mmol/m\^3)
 
 ```{r}
 #| echo: false
@@ -297,7 +326,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Bathy vs. DO (mmol/m^3)
+#### Bathy vs. DO (mmol/m\^3)
 
 ```{r}
 #| echo: false
@@ -369,7 +398,23 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lat vs. Temp vs. DO (mmol/m^3)
+#### Temp vs. DO (mmol/m^3) vs. AGI
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = o2_mean, color = AGI_0m)) + 
+  geom_point(size = 2)+
+  theme(legend.position = "right")
+```
+
+#### Lat vs. Temp vs. DO (mmol/m\^3)
 
 ```{r}
 #| echo: false
@@ -386,7 +431,7 @@ cmem_dat %>%
   theme(legend.position = "right")
 ```
 
-#### Lon vs. Temp vs. DO (mmol/m^3)
+#### Lon vs. Temp vs. DO (mmol/m\^3)
 
 ```{r}
 #| echo: false
@@ -469,7 +514,9 @@ cmem_dat %>%
 :::
 
 ## Select shark analyses
+
 I randomly selected three tag IDs to include for this next analysis.
+
 ```{r}
 set.seed(1004)
 sample(1:23, 3) #randomly select 3 sharks: 11, 22, and 1
@@ -480,6 +527,7 @@ cmem_obsv_sub <- cmem_dat_sub %>% filter(PA == 0)
 ```
 
 I then randomly select which repetition number I want to include as a representative for this series of analyses. I am left with a subset of the data which will be used for the Select Shark Analyses portion of this document.
+
 ```{r}
 sample(1:32, 1) 
 cmem_rep_sub = NULL
@@ -498,10 +546,12 @@ cmem_dat_sub2 <- rbind(cmem_obsv_sub, cmem_rep_sub)
 ```
 
 ### CMEM AGI
+
 These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
 
 ::: panel-tabset
 #### track values vs. space/time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -525,6 +575,7 @@ ggplot(shore, aes(long, lat)) +
 ```
 
 #### track values vs. time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -543,6 +594,7 @@ ggplot(cmem_dat_sub2, aes(x = dt, y = AGI_0m, color = as.factor(PA))) +
 ```
 
 #### track values vs. lat
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -560,6 +612,7 @@ ggplot(cmem_dat_sub2, aes(x = lat, y = AGI_0m, color = as.factor(PA))) +
 ```
 
 #### track values vs. lon
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -578,10 +631,12 @@ ggplot(cmem_dat_sub2, aes(x = lon, y = AGI_0m, color = as.factor(PA))) +
 :::
 
 ### CMEM DO
+
 These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
 
 ::: panel-tabset
 #### track values vs. space/time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -605,6 +660,7 @@ ggplot(shore, aes(long, lat)) +
 ```
 
 #### track values vs. time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -623,6 +679,7 @@ ggplot(cmem_dat_sub2, aes(x = dt, y = o2_mean, color = as.factor(PA))) +
 ```
 
 #### track values vs. lat
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -640,6 +697,7 @@ ggplot(cmem_dat_sub2, aes(x = lat, y = o2_mean, color = as.factor(PA))) +
 ```
 
 #### track values vs. lon
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -658,10 +716,12 @@ ggplot(cmem_dat_sub2, aes(x = lon, y = o2_mean, color = as.factor(PA))) +
 :::
 
 ### CMEM Temp.
+
 These figures track how temp. changes through a shark's track for both its observed positions ('0') and PA positions ('1').
 
 ::: panel-tabset
 #### track values vs. space/time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -685,6 +745,7 @@ ggplot(shore, aes(long, lat)) +
 ```
 
 #### track values vs. time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -703,6 +764,7 @@ ggplot(cmem_dat_sub2, aes(x = dt, y = thetao_mean, color = as.factor(PA))) +
 ```
 
 #### track values vs. lat
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -720,6 +782,7 @@ ggplot(cmem_dat_sub2, aes(x = lat, y = thetao_mean, color = as.factor(PA))) +
 ```
 
 #### track values vs. lon
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -738,10 +801,12 @@ ggplot(cmem_dat_sub2, aes(x = lon, y = thetao_mean, color = as.factor(PA))) +
 :::
 
 ### ROMS DO
+
 These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
 
 ::: panel-tabset
 #### track values vs. space/time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -754,6 +819,7 @@ These figures track how DO changes through a shark's track for both its observed
 ```
 
 #### track values vs. time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -766,6 +832,7 @@ These figures track how DO changes through a shark's track for both its observed
 ```
 
 #### track values vs. lat
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -778,6 +845,7 @@ These figures track how DO changes through a shark's track for both its observed
 ```
 
 #### track values vs. lon
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -791,10 +859,12 @@ These figures track how DO changes through a shark's track for both its observed
 :::
 
 ### ROMS Temp.
+
 These figures track how temp. changes through a shark's track for both its observed positions ('0') and PA positions ('1').
 
 ::: panel-tabset
 #### track values vs. space/time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -807,6 +877,7 @@ These figures track how temp. changes through a shark's track for both its obser
 ```
 
 #### track values vs. time
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -819,6 +890,7 @@ These figures track how temp. changes through a shark's track for both its obser
 ```
 
 #### track values vs. lat
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -831,6 +903,7 @@ These figures track how temp. changes through a shark's track for both its obser
 ```
 
 #### track values vs. lon
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -850,8 +923,8 @@ Plot DO and temp. values over space for a few representative dates for sanity ch
 ### CMEM
 
 ::: panel-tabset
-
 #### DO (mmol/L)
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -867,7 +940,8 @@ plot(cmem_rast$o2_1878)
 plot(cmem_rast$o2_52)
 ```
 
-#### Temp.(*C)
+#### Temp.(\*C)
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -882,6 +956,7 @@ plot(cmem_rast$thetao_52)
 ```
 
 #### Bathy (m)
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -898,6 +973,7 @@ plot(bathy_rast)
 
 ::: panel-tabset
 #### DO
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -909,6 +985,7 @@ plot(bathy_rast)
 ```
 
 #### Temp.
+
 ```{r}
 #| echo: false
 #| warning: false

@@ -124,7 +124,7 @@ kbl(rmpq_prey_year2) %>% kable_paper("striped") %>% scroll_box(width = "100%", h
 
 ## GII bar plots
 
-Below are bar plots of the %GII for each prey species by year. Plots are organized from highest to lowest %GII. These %GII values were calculated using the data table above (filtered according to the new study parameters). %GII values less than 1 were not plotted.
+Below are bar plots of the %GII for each prey species by year. Plots are organized from highest to lowest %GII. These %GII values were calculated using the data table above (filtered according to the new study parameters). %GII values less than 1 were not plotted. An important note is that weak El Niño events occurred in 2004-2005 and 2006-2007, while moderate El Niño events occurred in 2009-2010. Additionally, weak La Niña events occurred in 2005-2006 and 2008-2009, while strong La Niña events occurred in 2007-2008.
 
 ::: panel-tabset
 ## All years

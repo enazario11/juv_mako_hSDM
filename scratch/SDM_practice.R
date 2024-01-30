@@ -1,4 +1,3 @@
-
 ### load libraries ####
 library(tidyverse)
 library(gbm)
@@ -68,11 +67,11 @@ all_locs_sim$DO_sim <- rnorm(n=808, mean=100, sd=20)
 all_locs_sim$MLD_sim <- rnorm(n=808, mean=20, sd=2)
 all_locs_sim$bathy_sim <- rnorm(n=808, mean=800, sd=50)
 
-### fitting a BRT ####
+### model fitting ####
 #get total num of presences 
 sum(all_locs_sim$mako) #404 mako presences across two sharks
 
-#model starting point (learning rate of 0.01)
+#BRT starting point (learning rate of 0.01)
 #current settings are from PA paper
 try(mako.tc5.lr005_tr5000 <- dismo::gbm.fixed(data = all_locs_sim, gbm.x = 6:9, gbm.y = 5,
                             family = "bernoulli", tree.complexity = 5,
