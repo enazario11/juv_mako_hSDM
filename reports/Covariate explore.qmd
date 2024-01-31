@@ -409,9 +409,10 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = o2_mean, color = AGI_0m)) + 
-  geom_point(size = 2)+
-  theme(legend.position = "right")
+  ggplot(aes(x = thetao_mean, y = o2_mean, fill = AGI_0m)) + 
+  geom_point(size = 3, shape = 21)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
 ```
 
 #### Lat vs. Temp vs. DO (mmol/m\^3)
@@ -426,9 +427,10 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = thetao_mean, color = o2_mean)) + 
-  geom_point(alpha = 0.3)+
-  theme(legend.position = "right")
+  ggplot(aes(x = lat, y = thetao_mean, fill = o2_mean)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
 ```
 
 #### Lon vs. Temp vs. DO (mmol/m\^3)
@@ -443,9 +445,10 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = thetao_mean, color = o2_mean)) + 
-  geom_point(alpha = 0.3)+
-  theme(legend.position = "right")
+  ggplot(aes(x = lon, y = thetao_mean, fill = o2_mean)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
 ```
 
 #### Temp vs. MLD

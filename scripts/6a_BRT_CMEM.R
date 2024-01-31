@@ -1,9 +1,7 @@
-#   1) note sent to EH/NLO about prioritizing initial CMEM analysis
-#   2) review AGI approach and math/simulation outputs 
-#   3) review list of covariates and why decide to select. Thoughts? When I add depths, okay to have >20 predictors?
-# 4a) models to make to address hypotheses
-# 4b) review steps for model explore/approaches/outputs to address hypotheses (cross valid, values to note, ways to visalize)
 
+# 3) review list of covariates and why decide to select. Thoughts? When I add depths, okay to have >20 predictors?
+# 4a) models to make to address hypotheses
+# 4b) review steps for model explore/approaches/outputs to address hypotheses (cross valid, values to note, ways to visualize)
 
 #libraries
 library(tidyverse)
@@ -17,6 +15,11 @@ set.seed(1004)
 dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGI_0m.rds"))
 dat$bathy <- replace(dat$bathy, dat$bathy == "NaN", NA)
 head(dat)
+
+#originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
+dat$PA <- replace(dat$PA, dat$PA == 1, 2) #change PAs to temporarily equal 2
+dat$PA <- replace(dat$PA, dat$PA == 0, 1) #change true positions to a 1
+dat$PA <- replace(dat$PA, dat$PA == 2, 0) #change PA positions to a 0
 
 #glm and gam test 
 m1 <- glm(PA ~ lat + thetao_mean + so_mean + mlotst_mean + lon + zos_mean + uo_mean + vo_mean + chl_mean + nppv_mean + o2_mean + bathy + bathy_sd + AGI_0m, data = dat)
@@ -45,7 +48,7 @@ test_int <- gbm.interactions(test)
 test_int$interactions
 test_int$rank.list
 #plot
-gbm.perspec(test, 10, 1, theta = 30) #change first two numbers to the pair of predictors to plot
+gbm.perspec(test, 13, 2, theta = 30) #change first two numbers to the pair of predictors to plot
 
 #predictions
 
