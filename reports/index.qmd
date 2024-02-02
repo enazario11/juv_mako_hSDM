@@ -7,8 +7,8 @@ editor: visual
 
 Below are links to the pages containing different exploratory analyses for the juvenile mako shark hybrid-SDM work.
 
-[See here](Mako_tracks_explore.html) for the first of the project's visualizations.
+[See here](diet_explore.html) for the initial diet data exploration (CMEM domain).
 
-[See here](Covariate explore.html) for the figures depicting the covariate values across the CMEM and ROMS domains.
+[See here](covar_explore.html) for the figures depicting the covariate values across the CMEM and ROMS domains.
 
-[See here](Diet_explore.html) for the initial diet data exploration (CMEM domain).
+[See here](brt_explore.html) for the initial BRT output exploration for both the CMEM and ROMS domain data.

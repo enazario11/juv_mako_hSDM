@@ -5,7 +5,7 @@ library(tidyverse)
 library(sf)
 library(terra)
 library(ncdf4)
-library(here)
+library(here);here <- here::here
 library(raster)
 
 #load ROMSextract, CMEMextract, and pseudo depth functions

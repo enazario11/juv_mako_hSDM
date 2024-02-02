@@ -1,0 +1,585 @@
+---
+title: "Mako hSDM BRT explore (ROMS and CMEM domains)"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+---
+
+On this document I start my initial exploration with the different model outputs, ranking of covariate influence, and projections. Here, I only explore BRT approaches, but later I may also explore and compare those from GAMMs. The hypotheses I would like to test with these models are as follows:
+
+**H1:** The aerobic growth index (AGI) at deeper depths will have a larger relative influence on habitat suitability than the AGI values closer to the surface.
+
+*study objective being met:* Understand how the AGI across depth layers influences habitat suitability. Are AGI values at deeper depths more influential? This would make sense given the reductions in oxygen availability and would be interesting given anticipated changes for the shoaling OMZ.
+
+**H2:** The AGI will have important pairwise interactions with latitude and longitude.
+
+*study objective being met:* Understand how the AGI moving towards the equator (theoretical thermal and metabolic edge for makos) and towards the coast (more shallow OMZs) may influence habitat suitability. Coastal areas in Baja are expected to be the regions that would be the first to become metabolically challenging under prediceted climate change scenarios.
+
+**H3:** Models with the AGI as a covariate will have better predictive power than models with just dissolved oxygen and temperature.
+
+*study objective being met:* Here, I am interested in understanding how model performance differs when AGI is a covariate relative to when DO and temperature are covariates. This will be an interesting feature to see what this physio-informed metric brings to the table for this study. Will it be informative? Or will the unique metabolic demands of mako sharks be underrepresented in this metric?
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+
+#libraries
+library(tidyverse)
+library(gbm)
+library(dismo)
+library(here)
+library(terra)
+library(here);here <- here::here #plyr's here function masks here::here
+
+
+set.seed(1004)
+
+#load data w/ covars
+dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGI_0m.rds"))
+dat$bathy <- replace(dat$bathy, dat$bathy == "NaN", NA)
+
+#originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
+dat$PA <- replace(dat$PA, dat$PA == 1, 2) #change PAs to temporarily equal 2
+dat$PA <- replace(dat$PA, dat$PA == 0, 1) #change true positions to a 1
+dat$PA <- replace(dat$PA, dat$PA == 2, 0) #change PA positions to a 0
+
+#randomly select 1 PA rep for each tag 
+dat_pos <- dat %>% filter(PA == 1)
+dat_pa <- dat %>% filter(PA == 0)
+
+#randomly select one PA for each tag
+dat2 <- NULL
+for(i in 1:length(unique(dat_pa$tag))){
+  #select current id
+  curr_ID <- unique(dat_pa$tag)[i]
+  temp_df <- dat_pa[dat_pa$tag %in% curr_ID,]
+  
+  #sample 52 id's randomly
+  temp_rep_ID <- sample(unique(temp_df$rep), 1, replace = FALSE)
+  
+  #narrow your data set
+  temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
+  
+  #combine in a single df
+  dat2 <- rbind(dat2, temp_df2)
+  
+}
+
+dat2 <- rbind(dat2, dat_pos)
+dat_train <- dat2 %>% sample_frac(0.75)
+dat_test <- dat2 %>% sample_frac(0.25)
+```
+
+## CMEM Surface BRT w/ AGI
+
+::: panel-tabset
+### tc5, lr0.01, bf0.75
+
+```{r}
+#| warning: false
+#the tc, lr, and bag fraction values here are defaults. The number of trees are optimally selected by the model. I explore modified values elsewhere on this page.
+
+#fit model
+try(agi_tc5_lr01_bf75 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 5,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+
+ggBRT::ggPerformance(agi_tc5_lr01_bf75)
+
+#explore outputs
+gbm.plot(agi_tc5_lr01_bf75, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc5_lr01_bf75)
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc5_lr01_bf75)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(agi_tc5_lr01_bf75, 12, 1)
+gbm.perspec(agi_tc5_lr01_bf75, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc5_lr01_bf75, dat_test, 
+                     n.trees = agi_tc5_lr01_bf75$gbm.call$best.trees, 
+                     type = "response")
+
+tc5 <- calc.deviance(obs = dat_test$PA, preds)
+lr01 <- calc.deviance(obs = dat_test$PA, preds)
+tc5
+
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+
+#### spatial prediction -- still in progress ##
+
+#cmem_nc0 <- rast(here("data/enviro/CMEMS/processed/CMEM_SST_SAL_MLD_SSH_UO_VO_CHL_NPP_DO_0m_Jan2004_Dec2009_0.25_D.nc"))
+
+  #randomly sample 3 days to plot habitat suitability 
+# sample(1:2192, 3) #2004-10-07, 2008-04-11, 2009-10-20
+# r2004 <- cmem_nc0[[time(cmem_nc0) == as.Date("2004-10-07")]]
+# r2008 <- cmem_nc0[[time(cmem_nc0) == as.Date("2008-04-11")]]
+# r2009 <- cmem_nc0[[time(cmem_nc0) == as.Date("2009-10-20")]]
+
+```
+
+### tc5, lr0.01, bf0.5
+
+```{r}
+#| warning: false
+
+#the tc, lr, and bag fraction values here are defaults. The number of trees are optimally selected by the model. I explore modified values elsewhere on this page.
+
+#fit model
+try(agi_tc5_lr01_bf5 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 5,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.5, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc5_lr01_bf5)
+
+#explore outputs
+gbm.plot(agi_tc5_lr01_bf5, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc5_lr01_bf5) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc5_lr01_bf5)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(agi_tc5_lr01_bf5, 12, 1)
+gbm.perspec(agi_tc5_lr01_bf5, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc5_lr01_bf5, dat_test, 
+                     n.trees = agi_tc5_lr01_bf5$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+
+```
+
+### tc2, lr0.01, bf0.75
+
+```{r}
+#| warning: false
+
+#the tc, lr, and bag fraction values here are defaults. The number of trees are optimally selected by the model. I explore modified values elsewhere on this page.
+
+#fit model
+try(agi_tc2_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 2,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc2_lr01)
+
+#explore outputs
+gbm.plot(agi_tc2_lr01, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc2_lr01) 
+
+#find the 2 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc2_lr01)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(agi_tc2_lr01, 12, 1)
+#gbm.perspec(agi_tc5_lr01_bf5, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc2_lr01, dat_test, 
+                     n.trees = agi_tc2_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+tc2 <- calc.deviance(obs = dat_test$PA, preds)
+tc2
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+
+```
+
+### tc7, lr0.01, bf0.75
+
+```{r}
+#| warning: false
+#fit model
+try(agi_tc7_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 7,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc7_lr01)
+
+#explore outputs
+gbm.plot(agi_tc7_lr01, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc7_lr01) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc7_lr01)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+#gbm.perspec(agi_tc7_lr01, 12, 1)
+gbm.perspec(agi_tc7_lr01, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc7_lr01, dat_test, 
+                     n.trees = agi_tc7_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+tc7 <- calc.deviance(obs = dat_test$PA, preds)
+tc7
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+
+```
+
+### tc10, lr0.01, bf0.75
+
+```{r}
+#| warning: false
+#fit model
+try(agi_tc10_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 10,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc10_lr01)
+
+#explore outputs
+gbm.plot(agi_tc10_lr01, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc10_lr01) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc10_lr01)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+#gbm.perspec(agi_tc10_lr01, 12, 1)
+gbm.perspec(agi_tc10_lr01, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc10_lr01, dat_test, 
+                     n.trees = agi_tc10_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+tc10 <- calc.deviance(obs = dat_test$PA, preds)
+tc10
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+
+```
+
+### tc5, lr0.05, bf0.75
+
+```{r}
+#| warning: false
+
+#the tc, lr, and bag fraction values here are defaults. The number of trees are optimally selected by the model. I explore modified values elsewhere on this page.
+
+#fit model
+try(agi_tc5_lr05 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 5,
+                                    learning.rate = 0.05,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc5_lr05)
+
+#explore outputs
+gbm.plot(agi_tc5_lr05, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc5_lr05) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc5_lr05)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(agi_tc5_lr05, 12, 1)
+gbm.perspec(agi_tc5_lr05, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc5_lr05, dat_test, 
+                     n.trees = agi_tc5_lr05$gbm.call$best.trees, 
+                     type = "response")
+
+lr05 <- calc.deviance(obs = dat_test$PA, preds)
+lr05
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+### tc5, lr0.1, bf0.75
+
+```{r}
+#| warning: false
+
+#the tc, lr, and bag fraction values here are defaults. The number of trees are optimally selected by the model. I explore modified values elsewhere on this page.
+
+#fit model
+try(agi_tc5_lr1 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 5,
+                                    learning.rate = 0.1,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc5_lr1)
+
+#explore outputs
+gbm.plot(agi_tc5_lr1, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc5_lr1) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc5_lr1)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(agi_tc5_lr1, 12, 1)
+#gbm.perspec(agi_tc5_lr05, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc5_lr1, dat_test, 
+                     n.trees = agi_tc5_lr1$gbm.call$best.trees, 
+                     type = "response")
+
+lr1 <- calc.deviance(obs = dat_test$PA, preds)
+lr1
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+### tc5, lr0.001, bf0.75
+
+```{r}
+#| warning: false
+#fit model
+try(agi_tc5_lr001 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 5,
+                                    learning.rate = 0.001,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(agi_tc5_lr001)
+
+#explore outputs
+gbm.plot(agi_tc5_lr001, nplots = 12, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc5_lr001) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc5_lr001)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(agi_tc5_lr001, 12, 1)
+gbm.perspec(agi_tc5_lr001, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc5_lr001, dat_test, 
+                     n.trees = agi_tc5_lr001$gbm.call$best.trees, 
+                     type = "response")
+
+lr001 <- calc.deviance(obs = dat_test$PA, preds)
+lr001
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+:::
+
+## Predictive deviance vs. various tc and lr values
+
+```{r}
+#| message: FALSE
+#| warning: FALSE
+#| echo: FALSE
+
+#add cmem only tab once I can add roms model explore
+ggBRT::ggPerformance(agi_tc5_lr01_bf75, agi_tc5_lr01_bf5, agi_tc2_lr01, agi_tc7_lr01, agi_tc10_lr01, agi_tc5_lr1, agi_tc5_lr05, agi_tc5_lr001)
+
+tc_df <- data.frame(tc2, tc5, tc7, tc10) %>% gather(tc_num, pred_dev, 1:4)
+tc_df$tc_num <- factor(tc_df$tc_num, levels = c("tc2", "tc5", "tc7", "tc10"))
+
+ggplot(tc_df, aes(x = tc_num, y = pred_dev)) +
+  geom_point(size = 3)+
+  tidyquant::theme_tq()
+
+lr_df <- data.frame(lr1, lr01, lr05, lr001) %>% gather(lr_num, pred_dev, 1:4)
+tc_df$tc_num <- factor(tc_df$tc_num, levels = c("lr1","lr05", "lr01", "lr001"))
+
+ggplot(lr_df, aes(x = lr_num, y = pred_dev)) +
+  geom_point(size = 3)+
+  tidyquant::theme_tq()
+
+```
+
+## CMEM model w/ AGI vs. DO and Temp.
+
+::: panel-tabset
+
+### DO/temp tc7, lr0.01, bf0.75
+```{r}
+#| warning: FALSE
+
+#fit the model
+try(do_tc7_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 8:18),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 7,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+ggBRT::ggPerformance(do_tc7_lr01)
+
+#explore outputs
+gbm.plot(do_tc7_lr01, nplots = 13, plot.layout = c(4,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_tc7_lr01) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_tc7_lr01)
+do_int$rank.list
+
+#plot some interactions of interest...
+gbm.perspec(do_tc7_lr01, 11, 2)
+gbm.perspec(do_tc7_lr01, 3, 1)
+
+#predictions
+preds <- predict.gbm(do_tc7_lr01, dat_test, 
+                     n.trees = do_tc7_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+### AGI tc7, lr0.01, bf0.75 (same as above)
+```{r}
+#| warning: FALSE
+ggBRT::ggPerformance(agi_tc7_lr01)
+
+#explore outputs
+gbm.plot(agi_tc7_lr01, nplots = 13, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_tc7_lr01) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi_tc7_lr01)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+#gbm.perspec(agi_tc7_lr01, 12, 1)
+gbm.perspec(agi_tc7_lr01, 12, 2)
+
+#predictions
+preds <- predict.gbm(agi_tc7_lr01, dat_test, 
+                     n.trees = agi_tc7_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+:::

@@ -57,8 +57,6 @@ DO_to_atm <- function(loc_enviro_dat, depth){
   return(loc_enviro_dat)
 }
 
-#revised
-
 #caclulated metabolic demand
 OxyDemand <- function(Tpref, PO2_thresh, T_C, W = 51807.63, d = 0.700, K = 0.070, j2 = 8, j1 = 4.5, 
                       Linf = 321, LwA = 0.01670, LwB = 2.847){

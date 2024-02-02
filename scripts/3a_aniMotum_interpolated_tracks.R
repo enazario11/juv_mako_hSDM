@@ -283,3 +283,22 @@ dat_PA_16 %>%
   print(n = 22)
 
 #saveRDS(dat_PA_16, file = here("data/presence_locs/processed/PA_locs_16.RDS"))
+
+#compare changes in points moving from cmem domain to roms domain
+cmem <- cmem %>% 
+  mutate(domain = "cmem")
+roms <- roms %>%
+  mutate(domain = "roms")
+all <- rbind(cmem, roms)
+
+all_s <- all %>%
+  group_by(id, domain) %>%
+  summarise(n = n()) %>%
+  ungroup()
+
+all_s  <- all_s %>%
+  spread(key = domain, value = n)
+
+all_s <- all_s %>%
+  group_by(id) %>%
+  mutate(perc_loss = (1 - (roms/cmem)) * 100)

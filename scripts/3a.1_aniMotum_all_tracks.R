@@ -4,14 +4,14 @@ library(tidyverse)
 library(aniMotum)
 library(amt) #time now has to be in posix to work
 library(sf)
-library(here)
+library(here);here <- here::here
 library(terra)
 library(tmvtnorm) #for running the downloaded sim_fit function
 
 #--------------------
 ##### load presence data ####
 #--------------------
-loc_dat <- read.csv(here("data/presence_locs/tdl.csv"))
+loc_dat <- read.csv(here::here("data/presence_locs/tdl.csv"))
 
 ssm_dat <- loc_dat %>% 
   select(id = "ptt", date ="posix", lat = "Lat",lon = "Lon") %>%
