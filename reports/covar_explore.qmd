@@ -49,7 +49,7 @@ Lastly, for each collection of a shark's observed positions, there are 32 replic
 #| warning: false
 #| message: false
 covar_just <- read.csv(here("data/enviro/CMEMS/covar-just.csv"))
-rmarkdown::paged_table(covar_just)
+kableExtra::kable(covar_just)
 ```
 
 ::: panel-tabset

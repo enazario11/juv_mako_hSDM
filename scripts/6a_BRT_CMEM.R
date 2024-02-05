@@ -52,7 +52,7 @@ m2 <- gam(PA ~ s(lat) + s(thetao_mean) + s(so_mean) + s(mlotst_mean) + s(lon) + 
 test_m <- gam(PA ~ s(AGI_0m) + s(thetao_mean), random=~(1|tag),family=binomial, data=na.omit(dat), bs = "cs", method = "REML")
 test <- plot(test_m, residuals = TRUE)
 
-#BRT starting point
+#BRT starting point --- replace below once I select the model parameters from the explore doc
 dat_train <- dat2 %>% sample_frac(0.75)
 dat_test <- dat2 %>% sample_frac(0.25)
 
