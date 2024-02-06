@@ -11,7 +11,7 @@ Below are links to the pages containing different exploratory analyses for the j
 
 [See here](covar_explore.html) for the figures depicting the covariate values across the CMEM and ROMS domains at the surface.
 
-[See here](cover_explore_250m.html) for the figures depicting the covariate values across the CMEM and ROMS domains at 250m depth.
+[See here](covar_explore_250m.html) for the figures depicting the covariate values across the CMEM and ROMS domains at 250m depth.
 
 [See here](brt_explore.html) for the initial BRT output exploration for both the CMEM and ROMS domain data.
 
