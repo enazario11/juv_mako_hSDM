@@ -352,7 +352,7 @@ cmem_dat %>%
 source(here("functions/oxy_demand_functions.R"))
 
 o2_range <- seq(0.00045, 0.1124, length.out = 100)
-temp_range <- seq(6, 30, length.out = 100)
+temp_range <- seq(4.4, 14.66, length.out = 100)
 AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
   mutate(met_dem = OxyDemand(Tpref = 8.5, PO2_thresh = 0.006, T_C = temp), 
          AGI = o2/met_dem)
