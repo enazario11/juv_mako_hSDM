@@ -1,0 +1,179 @@
+---
+title: "Mako hSDM BRT explore (ROMS and CMEM domains)"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+---
+
+On this document I start my initial exploration with the different model outputs, ranking of covariate influence, and projections. Here, I only explore BRT approaches, but later I may also explore and compare those from GAMMs. The hypotheses I would like to test with these models are as follows:
+
+**H1:** The aerobic growth index (AGI) at deeper depths will have a larger relative influence on habitat suitability than the AGI values closer to the surface.
+
+*study objective being met:* Understand how the AGI across depth layers influences habitat suitability. Are AGI values at deeper depths more influential? This would make sense given the reductions in oxygen availability and would be interesting given anticipated changes for the shoaling OMZ.
+
+**H2:** The AGI will have important pairwise interactions with latitude and longitude.
+
+*study objective being met:* Understand how the AGI moving towards the equator (theoretical thermal and metabolic edge for makos) and towards the coast (more shallow OMZs) may influence habitat suitability. Coastal areas in Baja are expected to be the regions that would be the first to become metabolically challenging under prediceted climate change scenarios.
+
+**H3:** Models with the AGI as a covariate will have better predictive power than models with just dissolved oxygen and temperature.
+
+*study objective being met:* Here, I am interested in understanding how model performance differs when AGI is a covariate relative to when DO and temperature are covariates. This will be an interesting feature to see what this physio-informed metric brings to the table for this study. Will it be informative? Or will the unique metabolic demands of mako sharks be underrepresented in this metric?
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+
+#libraries
+library(tidyverse)
+library(gbm)
+library(dismo)
+library(here)
+library(terra)
+library(here);here <- here::here #plyr's here function masks here::here
+
+
+set.seed(1004)
+
+#load data w/ covars
+dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
+
+#originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
+dat$PA <- replace(dat$PA, dat$PA == 1, 2) #change PAs to temporarily equal 2
+dat$PA <- replace(dat$PA, dat$PA == 0, 1) #change true positions to a 1
+dat$PA <- replace(dat$PA, dat$PA == 2, 0) #change PA positions to a 0
+
+#randomly select 1 PA rep for each tag 
+dat_pos <- dat %>% filter(PA == 1)
+dat_pa <- dat %>% filter(PA == 0)
+
+#randomly select one PA for each tag
+dat2 <- NULL
+for(i in 1:length(unique(dat_pa$tag))){
+  #select current id
+  curr_ID <- unique(dat_pa$tag)[i]
+  temp_df <- dat_pa[dat_pa$tag %in% curr_ID,]
+  
+  #sample 52 id's randomly
+  temp_rep_ID <- sample(unique(temp_df$rep), 1, replace = FALSE)
+  
+  #narrow your data set
+  temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
+  
+  #combine in a single df
+  dat2 <- rbind(dat2, temp_df2)
+  
+}
+
+dat2 <- rbind(dat2, dat_pos)
+dat_train <- dat2 %>% sample_frac(0.75)
+dat_test <- dat2 %>% sample_frac(0.25)
+
+dat_train <- as.data.frame(dat_train)
+dat_test <- as.data.frame(dat_test)
+```
+
+## CMEM Surface BRT w/ AGI at 250m
+
+### tc7, lr0.01, bf0.75
+
+```{r}
+#| warning: false
+#fit model
+try(agi250_tc7_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 9:13, 17),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 7,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+
+ggBRT::ggPerformance(agi250_tc7_lr01)
+
+#explore outputs
+gbm.plot(agi250_tc7_lr01, nplots = 8, plot.layout = c(3,3), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi250_tc7_lr01) 
+
+#find the 5 most important pairwise interactions 
+AGI_int <- gbm.interactions(agi250_tc7_lr01)
+AGI_int$rank.list
+
+#plot some interactions of interest...
+#gbm.perspec(agi_tc7_lr01, 12, 1)
+gbm.perspec(agi250_tc7_lr01, 8, 2)
+
+#predictions
+preds <- predict.gbm(agi250_tc7_lr01, dat_test, 
+                     n.trees = agi250_tc7_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+tc7 <- calc.deviance(obs = dat_test$PA, preds)
+tc7
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+
+```
+
+## CMEM model w/ DO and Temp.
+
+### DO/temp tc7, lr0.01, bf0.75
+
+```{r}
+#| warning: FALSE
+
+#fit the model
+try(do250_tc7_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(3:4, 8:14),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 7,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
+
+ggBRT::ggPerformance(do250_tc7_lr01)
+
+#explore outputs
+gbm.plot(do250_tc7_lr01, nplots = 13, plot.layout = c(3,3), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(do250_tc7_lr01) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do250_tc7_lr01)
+do_int$rank.list
+
+#plot some interactions of interest...
+#no interactions between DO or temp and lat and/or lon
+
+#predictions
+preds <- predict.gbm(do250_tc7_lr01, dat_test, 
+                     n.trees = do250_tc7_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```

@@ -21,7 +21,7 @@ library(tidyquant)
 library(MetBrewer)
 library(tidyquant)
 
-cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGI_0m.rds"))
+cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_0m.rds"))
 cmem_dat <- cmem_dat %>% rename("pO2_0_atm" = "pO2_0") #removes oxy (atm) col. Was needed to calc AGI
 
 theme_set(theme_tq() +
@@ -136,16 +136,191 @@ cmem_0m_long %>%
   facet_wrap(~covar, scales = "free") + 
   theme(legend.position = "none", 
         axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_color_manual(values = met.brewer("Hokusai2", 13))+
+  scale_color_manual(values = met.brewer("Hokusai2", 14))+
   xlab("")
 ```
 :::
 
-### Covar vs. covar scatter
+### Abiotic covar comparisons
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset
+::: panel-tabset 
+#### Temp vs. DO (atm)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = pO2_0_atm, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### DO (mmol/m\^3) vs. MLD
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = o2_mean, y = mlotst_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Temp vs. MLD
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = mlotst_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+:::
+
+### Metabolic demand covar comparisons
+
+Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
+
+::: panel-tabset 
+#### Temp vs Demand 
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = O2_demand_mako, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+#### Temp vs. DO (atm) vs. demand 
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = thetao_mean, y = pO2_0_atm, fill = O2_demand_mako)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
+
+```
+
+#### Lat vs. temp vs. demand 
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = thetao_mean, fill = O2_demand_mako)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
+
+```
+
+#### Lat vs. DO (atm) vs. demand 
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lat, y = pO2_0_atm, fill = O2_demand_mako)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
+
+```
+
+#### Lon vs. temp vs. demand 
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lon, y = thetao_mean, fill = O2_demand_mako)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
+
+```
+
+#### Lon vs. DO (atm) vs. demand
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+
+cmem_dat %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = lon, y = pO2_0_atm, fill = O2_demand_mako)) + 
+  geom_point(shape = 21, size = 3)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
+
+```
+
+:::
+
+### AGI covar comparisons
+
+Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
+
+::: panel-tabset 
 #### DO (atm) vs. AGI
 
 ```{r}
@@ -200,7 +375,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Temp vs. DO (atm)
+#### Bathy vs. AGI
 
 ```{r}
 #| echo: false
@@ -212,30 +387,62 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = pO2_0_atm, color = as.factor(PA))) + 
+  ggplot(aes(x = bathy, y = AGI_0m, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
 ```
 
-#### DO (mmol/m\^3) vs. MLD
+#### Temp vs. DO (atm) vs. AGI surface plot
 
 ```{r}
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-width: 4
-#| fig-height: 4
+#| fig-width: 6
+#| fig-height: 6
+#| fig-align: center
+source(here("functions/oxy_demand_functions.R"))
+
+o2_range <- seq(0.14, 0.16, length.out = 100)
+temp_range <- seq(6, 30, length.out = 100)
+AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
+  mutate(met_dem = OxyDemand(Tpref = 19, PO2_thresh = 0.17, T_C = temp), 
+         AGI = o2/met_dem)
+
+ggplot(AGI_surf, aes(temp, o2)) +
+  geom_raster(aes(fill = AGI)) +
+  stat_contour(aes(z = AGI), color = "black") +
+  scale_fill_gradient()
+  
+```
+
+#### Temp vs. DO (atm) vs. AGI  
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
 #| fig-align: center
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = o2_mean, y = mlotst_mean, color = as.factor(PA))) + 
-  geom_point(alpha = 0.2) +
-  scale_color_manual(values = c("#0a3351"))+
-  theme(legend.position = "none")
+  ggplot(aes(x = thetao_mean, y = pO2_0_atm, fill = AGI_0m)) + 
+  geom_point(size = 3, shape = 21)+
+  theme(legend.position = "right")+
+  scale_fill_viridis_c()
+
 ```
 
+:::
+
+### Lat/lon covar comparisons
+
+Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
+
+::: panel-tabset
 #### Lat vs. AGI
 
 ```{r}
@@ -254,7 +461,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lat vs. DO (mmol/m\^3)
+#### Lat vs. DO (atm)
 
 ```{r}
 #| echo: false
@@ -266,7 +473,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = o2_mean, color = as.factor(PA))) + 
+  ggplot(aes(x = lat, y = pO2_0_atm, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
@@ -290,7 +497,7 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Lon vs. DO (mmol/m\^3)
+#### Lon vs. DO (atm)
 
 ```{r}
 #| echo: false
@@ -302,43 +509,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = o2_mean, color = as.factor(PA))) + 
-  geom_point(alpha = 0.2) +
-  scale_color_manual(values = c("#0a3351"))+
-  theme(legend.position = "none")
-```
-
-#### Bathy vs. AGI
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-#| fig-width: 4
-#| fig-height: 4
-#| fig-align: center
-
-cmem_dat %>% 
-  filter(PA == 0) %>%
-  ggplot(aes(x = bathy, y = AGI_0m, color = as.factor(PA))) + 
-  geom_point(alpha = 0.2) +
-  scale_color_manual(values = c("#0a3351"))+
-  theme(legend.position = "none")
-```
-
-#### Bathy vs. DO (mmol/m\^3)
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-#| fig-width: 4
-#| fig-height: 4
-#| fig-align: center
-
-cmem_dat %>% 
-  filter(PA == 0) %>%
-  ggplot(aes(x = bathy, y = o2_mean, color = as.factor(PA))) + 
+  ggplot(aes(x = lon, y = pO2_0_atm, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
@@ -398,24 +569,6 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Temp vs. DO (mmol/m\^3) vs. AGI
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-#| fig-width: 6
-#| fig-height: 6
-#| fig-align: center
-
-cmem_dat %>% 
-  filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = o2_mean, fill = AGI_0m)) + 
-  geom_point(size = 3, shape = 21)+
-  theme(legend.position = "right")+
-  scale_fill_viridis_c()
-```
-
 #### Lat vs. Temp vs. AGI
 
 ```{r}
@@ -452,7 +605,7 @@ cmem_dat %>%
   scale_fill_viridis_c()
 ```
 
-#### Lat vs. Temp vs. DO (mmol/m\^3)
+#### Lon vs. Temp vs. DO (atm)
 
 ```{r}
 #| echo: false
@@ -464,13 +617,13 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = thetao_mean, fill = o2_mean)) + 
+  ggplot(aes(x = lon, y = thetao_mean, fill = pO2_0_atm)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
 ```
 
-#### Lon vs. Temp vs. DO (mmol/m\^3)
+#### Lat vs. Temp vs. DO (atm)
 
 ```{r}
 #| echo: false
@@ -482,28 +635,10 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = thetao_mean, fill = o2_mean)) + 
+  ggplot(aes(x = lat, y = thetao_mean, fill = pO2_0_atm)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
-```
-
-#### Temp vs. MLD
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-#| fig-width: 4
-#| fig-height: 4
-#| fig-align: center
-
-cmem_dat %>% 
-  filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = mlotst_mean, color = as.factor(PA))) + 
-  geom_point(alpha = 0.2) +
-  scale_color_manual(values = c("#0a3351"))+
-  theme(legend.position = "none")
 ```
 
 #### Lat vs. MLD

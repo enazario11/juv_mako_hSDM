@@ -107,7 +107,7 @@ all_dat_bathy_cmem %>%
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # extract CMEMS covars ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# surface all dat extract ####
+# 0m all dat extract ####
 cmem_nc0 <- nc_open(here("data/enviro/CMEMS/processed/CMEM_SST_SAL_MLD_SSH_UO_VO_CHL_NPP_DO_0m_Jan2004_Dec2009_0.25_D.nc"))
 
 #surface extract
@@ -158,9 +158,78 @@ all_cmem_covar_0m %>%
             mean_npp = mean(nppv_mean, na.rm = TRUE), 
             mean_do = mean(o2_mean, na.rm = TRUE))
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# by depth layer extract ####
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#250m extract ####
+# dat extract ####
+cmem_nc250 <- nc_open(here("data/enviro/CMEMS/processed/CMEM_SST_SAL_UO_VO_CHL_NPP_DO_250m_Jan2004_Dec2009_0.25_D.nc"))
+
+xtracto_cmem_depth = function(input_file, nc_file){
+  input_file <- getvarCMEM(nc_file, "thetao", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "so", input_file, 0.25, mean, "mean")
+  #input_file <- getvarCMEM(nc_file, "mlotst", input_file, 0.25, mean, "mean")
+  #input_file <- getvarCMEM(nc_file, "zos", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "uo", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "vo", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "chl", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "nppv", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "o2", input_file, 0.25, mean, "mean")
+}
+
+all_dat_cmem_250m <- xtracto_cmem_depth(input_file, cmem_nc250)
+
+saveRDS(all_dat_cmem_250m, here("data/locs_w_covar/cmems/cmem_locs_covar_250m.rds"))
+head(all_dat_cmem_250m)
+
+#explore
+ggplot(all_dat_cmem_250m, aes(o2_mean)) + geom_histogram(bins = 30, color = "grey") + facet_wrap(~PA, scales = "free") + theme_bw()
+
+cmem_250m_long <- gather(all_dat_cmem_250m, covar, value, thetao_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_250m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+all_dat_cmem_250m %>% 
+  group_by(PA) %>% 
+  summarise(mean_sst = mean(thetao_mean, na.rm = TRUE), 
+            mean_sal = mean(so_mean, na.rm = TRUE), 
+            mean_uo = mean(uo_mean, na.rm = TRUE), 
+            mean_vo = mean(vo_mean, na.rm = TRUE), 
+            mean_chl = mean(chl_mean, na.rm = TRUE), 
+            mean_npp = mean(nppv_mean, na.rm = TRUE), 
+            mean_do = mean(o2_mean, na.rm = TRUE))
+
+
+##### SCRATCH #######
+#set bins
+#observed data
+dat_loc_dep <- dat_loc_dep %>% 
+  mutate(max_dep_layer = ifelse(max_depth > 0 & max_depth <=50, "50", 
+                                ifelse(max_depth > 50 & max_depth <= 100, "100",
+                                       ifelse(max_depth > 100 & max_depth <= 150, "150", 
+                                              ifelse(max_depth > 150 & max_depth <= 250, "250", 
+                                                     ifelse(max_depth > 250, "250+", "NA"))))), 
+         mean_dep_layer = ifelse(max_depth > 0 & max_depth <=50, "50", 
+                                 ifelse(max_depth > 50 & max_depth <= 100, "100",
+                                        ifelse(max_depth > 100 & max_depth <= 150, "150", 
+                                               ifelse(max_depth > 150 & max_depth <= 250, "250", 
+                                                      ifelse(max_depth > 250, "250+", "NA"))))))
+
+dat_loc_dep %>% group_by(max_dep_layer) %>% summarise(totals = sum(!is.na(max_depth)))
+
+#PA data
+pa_locs_dep <- pa_locs_dep %>% 
+  mutate(max_dep_layer = ifelse(max_depth <= 10, "0", 
+                                ifelse(max_depth > 10 & max_depth <=50, "50", 
+                                       ifelse(max_depth > 50 & max_depth <= 150, "150", 
+                                              ifelse(max_depth > 150 & max_depth <= 250, "250", 
+                                                     ifelse(max_depth > 250, "250+", "NA"))))))
+
+pa_locs_dep %>% group_by(id, dep_layer) %>% summarise(totals = sum(!is.na(max_depth))) %>% print(n = 25)
+
+
+#Depth layer scratch work
 #for each shark, simulate depth data from their dive depth histograms
 input_depths = dat_loc_dep
 pa_loc_dep = NULL
@@ -189,39 +258,6 @@ pa_loc_dep2 <- pa_loc_dep %>%
 
 
 #rather than setting bins to extract, have depths pair to nearest number from my sequence of depth layers (0:250 every 50m)
-
-##### SCRATCH #######
-
-
-
-#set bins
-#observed data
-dat_loc_dep <- dat_loc_dep %>% 
-  mutate(max_dep_layer = ifelse(max_depth > 0 & max_depth <=50, "50", 
-                                ifelse(max_depth > 50 & max_depth <= 100, "100",
-                                       ifelse(max_depth > 100 & max_depth <= 150, "150", 
-                                              ifelse(max_depth > 150 & max_depth <= 250, "250", 
-                                                     ifelse(max_depth > 250, "250+", "NA"))))), 
-         mean_dep_layer = ifelse(max_depth > 0 & max_depth <=50, "50", 
-                                 ifelse(max_depth > 50 & max_depth <= 100, "100",
-                                        ifelse(max_depth > 100 & max_depth <= 150, "150", 
-                                               ifelse(max_depth > 150 & max_depth <= 250, "250", 
-                                                      ifelse(max_depth > 250, "250+", "NA"))))))
-
-dat_loc_dep %>% group_by(max_dep_layer) %>% summarise(totals = sum(!is.na(max_depth)))
-
-#PA data
-pa_locs_dep <- pa_locs_dep %>% 
-  mutate(max_dep_layer = ifelse(max_depth <= 10, "0", 
-                                ifelse(max_depth > 10 & max_depth <=50, "50", 
-                                       ifelse(max_depth > 50 & max_depth <= 150, "150", 
-                                              ifelse(max_depth > 150 & max_depth <= 250, "250", 
-                                                     ifelse(max_depth > 250, "250+", "NA"))))))
-
-pa_locs_dep %>% group_by(id, dep_layer) %>% summarise(totals = sum(!is.na(max_depth))) %>% print(n = 25)
-
-
-
 
 
 

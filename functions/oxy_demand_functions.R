@@ -23,32 +23,32 @@ DO_to_atm <- function(loc_enviro_dat, depth){
     Ks = 0.000086173     # Boltzmann constant [J/K]
     
     #calc in-situ density of seawater
-    pressure = (1025 * 9.81 * depth) + 101325 
-    press_dbar = pressure / 1000000
+    pressure = (1025 * 9.81 * depth) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
+    press_dbar = pressure / 1000000 #get calculated pressure into dbar
     
-    Tpot = loc_enviro_dat$thetao_mean[i]
+    Tpot = loc_enviro_dat$thetao_mean[i] #temp in C
     T_scaled = log((298.15 - Tpot) / (KC + Tpot))
     rho = gsw::gsw_rho(SA = loc_enviro_dat$so_mean[i], p = press_dbar, CT = Tpot)
     
     #calculate saturation concentration of O2 in seawater
-    l = b1+b2*T_scaled+b3*(T_scaled^2)+b4*(T_scaled^3)+b5*(T_scaled^4)+b6*(T_scaled^5)+loc_enviro_dat$so_mean[i]*(b7+b8*T_scaled+b9*(T_scaled^2)+b10*(T_scaled^3)) + b11*loc_enviro_dat$so_mean[1]^2
+    l = b1+b2*T_scaled+b3*(T_scaled^2)+b4*(T_scaled^3)+b5*(T_scaled^4)+b6*(T_scaled^5)+loc_enviro_dat$so_mean[i]*(b7+b8*T_scaled+b9*(T_scaled^2)+b10*(T_scaled^3)) + b11*loc_enviro_dat$so_mean[i]^2
     calc_sat_o2 = (1000/GSmv) * exp(l)
-    calc_sat_o2_molm3 = calc_sat_o2/1000
+    calc_sat_o2_molm3 = calc_sat_o2/1000 #mol/m^3
     
     #DO solubility at surface 
-    DO_sol_surf = calc_sat_o2_molm3/0.209
+    DO_sol_surf = calc_sat_o2_molm3/0.209 #mol/m^3*atm
     
     #calc pressure correction
-    pressure_corr = exp(((depth*rho*9.81*pmv)/R)/(Tpot+KC))
+    pressure_corr = exp(((depth*rho*9.81*pmv)/R)/(Tpot+KC)) 
     
     #calc solubility at any depth 
-    sol_depth = DO_sol_surf*pressure_corr
+    sol_depth = DO_sol_surf*pressure_corr #mol/m^3*atm
     
     #convert DO to mol/kg
-    DO_mol_kg = loc_enviro_dat$o2_mean[i]/1025000 #convert from mmol/m^3 to mol/kg
+    DO_mol_kg = loc_enviro_dat$o2_mean[i]/1025000 #convert input DO from mmol/m^3 to mol/kg
     
     #calc partial pressure O2 at any loc and depth 
-    pO2 = (DO_mol_kg*rho)/(sol_depth)
+    pO2 = (DO_mol_kg*rho)/(sol_depth) #atm
     
     #create column to save O2 in atm 
     loc_enviro_dat[i, paste0("pO2","_", depth)] <- pO2

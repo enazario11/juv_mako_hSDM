@@ -45,7 +45,7 @@ library(here);here <- here::here #plyr's here function masks here::here
 set.seed(1004)
 
 #load data w/ covars
-dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGI_0m.rds"))
+dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_0m.rds"))
 dat$bathy <- replace(dat$bathy, dat$bathy == "NaN", NA)
 
 #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
@@ -91,7 +91,7 @@ dat_test <- dat2 %>% sample_frac(0.25)
 
 #fit model
 try(agi_tc5_lr01_bf75 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 5,
@@ -153,7 +153,7 @@ evaluate(p = pres, a = abs)
 
 #fit model
 try(agi_tc5_lr01_bf5 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 5,
@@ -201,7 +201,7 @@ evaluate(p = pres, a = abs)
 
 #fit model
 try(agi_tc2_lr01 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 2,
@@ -247,7 +247,7 @@ evaluate(p = pres, a = abs)
 #| warning: false
 #fit model
 try(agi_tc7_lr01 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 7,
@@ -293,7 +293,7 @@ evaluate(p = pres, a = abs)
 #| warning: false
 #fit model
 try(agi_tc10_lr01 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 10,
@@ -342,7 +342,7 @@ evaluate(p = pres, a = abs)
 
 #fit model
 try(agi_tc5_lr05 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 5,
@@ -390,7 +390,7 @@ evaluate(p = pres, a = abs)
 
 #fit model
 try(agi_tc5_lr1 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 5,
@@ -435,7 +435,7 @@ evaluate(p = pres, a = abs)
 #| warning: false
 #fit model
 try(agi_tc5_lr001 <- dismo::gbm.step(data = dat_train,
-                                    gbm.x = c(3:4, 9:15, 17, 18, 20),
+                                    gbm.x = c(3:4, 9:15, 17, 18, 21),
                                     gbm.y = 5,
                                     family = "bernoulli",
                                     tree.complexity = 5,
@@ -504,8 +504,8 @@ ggplot(lr_df, aes(x = lr_num, y = pred_dev)) +
 ## CMEM model w/ AGI vs. DO and Temp.
 
 ::: panel-tabset
-
 ### DO/temp tc7, lr0.01, bf0.75
+
 ```{r}
 #| warning: FALSE
 
@@ -550,6 +550,7 @@ evaluate(p = pres, a = abs)
 ```
 
 ### AGI tc7, lr0.01, bf0.75 (same as above)
+
 ```{r}
 #| warning: FALSE
 ggBRT::ggPerformance(agi_tc7_lr01)
@@ -581,5 +582,4 @@ abs <- dat_pred[dat_pred[,1] == 0, 2]
 
 evaluate(p = pres, a = abs)
 ```
-
 :::

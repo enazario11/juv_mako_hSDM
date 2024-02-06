@@ -1,8 +1,4 @@
 
-# 3) review list of covariates and why decide to select. Thoughts? When I add depths, okay to have >20 predictors?
-# 4a) models to make to address hypotheses
-# 4b) review steps for model explore/approaches/outputs to address hypotheses (cross valid, values to note, ways to visualize (habiata suitability pred))
-
 #libraries
 library(tidyverse)
 library(gbm)
