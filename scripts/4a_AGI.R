@@ -76,3 +76,30 @@ ggplot(shore, aes(long, lat)) +
   scale_color_manual(values = c("red", "blue"))+
   theme_tq()+
   theme(legend.position = "right")
+
+
+### Testing AGI across depth layers ####
+dat0 <- readRDS(here("data/locs_w_covar/cmems/cmems_locs_covar_0m_AGI_dist.rds"))
+dat250 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
+
+#distribution wide OxyThresh and Temp pref.
+all_temp <- c(dat0$thetao_mean, dat250$thetao_mean)
+Tpref = median(all_temp, na.rm = TRUE)
+
+all_ox <- c(dat0$pO2_0, dat250$pO2_250)
+quantile(all_ox, probs = c(0, 0.10, 0.5, 0.75, 1), na.rm = T) 
+OxyThresh = 0.0177015670
+
+#run oxygen demand function with mako specific parameters
+dat0$O2_demand_mako0 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat0$thetao_mean)
+
+#explore outputs
+hist(dat0$O2_demand_mako0)
+plot(dat0$thetao_mean, dat0$O2_demand_mako0) #should increase with temp
+
+#calculate AGI
+dat0$AGI_0 <- dat0$pO2_0/dat0$O2_demand_mako0
+
+#explore outputs
+hist(dat0$AGI_0)
+

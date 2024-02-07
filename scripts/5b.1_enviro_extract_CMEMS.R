@@ -200,6 +200,9 @@ all_dat_cmem_250m %>%
             mean_npp = mean(nppv_mean, na.rm = TRUE), 
             mean_do = mean(o2_mean, na.rm = TRUE))
 
+#calculate distance to coast 
+
+
 
 ##### SCRATCH #######
 #set bins

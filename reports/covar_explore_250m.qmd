@@ -145,7 +145,7 @@ cmem_0m_long %>%
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset 
+::: panel-tabset
 #### Temp vs. DO (atm)
 
 ```{r}
@@ -163,15 +163,14 @@ cmem_dat %>%
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
 ```
-
 :::
 
 ### Metabolic demand covar comparisons
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset 
-#### Temp vs Demand 
+::: panel-tabset
+#### Temp vs Demand
 
 ```{r}
 #| echo: false
@@ -189,7 +188,8 @@ cmem_dat %>%
   theme(legend.position = "none")
 ```
 
-#### Temp vs. DO (atm) vs. demand 
+#### Temp vs. DO (atm) vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -207,7 +207,8 @@ cmem_dat %>%
 
 ```
 
-#### Lat vs. temp vs. demand 
+#### Lat vs. temp vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -225,7 +226,8 @@ cmem_dat %>%
 
 ```
 
-#### Lat vs. DO (atm) vs. demand 
+#### Lat vs. DO (atm) vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -243,7 +245,8 @@ cmem_dat %>%
 
 ```
 
-#### Lon vs. temp vs. demand 
+#### Lon vs. temp vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -262,6 +265,7 @@ cmem_dat %>%
 ```
 
 #### Lon vs. DO (atm) vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -278,14 +282,13 @@ cmem_dat %>%
   scale_fill_viridis_c()
 
 ```
-
 :::
 
 ### AGI covar comparisons
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset 
+::: panel-tabset
 #### DO (atm) vs. AGI
 
 ```{r}
@@ -364,7 +367,7 @@ ggplot(AGI_surf, aes(temp, o2)) +
   
 ```
 
-#### Temp vs. DO (atm) vs. AGI  
+#### Temp vs. DO (atm) vs. AGI
 
 ```{r}
 #| echo: false
@@ -382,7 +385,6 @@ cmem_dat %>%
   scale_fill_viridis_c()
 
 ```
-
 :::
 
 ### Lat/lon covar comparisons
