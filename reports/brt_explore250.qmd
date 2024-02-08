@@ -39,6 +39,7 @@ library(gbm)
 library(dismo)
 library(here)
 library(terra)
+library(tidyterra)
 library(here);here <- here::here #plyr's here function masks here::here
 
 
@@ -149,39 +150,41 @@ pres <- dat_pred[dat_pred[,1] == 1, 2]
 abs <- dat_pred[dat_pred[,1] == 0, 2]
 
 evaluate(p = pres, a = abs)
+```
+
+### HSI map of above but without lat and DOY
+```{r}
+#| warning: FALSE
+try(agi_tc7_lr01_nolat <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(9:10, 12:14, 16:17, 19),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 7,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75, 
+                                    silent = TRUE, 
+                                    plot.main = TRUE))
 
    #make HSI plot
-map_pred = predict(rasterstack, agi_tc7_lr01, type = "response", n.trees = agi_tc7_lr01$gbm.call$best.trees, na.rm = FALSE) 
+agi_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/all_covar2004_spatrast.nc"))
+
+map_pred = predict(agi_rast_2004, agi_tc7_lr01_nolat, type = "response", n.trees = agi_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 extent1<-c(-140,-110,10,50)
 map_pred = crop(map_pred,extent1)
-df_map = rasterToPoints(map_pred) %>% as.data.frame()
-colnames(df_map) = c("rows","cols","value") 
+
+df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
+colnames(df_map) = c("value", "geometry") 
 
 map.world = map_data(map="world")
 testt=map.world %>% filter(long<=180)
 
-df_map %>% 
-    ggplot() + 
-    # geom_tile(aes(x = rows, y = cols, fill = ntile(value,100))) + coord_equal()+
-    geom_tile(aes(x = rows, y = cols, fill = value),color=NA) + coord_equal()+
-    scale_fill_gradientn("Habitat suitability", colours = pals::parula(100),limits = c(0,1),breaks=c(0,.5,1),labels=c("0",".5","1"))+
-    scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-    #geom_sf(data = eez, color = "black",fill=NA,size=1)+
-    theme(legend.position = "bottom",
-          # legend.key.size = unit(.9,'lines'),
-          # legend.background = NULL,
-          legend.text = element_text(size=10),
-          legend.title = element_text(size=12),
-          plot.margin = unit(c(0,0,3,0), "mm"))+theme(axis.ticks=element_blank(), 
-                                                      panel.background=element_rect(fill = "white"), 
-                                                      axis.text.x=element_blank(), axis.text.y=element_blank(),  
-                                                      panel.grid.major = element_blank(),
-                                                      panel.grid.minor = element_blank(),
-                                                      axis.title.x=element_blank(), axis.title.y=element_blank())
-
+ggplot() + 
+  geom_spatraster(data = map_pred) + 
+  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))
 ```
+
 
 ## CMEM model w/ DO and Temp. at 0m and 250m depth. Plus all covar except AGI at those depths.
 Here is the model without AGI and just DO and temperature values at 0m and 250m depth for all positions.
@@ -283,3 +286,4 @@ abs <- dat_pred[dat_pred[,1] == 0, 2]
 
 evaluate(p = pres, a = abs)
 ```
+
