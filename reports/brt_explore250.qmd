@@ -195,7 +195,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 ##### 2007 
@@ -218,7 +219,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 ##### 2009
@@ -241,7 +243,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 :::
@@ -324,6 +327,7 @@ gbm.plot(do_tc7_lr01_nolat, nplots = 13, plot.layout = c(3,3), write.title = FAL
 #| warning: false
    #make HSI plot
 do_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/do_covar2004_spatrast.nc"))
+names(do_rast_2004) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast")
 
 map_pred = predict(do_rast_2004, do_tc7_lr01_nolat, type = "response", n.trees = do_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 map_pred = crop(map_pred,extent1)
@@ -338,7 +342,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 ##### 2007 
@@ -346,6 +351,7 @@ ggplot() +
 #| warning: false
    #make HSI plot
 do_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/do_covar2007_spatrast.nc"))
+names(do_rast_2007) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast")
 
 map_pred = predict(do_rast_2007, do_tc7_lr01_nolat, type = "response", n.trees = do_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 map_pred = crop(map_pred,extent1)
@@ -360,7 +366,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 ##### 2009
@@ -368,6 +375,7 @@ ggplot() +
 #| warning: false
    #make HSI plot
 do_rast_2009 <- rast(here("data/enviro/CMEMS/hsi_map/do_covar2009_spatrast.nc"))
+names(do_rast_2009) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast")
 
 map_pred = predict(do_rast_2009, do_tc7_lr01_nolat, type = "response", n.trees = do_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 map_pred = crop(map_pred,extent1)
@@ -382,7 +390,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 :::
@@ -466,6 +475,7 @@ gbm.plot(agi_temp_tc7_lr01_nolat, nplots = 13, plot.layout = c(3,3), write.title
 #| warning: false
    #make HSI plot
 agi_temp_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
+names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
 
 map_pred = predict(agi_temp_rast_2004, agi_temp_tc7_lr01_nolat, type = "response", n.trees = agi_temp_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 map_pred = crop(map_pred,extent1)
@@ -480,14 +490,16 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 ##### 2007 
 ```{r}
 #| warning: false
    #make HSI plot
-agi_temp_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi-temp_covar2007_spatrast.nc"))
+agi_temp_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2007_spatrast.nc"))
+names(agi_temp_rast_2007) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
 
 map_pred = predict(agi_temp_rast_2007, agi_temp_tc7_lr01_nolat, type = "response", n.trees = agi_temp_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 map_pred = crop(map_pred,extent1)
@@ -502,7 +514,8 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
 
 ##### 2009
@@ -510,8 +523,9 @@ ggplot() +
 #| warning: false
    #make HSI plot
 agi_temp_rast_2009 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2009_spatrast.nc"))
+names(agi_temp_rast_2009) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
 
-map_pred = predict(do_rast_2009, agi_temp_tc7_lr01_nolat, type = "response", n.trees = agi_temp_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
+map_pred = predict(agi_temp_rast_2009, agi_temp_tc7_lr01_nolat, type = "response", n.trees = agi_temp_tc7_lr01_nolat$gbm.call$best.trees, na.rm = FALSE) 
 map_pred = crop(map_pred,extent1)
 
 df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
@@ -524,7 +538,7 @@ ggplot() +
   geom_spatraster(data = map_pred) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
 ```
-
 :::
