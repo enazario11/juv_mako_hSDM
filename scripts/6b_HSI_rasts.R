@@ -78,6 +78,7 @@ o2250_2009 <- subset(o2_crop250, time(o2_crop250) == as.Date("2009-02-20"))
 
 #combine to one raster per date 
 bathy_crop <- crop(bathy, extent)
+
 d2004 <- as.Date("2004-02-21")
 bathy2004 <- bathy_crop
 time(bathy2004) <- d2004
@@ -193,26 +194,57 @@ o2_2009_atm250 <- rast_to_atm(do = o2250_2009, so = sal250_2009, temp = sst250_2
 AGI2009_250m <- o2_2009_atm250/demand2009_250m
 #writeCDF(AGI2009_250m, filename = here("data/enviro/CMEMS/hsi_map/agi/AGI2009_250m.nc"))
 
+#save as raster data set with other covariates
+#rast2004 <- sds(sst0_2004, sal0_2004, chl0_2004, o20_2004, sst250_2004, sal250_2004, chl250_2004, o2250_2004, bathy2004, dist2004, AGI2004_0m, AGI2004_250m)
+#names(rast2004) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "AGI0", "AGI250")
 
-#save with other covariates
-rast2004 <- sds(sst0_2004, sal0_2004, chl0_2004, o20_2004, sst250_2004, sal250_2004, chl250_2004, o2250_2004, bathy2004, dist2004, AGI2004_0m, AGI2004_250m)
-names(rast2004) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "AGI0", "AGI250")
+#rast2007 <- sds(sst0_2007, sal0_2007, chl0_2007, o20_2007, sst250_2007, sal250_2007, chl250_2007, o2250_2007, bathy2007, dist2007, AGI2007_0m, AGI2007_250m)
+#names(rast2007) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "AGI0", "AGI250")
 
-rast2007 <- sds(sst0_2007, sal0_2007, chl0_2007, o20_2007, sst250_2007, sal250_2007, chl250_2007, o2250_2007, bathy2007, dist2007, AGI2007_0m, AGI2007_250m)
-names(rast2007) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "AGI0", "AGI250")
-
-rast2009 <- sds(sst0_2009, sal0_2009, chl0_2009, o20_2009, sst250_2009, sal250_2009, chl250_2009, o2250_2009, bathy2009, dist2009, AGI2009_0m, AGI2009_250m)
-names(rast2009) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "AGI0", "AGI250")
+#rast2009 <- sds(sst0_2009, sal0_2009, chl0_2009, o20_2009, sst250_2009, sal250_2009, chl250_2009, o2250_2009, bathy2009, dist2009, AGI2009_0m, AGI2009_250m)
+#names(rast2009) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "AGI0", "AGI250")
 
 #writeCDF(rast2004, filename = here("data/enviro/CMEMS/hsi_map/all_covar2004.nc"))
 #writeCDF(rast2007, filename = here("data/enviro/CMEMS/hsi_map/all_covar2007.nc"))
 #writeCDF(rast2009, filename = here("data/enviro/CMEMS/hsi_map/all_covar2009.nc"))
 
+#save as spatrasters (easier to use with predict)
+
+#2004
 agi_rast_2004 <- c(sal0_2004, chl0_2004, sal250_2004, chl250_2004, bathy2004, dist2004, AGI2004_0m, AGI2004_250m)
 names(agi_rast_2004) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
-#writeCDF(agi_rast_2004, filename = here("data/enviro/CMEMS/hsi_map/all_covar2004_spatrast.nc"))
+#writeCDF(agi_rast_2004, filename = here("data/enviro/CMEMS/hsi_map/agi_covar2004_spatrast.nc"))
 
+do_rast_2004 <- c(sst0_2004, sal0_2004, chl0_2004, o20_2004, sst250_2004, sal250_2004, chl250_2004, o2250_2004, bathy2004, dist2004)
+names(do_rast_2004) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast")
+#writeCDF(do_rast_2004, filename = here("data/enviro/CMEMS/hsi_map/do_covar2004_spatrast.nc"))
 
+agi_temp_rast_2004 <- c(sst0_2004, sal0_2004, chl0_2004, sst250_2004, sal250_2004, chl250_2004, bathy2004, dist2004, AGI2004_0m, AGI2004_250m)
+names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
+#writeCDF(agi_temp_rast_2004, filename = here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
 
+#2007
+agi_rast_2007 <- c(sal0_2007, chl0_2007, sal250_2007, chl250_2007, bathy2007, dist2007, AGI2007_0m, AGI2007_250m)
+names(agi_rast_2007) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
+writeCDF(agi_rast_2007, filename = here("data/enviro/CMEMS/hsi_map/agi_covar2007_spatrast.nc"))
 
+do_rast_2007 <- c(sst0_2007, sal0_2007, chl0_2007, o20_2007, sst250_2007, sal250_2007, chl250_2007, o2250_2007, bathy2007, dist2007)
+names(do_rast_2007) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast")
+#writeCDF(do_rast_2007, filename = here("data/enviro/CMEMS/hsi_map/do_covar2007_spatrast.nc"))
 
+agi_temp_rast_2007 <- c(sst0_2007, sal0_2007, chl0_2007, sst250_2007, sal250_2007, chl250_2007, bathy2007, dist2007, AGI2007_0m, AGI2007_250m)
+names(agi_temp_rast_2007) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
+#writeCDF(agi_temp_rast_2007, filename = here("data/enviro/CMEMS/hsi_map/agi_temp_covar2007_spatrast.nc"))
+
+#2009
+agi_rast_2009 <- c(sal0_2009, chl0_2009, sal250_2009, chl250_2009, bathy2009, dist2009, AGI2009_0m, AGI2009_250m)
+names(agi_rast_2009) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
+#writeCDF(agi_rast_2009, filename = here("data/enviro/CMEMS/hsi_map/agi_covar2009_spatrast.nc"))
+
+do_rast_2009 <- c(sst0_2009, sal0_2009, chl0_2009, o20_2009, sst250_2009, sal250_2009, chl250_2009, o2250_2009, bathy2009, dist2009)
+names(do_rast_2009) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast")
+#writeCDF(do_rast_2009, filename = here("data/enviro/CMEMS/hsi_map/do_covar2009_spatrast.nc"))
+
+agi_temp_rast_2009 <- c(sst0_2009, sal0_2009, chl0_2009, sst250_2009, sal250_2009, chl250_2009, bathy2009, dist2009, AGI2009_0m, AGI2009_250m)
+names(agi_temp_rast_2009) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250")
+#writeCDF(agi_temp_rast_2009, filename = here("data/enviro/CMEMS/hsi_map/agi_temp_covar2009_spatrast.nc"))
