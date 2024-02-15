@@ -4,12 +4,16 @@ library(here)
 library(tidyquant)
 
 ### read data ####
-dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_250m.rds"))
+dat50 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
+dat0 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
+dat250 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_250m.rds"))
+
 
 ### convert DO to atm ####
 source(here("functions/oxy_demand_functions.R"))
-dat_DO_atm <- DO_to_atm(dat, depth = 250)
-hist(dat_DO_atm$pO2_250)
+dat_DO_atm0 <- DO_to_atm(dat0, depth = 0)
+dat_DO_atm250 <- DO_to_atm(dat250, depth = 250)
+hist(dat_DO_atm$pO2_50)
 hist(dat_DO_atm$thetao_mean)
 
 ### static constants ####
@@ -28,24 +32,28 @@ hist(dat_DO_atm$thetao_mean)
 
 ### mako specific constants ####
 #calculate O2 thresh -- as per Clarke et al., 2021 (10th percentile from above (in atm))
-quantile(dat_DO_atm$pO2_250, probs = c(0, 0.10, 0.5, 0.75, 1), na.rm = T) 
-OxyThresh = 0.0059819533
+quantile(dat_DO_atm$pO2_50, probs = c(0, 0.10, 0.5, 0.75, 1), na.rm = T) 
+OxyThresh = 0.0843513526 #for values at 50m
 
 #calculate temp pref
-Tpref = median(dat_DO_atm$thetao_mean, na.rm = T)
+Tpref = median(dat_DO_atm$thetao_mean, na.rm = T) #50m tpref is 16.452
 
 #run oxygen demand function with mako specific parameters
-dat_DO_atm$O2_demand_mako250 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm$thetao_mean)
+dat_DO_atm0$O2_demand_mako0 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm0$thetao_mean)
+
+dat_DO_atm250$O2_demand_mako250 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm250$thetao_mean)
 
   #explore outputs
-hist(dat_DO_atm$O2_demand_mako250)
-plot(dat_DO_atm$thetao_mean, dat_DO_atm$O2_demand_mako250) #should increase with temp
+hist(dat_DO_atm0$O2_demand_mako0)
+hist(dat_DO_atm250$O2_demand_mako250)
+plot(dat_DO_atm250$thetao_mean, dat_DO_atm250$O2_demand_mako250) #should increase with temp
 
 #calculate AGI
-dat_DO_atm$AGI_250m <- dat_DO_atm$pO2_250/dat_DO_atm$O2_demand_mako250
+dat_DO_atm0$AGI_0m <- dat_DO_atm0$pO2_0/dat_DO_atm0$O2_demand_mako0
+dat_DO_atm250$AGI_250m <- dat_DO_atm250$pO2_250/dat_DO_atm250$O2_demand_mako250
 
   #explore outputs
-hist(dat_DO_atm$AGI_250m)
+hist(dat_DO_atm0$AGI_0m)
 plot(dat_DO_atm$thetao_mean, dat_DO_atm$AGI_250m)
 plot(dat_DO_atm$o2_mean, dat_DO_atm$AGI_250m)
 plot(dat_DO_atm$pO2_250, dat_DO_atm$AGI_250m)
@@ -56,14 +64,15 @@ min(dat_DO_atm$AGI_250m, na.rm = T)
 max(dat_DO_atm$AGI_250m, na.rm = T)
 sd(dat_DO_atm$AGI_250m, na.rm = T)
 
-#saveRDS(dat_DO_atm, here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
+#saveRDS(dat_DO_atm0, here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_0m.rds"))
 
 #calculate AGI critical value (10th percentile)
-AGIcrit <- quantile(dat_DO_atm$AGI_250m, c(.10), na.rm = T) #1.56
+AGIcrit0 <- quantile(dat_DO_atm0$AGI_0m, c(.10), na.rm = T) #2.55
+AGIcrit250 <- quantile(dat_DO_atm250$AGI_250m, c(.10), na.rm = T) #0.111
 
-map_DO_atm <- dat_DO_atm %>%
+map_DO_atm <- dat_DO_atm250 %>%
   filter(PA == 0) %>%
-  mutate(AGI_crit = ifelse(AGI_250m > 1.56, "yes", "no")) #yes or no above AGIcrit
+  mutate(AGI_crit = ifelse(AGI_250m > 0.111, "yes", "no")) #yes or no above AGIcrit
 
 #coarse look at where the sharks were above the AGIcrit 
 north_map = map_data("world") %>% group_by(group)

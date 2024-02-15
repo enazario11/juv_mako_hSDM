@@ -158,8 +158,52 @@ all_cmem_covar_0m %>%
             mean_npp = mean(nppv_mean, na.rm = TRUE), 
             mean_do = mean(o2_mean, na.rm = TRUE))
 
+#50m extract ####
+# dat extract ###
+cmem_nc50 <- nc_open(here("data/enviro/CMEMS/processed/CMEM_SST_SAL_UO_VO_CHL_NPP_DO_50m_Jan2004_Dec2009_0.25_D.nc"))
+
+xtracto_cmem_depth = function(input_file, nc_file){
+  input_file <- getvarCMEM(nc_file, "thetao", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "so", input_file, 0.25, mean, "mean")
+  #input_file <- getvarCMEM(nc_file, "mlotst", input_file, 0.25, mean, "mean")
+  #input_file <- getvarCMEM(nc_file, "zos", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "uo", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "vo", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "chl", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "nppv", input_file, 0.25, mean, "mean")
+  input_file <- getvarCMEM(nc_file, "o2", input_file, 0.25, mean, "mean")
+}
+
+all_dat_cmem_50m <- xtracto_cmem_depth(input_file, cmem_nc50)
+
+saveRDS(all_dat_cmem_50m, here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
+head(all_dat_cmem_50m)
+
+#explore
+ggplot(all_dat_cmem_50m, aes(o2_mean)) + geom_histogram(bins = 30, color = "grey") + facet_wrap(~PA, scales = "free") + theme_bw()
+
+cmem_50m_long <- gather(all_dat_cmem_50m, covar, value, thetao_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_50m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+all_dat_cmem_50m %>% 
+  group_by(PA) %>% 
+  summarise(mean_sst = mean(thetao_mean, na.rm = TRUE), 
+            mean_sal = mean(so_mean, na.rm = TRUE), 
+            mean_uo = mean(uo_mean, na.rm = TRUE), 
+            mean_vo = mean(vo_mean, na.rm = TRUE), 
+            mean_chl = mean(chl_mean, na.rm = TRUE), 
+            mean_npp = mean(nppv_mean, na.rm = TRUE), 
+            mean_do = mean(o2_mean, na.rm = TRUE))
+
+
+
 #250m extract ####
-# dat extract ####
+# dat extract ###
 cmem_nc250 <- nc_open(here("data/enviro/CMEMS/processed/CMEM_SST_SAL_UO_VO_CHL_NPP_DO_250m_Jan2004_Dec2009_0.25_D.nc"))
 
 xtracto_cmem_depth = function(input_file, nc_file){
@@ -199,9 +243,6 @@ all_dat_cmem_250m %>%
             mean_chl = mean(chl_mean, na.rm = TRUE), 
             mean_npp = mean(nppv_mean, na.rm = TRUE), 
             mean_do = mean(o2_mean, na.rm = TRUE))
-
-#calculate distance to coast 
-
 
 
 ##### SCRATCH #######

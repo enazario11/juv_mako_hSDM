@@ -97,8 +97,8 @@ dat_train <- dat2 %>% sample_frac(0.75)
 dat_test <- dat2 %>% sample_frac(0.25)
 
 #must be a data frame, if class = tibble BRT will not run
-dat_train <- as.data.frame(dat_train)
-dat_test <- as.data.frame(dat_test)
+#dat_train <- as.data.frame(dat_train)
+#dat_test <- as.data.frame(dat_test)
 ```
 
 # CMEM Surface BRT w/ AGI at 0m and 250m (all covar included except DO and Temp at those depths)
@@ -437,6 +437,8 @@ ggplot() +
   scale_fill_viridis_c()
 ```
 
+
+
 ### 2007 
 ```{r}
 #| warning: false
@@ -485,3 +487,241 @@ ggplot() +
   scale_fill_viridis_c()
 ```
 :::
+
+# CMEM model w/ AGI and Temp. at 0m and 250m depth. Plus all covar at those depths.
+Here is the BRT with AGI and Temp at both 0m and 250m depth. The following models include examples where either AGI at 0m or 250m are removed to show their relative influence.
+
+## AGI 0m and 250m tc5, lr0.01, bf0.75
+
+```{r}
+#| warning: FALSE
+
+#fit the model
+# try(agi_all_tc5_lr01 <- dismo::gbm.step(data = dat_train,
+#                                     gbm.x = c(4, 8:10, 12:17, 19:20),
+#                                     gbm.y = 5,
+#                                     family = "bernoulli",
+#                                     tree.complexity = 5,
+#                                     learning.rate = 0.01,
+#                                     bag.fraction = 0.75,
+#                                     silent = TRUE,
+#                                     plot.main = TRUE))
+# 
+# saveRDS(agi_all_tc5_lr01, here("data/brt/mod_bls/agi_all_tc5_lr01.rds"))
+
+ #load model so I don't run every time
+agi_all_tc5_lr01 <- readRDS(here("data/brt/mod_bls/agi_all_tc5_lr01.rds"))
+
+ggBRT::ggPerformance(agi_all_tc5_lr01)
+
+#explore outputs
+gbm.plot(agi_all_tc5_lr01, nplots = 15, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_all_tc5_lr01) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(agi_all_tc5_lr01)
+do_int$rank.list
+
+#predictions
+preds <- predict.gbm(agi_all_tc5_lr01, dat_test, 
+                     n.trees = agi_all_tc5_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+## HSI map
+
+::: panel-tabset
+
+### 2005
+```{r}
+#| warning: false
+   #make HSI plot
+agi_all_rast_2005 <- rast(here("data/enviro/CMEMS/hsi_map/agi_all_covar2005_spatrast.nc"))
+names(agi_all_rast_2005) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+
+map_pred = predict(agi_all_rast_2005, agi_all_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred = crop(map_pred,extent1)
+
+df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
+colnames(df_map) = c("value", "geometry") 
+
+map.world = map_data(map="world")
+testt=map.world %>% filter(long<=180)
+
+ggplot() + 
+  geom_spatraster(data = map_pred) + 
+  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
+```
+
+::: 
+
+# CMEM model w/ AGI at 0m plus all covar at those depths.
+
+## AGI 0m tc5, lr0.01, bf0.75
+
+```{r}
+#| warning: FALSE
+
+#fit the model
+# try(agi_0_tc5_lr01 <- dismo::gbm.step(data = dat_train,
+#                                     gbm.x = c(4, 8:10, 12:17, 20),
+#                                     gbm.y = 5,
+#                                     family = "bernoulli",
+#                                     tree.complexity = 5,
+#                                     learning.rate = 0.01,
+#                                     bag.fraction = 0.75,
+#                                     silent = TRUE,
+#                                     plot.main = TRUE))
+
+#saveRDS(agi_0_tc5_lr01, here("data/brt/mod_bls/agi_0_tc5_lr01.rds"))
+
+ #load model so I don't run every time
+agi_0_tc5_lr01 <- readRDS(here("data/brt/mod_bls/agi_0_tc5_lr01.rds"))
+
+ggBRT::ggPerformance(agi_0_tc5_lr01)
+
+#explore outputs
+gbm.plot(agi_0_tc5_lr01, nplots = 15, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0_tc5_lr01) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(agi_0_tc5_lr01)
+do_int$rank.list
+
+#predictions
+preds <- predict.gbm(agi_0_tc5_lr01, dat_test, 
+                     n.trees = agi_0_tc5_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+## HSI map
+
+::: panel-tabset
+
+### 2004
+```{r}
+#| warning: false
+   #make HSI plot
+agi_temp_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
+names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+
+map_pred = predict(agi_0_rast_2004, agi_0_tc5_lr01, type = "response", n.trees = agi_0_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred = crop(map_pred,extent1)
+
+df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
+colnames(df_map) = c("value", "geometry") 
+
+map.world = map_data(map="world")
+testt=map.world %>% filter(long<=180)
+
+ggplot() + 
+  geom_spatraster(data = map_pred) + 
+  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
+```
+
+::: 
+
+# CMEM model w/ AGI at 250m plus all covar at those depths.
+
+## AGI 250m tc5, lr0.01, bf0.75
+
+```{r}
+#| warning: FALSE
+
+#fit the model
+# try(agi_250_tc5_lr01 <- dismo::gbm.step(data = dat_train,
+#                                     gbm.x = c(4, 8:10, 12, 14:17, 19:20),
+#                                     gbm.y = 5,
+#                                     family = "bernoulli",
+#                                     tree.complexity = 5,
+#                                     learning.rate = 0.01,
+#                                     bag.fraction = 0.75,
+#                                     silent = TRUE,
+#                                     plot.main = TRUE))
+# 
+# saveRDS(agi_250_tc5_lr01, here("data/brt/mod_bls/agi_250_tc5_lr01.rds"))
+
+ #load model so I don't run every time
+agi_250_tc5_lr01 <- readRDS(here("data/brt/mod_bls/agi_250_tc5_lr01.rds"))
+
+ggBRT::ggPerformance(agi_250_tc5_lr01)
+
+#explore outputs
+gbm.plot(agi_250_tc5_lr01, nplots = 15, plot.layout = c(3,4), write.title = FALSE) 
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_250_tc5_lr01) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(agi_250_tc5_lr01)
+do_int$rank.list
+
+#predictions
+preds <- predict.gbm(agi_250_tc5_lr01, dat_test, 
+                     n.trees = agi_250_tc5_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
+dat_pred <- cbind(dat_test$PA, preds)
+pres <- dat_pred[dat_pred[,1] == 1, 2]
+abs <- dat_pred[dat_pred[,1] == 0, 2]
+
+evaluate(p = pres, a = abs)
+```
+
+## HSI map
+
+::: panel-tabset
+
+### 2004
+```{r}
+#| warning: false
+   #make HSI plot
+agi_temp_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
+names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+
+map_pred = predict(agi_250_rast_2004, agi_250_tc5_lr01, type = "response", n.trees = agi_250_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred = crop(map_pred,extent1)
+
+df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
+colnames(df_map) = c("value", "geometry") 
+
+map.world = map_data(map="world")
+testt=map.world %>% filter(long<=180)
+
+ggplot() + 
+  geom_spatraster(data = map_pred) + 
+  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
+    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_viridis_c()
+```
+
+::: 
