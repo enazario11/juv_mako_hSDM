@@ -7,14 +7,35 @@ library(tidyquant)
 dat50 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
 dat0 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
 dat250 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_250m.rds"))
-
+dat50 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
 
 ### convert DO to atm ####
 source(here("functions/oxy_demand_functions.R"))
 dat_DO_atm0 <- DO_to_atm(dat0, depth = 0)
 dat_DO_atm250 <- DO_to_atm(dat250, depth = 250)
-hist(dat_DO_atm$pO2_50)
+dat_DO_atm50 <- DO_to_atm(dat50, depth = 50)
+
+hist(dat_DO_atm250$pO2_250)
+abline(v = 0.030632248090974, lwd = 2)
+
+hist(dat_DO_atm50$pO2_50)
+abline(v = 0.030632248090974, lwd = 2)
+
+hist(dat_DO_atm0$pO2_0, xlim = range(0, 0.18))
+abline(v = 0.030632248090974, lwd = 2)
+
 hist(dat_DO_atm$thetao_mean)
+
+
+# possible O2 threshold from vetter et al., 2008 study with makos and jumbo squid. Makos rarely encountered watesr with less than 1.25 ml O2/L. Could be threshold for jumbo squid from the sharks 
+    
+    #1.25 mL/L * 1000 L /m3 = 1250 ml/m^3
+
+    #1250 ml/m^3 * 1umol/0.022391 ml = 55826 umol/m^3
+
+    #55826 umol/m^3 * 0.001 mmol/umol = 55.826 mmol/m^3
+
+OxyThresh_emp <- rast_to_atm(do = 55.826, temp = 16, so = 33.55392, depth = 50) #0.030632248090974 atm -- could be new OxyThresh value
 
 ### static constants ####
 # W = 51807.63; average mass in g for juv. makos as estimated by length-weight relationship. Used average FL of 177.7 cm (from study animals)
@@ -32,28 +53,32 @@ hist(dat_DO_atm$thetao_mean)
 
 ### mako specific constants ####
 #calculate O2 thresh -- as per Clarke et al., 2021 (10th percentile from above (in atm))
-quantile(dat_DO_atm$pO2_50, probs = c(0, 0.10, 0.5, 0.75, 1), na.rm = T) 
-OxyThresh = 0.0843513526 #for values at 50m
+quantile(dat_DO_atm$pO2_50, probs = c(0, 0.10, 0.5, 0.75, 1), na.rm = TRUE) 
+OxyThresh50 = 0.0843513526 #for values at 50m
+
+OxyThresh250 = quantile(dat_DO_atm250$pO2_250, 0.10, na.rm = TRUE)
 
 #calculate temp pref
-Tpref = median(dat_DO_atm$thetao_mean, na.rm = T) #50m tpref is 16.452
+Tpref50 = 16.452 #50m tpref is 16.452
+Tpref250 = median(dat_DO_atm250$thetao_mean, na.rm = TRUE)
 
 #run oxygen demand function with mako specific parameters
 dat_DO_atm0$O2_demand_mako0 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm0$thetao_mean)
-
-dat_DO_atm250$O2_demand_mako250 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm250$thetao_mean)
+dat_DO_atm250$O2_demand_mako250 <- OxyDemand(Tpref = Tpref50, PO2_thresh = OxyThresh50, T_C = dat_DO_atm250$thetao_mean)
+dat_DO_atm50$O2_demand_mako50 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm50$thetao_mean)
 
   #explore outputs
-hist(dat_DO_atm0$O2_demand_mako0)
+hist(dat_DO_atm50$O2_demand_mako50)
 hist(dat_DO_atm250$O2_demand_mako250)
 plot(dat_DO_atm250$thetao_mean, dat_DO_atm250$O2_demand_mako250) #should increase with temp
 
 #calculate AGI
 dat_DO_atm0$AGI_0m <- dat_DO_atm0$pO2_0/dat_DO_atm0$O2_demand_mako0
 dat_DO_atm250$AGI_250m <- dat_DO_atm250$pO2_250/dat_DO_atm250$O2_demand_mako250
+dat_DO_atm50$AGI_50m <- dat_DO_atm50$pO2_50/dat_DO_atm50$O2_demand_mako50
 
   #explore outputs
-hist(dat_DO_atm0$AGI_0m)
+hist(dat_DO_atm250$AGI_250m)
 plot(dat_DO_atm$thetao_mean, dat_DO_atm$AGI_250m)
 plot(dat_DO_atm$o2_mean, dat_DO_atm$AGI_250m)
 plot(dat_DO_atm$pO2_250, dat_DO_atm$AGI_250m)
