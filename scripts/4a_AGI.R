@@ -2,6 +2,7 @@
 library(tidyverse)
 library(here)
 library(tidyquant)
+library(respR)
 
 ### read data ####
 dat50 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
@@ -9,33 +10,65 @@ dat0 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
 dat250 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_250m.rds"))
 dat50 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
 
-### convert DO to atm ####
 source(here("functions/oxy_demand_functions.R"))
-dat_DO_atm0 <- DO_to_atm(dat0, depth = 0)
+
+### convert DO to atm ####
+# 0m
+pressure = (1025 * 9.81 * 0) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
+press_bar = pressure / 100000 #bar
+
+temp_pO2 <- NULL
+for (i in 1:nrow(dat0)) {
+  
+  if(is.na(dat0$o2_mean[i]) | is.na(dat0$thetao_mean[i]) | is.na(dat0$so_mean[i])) {
+    o2_atm <- "NA"
+   } else { 
+    o2_mmhg <- convert_DO(dat0$o2_mean[i]/1000, "mmol/L", "mmHg", t = dat0$thetao_mean[i], S = dat0$so_mean[i], P = press_bar) #divide o2 by 1000 to convert from cubic meter to liter. 
+    o2_atm <-  o2_mmhg/760 #convert from mmHg to atm
+   }
+    
+    temp_pO2 <- rbind(temp_pO2, o2_atm)
+    cat("\rFinished", i, "of", nrow(dat0))
+}
+
+temp <- as.data.frame(temp_pO2)
+temp$V1 <- as.numeric(temp$V1)
+hist(temp$V1)
+
+dat0_DOatm <- cbind(dat0, o2_atm = temp_pO2)
+
+hist(dat0$o2_atm)
+abline(v = 0.030632248090974, lwd = 2)
+
+# 50m
+pressure = (1025 * 9.81 * 50) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
+press_bar = pressure / 100000 #bar
 dat_DO_atm250 <- DO_to_atm(dat250, depth = 250)
+
+hist(dat_DO_atm50$pO2_50)
+abline(v = 0.030632248090974, lwd = 2)
+
+#250m 
+pressure = (1025 * 9.81 * 250) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
+press_bar = pressure / 100000 #bar
 dat_DO_atm50 <- DO_to_atm(dat50, depth = 50)
 
 hist(dat_DO_atm250$pO2_250)
 abline(v = 0.030632248090974, lwd = 2)
 
-hist(dat_DO_atm50$pO2_50)
-abline(v = 0.030632248090974, lwd = 2)
-
-hist(dat_DO_atm0$pO2_0, xlim = range(0, 0.18))
-abline(v = 0.030632248090974, lwd = 2)
-
-hist(dat_DO_atm$thetao_mean)
+# possible O2 threshold from vetter et al., 2008 study with makos and jumbo squid. Makos rarely encountered watesr with less than 1.25 ml O2/L. Could be threshold for jumbo squid from the sharks. 
+OxyThresh_emp <- rast_to_atm(do = 1250, 
+                             temp = median(dat_DO_atm250$thetao_mean, na.rm = TRUE), 
+                             so = mean(dat_DO_atm250$so_mean, na.rm = TRUE), 
+                             depth = 250) #0.0247175021756423 atm -- could be new OxyThresh value
 
 
-# possible O2 threshold from vetter et al., 2008 study with makos and jumbo squid. Makos rarely encountered watesr with less than 1.25 ml O2/L. Could be threshold for jumbo squid from the sharks 
-    
-    #1.25 mL/L * 1000 L /m3 = 1250 ml/m^3
 
-    #1250 ml/m^3 * 1umol/0.022391 ml = 55826 umol/m^3
+pressure = (1025 * 9.81 * 0) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
+press_bar = pressure / 100000 #bar
 
-    #55826 umol/m^3 * 0.001 mmol/umol = 55.826 mmol/m^3
-
-OxyThresh_emp <- rast_to_atm(do = 55.826, temp = 16, so = 33.55392, depth = 50) #0.030632248090974 atm -- could be new OxyThresh value
+thresh_mmHg <- convert_DO(1.25, "mL/L", "mmHg", t = median(dat0$thetao_mean, na.rm = TRUE), S = median(dat0$so_mean, na.rm = TRUE), P = press_bar)
+thresh_atm0 <- thresh_mmHg / 760
 
 ### static constants ####
 # W = 51807.63; average mass in g for juv. makos as estimated by length-weight relationship. Used average FL of 177.7 cm (from study animals)
@@ -63,9 +96,10 @@ Tpref50 = 16.452 #50m tpref is 16.452
 Tpref250 = median(dat_DO_atm250$thetao_mean, na.rm = TRUE)
 
 #run oxygen demand function with mako specific parameters
-dat_DO_atm0$O2_demand_mako0 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm0$thetao_mean)
-dat_DO_atm250$O2_demand_mako250 <- OxyDemand(Tpref = Tpref50, PO2_thresh = OxyThresh50, T_C = dat_DO_atm250$thetao_mean)
+dat0$O2_demand0 <- OxyDemand(Tpref = Tpref50, PO2_thresh = thresh_atm0, T_C = dat0$thetao_mean)
 dat_DO_atm50$O2_demand_mako50 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm50$thetao_mean)
+dat_DO_atm250$O2_demand_mako250 <- OxyDemand(Tpref = Tpref50, PO2_thresh = OxyThresh_emp, T_C = dat_DO_atm250$thetao_mean)
+
 
   #explore outputs
 hist(dat_DO_atm50$O2_demand_mako50)
@@ -73,7 +107,7 @@ hist(dat_DO_atm250$O2_demand_mako250)
 plot(dat_DO_atm250$thetao_mean, dat_DO_atm250$O2_demand_mako250) #should increase with temp
 
 #calculate AGI
-dat_DO_atm0$AGI_0m <- dat_DO_atm0$pO2_0/dat_DO_atm0$O2_demand_mako0
+dat_DO_atm0$AGI_0m <- dat0$o2_atm/dat0$O2_demand0
 dat_DO_atm250$AGI_250m <- dat_DO_atm250$pO2_250/dat_DO_atm250$O2_demand_mako250
 dat_DO_atm50$AGI_50m <- dat_DO_atm50$pO2_50/dat_DO_atm50$O2_demand_mako50
 

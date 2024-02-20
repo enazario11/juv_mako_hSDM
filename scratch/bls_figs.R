@@ -797,7 +797,7 @@ ggplot() +
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
   scale_y_continuous(expand=c(0,0),limits = c(10,50))+
   scale_fill_whitebox_c(palette = "deep", direction = -1) +
-  ggtitle("Comparing HSI") +
+  ggtitle("Comparing BRT HSIs") +
   labs(fill = "% change") +
 theme_bls_agi() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
@@ -813,7 +813,7 @@ ggplot() +
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
   scale_y_continuous(expand=c(0,0),limits = c(10,50))+
   scale_fill_whitebox_c(palette = "deep", direction = -1) +
-  ggtitle("Comparing HSI") +
+  ggtitle("Comparing BRT HSIs") +
   labs(fill = "% change") +
   theme_bls_agi() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
@@ -821,3 +821,19 @@ ggplot() +
         axis.title.y = element_blank())
 
 ggsave(here("figs/bls/diff_hsi07.png"), height = 6, width = 5.3, units = c("in"))
+
+
+### example covar maps ####
+
+ggplot() + 
+  geom_spatraster(data = sst0_2004) + 
+  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
+  scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_whitebox_c(palette = "deep", direction = -1)+
+  theme_bls_map() +
+  theme(axis.text = element_blank(), 
+        axis.title = element_blank(), 
+        axis.text.x = element_blank())
+
+ggsave(here("figs/bls/covar1.png"), height = 4, width = 3, units = c("in"))
