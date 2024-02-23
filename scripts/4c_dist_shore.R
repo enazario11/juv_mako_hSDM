@@ -5,7 +5,7 @@ library(sf)
 library(here)
 
 #load covar data
-cmems_covar <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_0m.rds"))
+cmems_covar <- readRDS(here("data/locs_w_covar/cmems/cmem_covar_AGI_atm_250m_emp.rds"))
 cmems_locs <- cmems_covar %>%
   subset(select = c(tag, lat, lon))
 
@@ -47,4 +47,4 @@ coast_dist <- st_distance(cmems_locs$geometry, land_subset) #distance in km
 cmems_covar$dist_coast <- coast_dist[,1]
 cmems_covar$dist_coast <- as.numeric(cmems_covar$dist_coast)
 
-saveRDS(cmems_covar, here("data/locs_w_covar/cmems/cmems_locs_covar_0m_AGI_dist.rds"))
+saveRDS(cmems_covar, here("data/locs_w_covar/cmems/cmems_locs_covar_250m_emp_dist.rds"))

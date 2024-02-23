@@ -183,8 +183,8 @@ thresh_to_atm <- function(do, temp, so, depth){
 }
 
 
-thresh_atm <- function(do_mL_L = 1.25, temp_C, so_psu, depth){
-  pressure_Pa = (1025 * 9.81 * depth) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
+thresh_atm <- function(do_mL_L = 2, temp_C, so_psu, depth){
+  pressure_Pa = (1025 * 9.81 * 0) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
   press_bar = pressure_Pa/100000 #get calculated pressure into bar
   
       #use the salinity and temperature conditions at the surface to get unit to mmol/L

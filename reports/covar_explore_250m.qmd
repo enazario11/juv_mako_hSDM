@@ -21,7 +21,7 @@ library(tidyquant)
 library(MetBrewer)
 library(tidyquant)
 
-cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
+cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_covar_AGI_atm_250m_emp.rds"))
 cmem_dat <- cmem_dat %>% rename("pO2_250_atm" = "pO2_250") #removes oxy (atm) col. Was needed to calc AGI
 
 theme_set(theme_tq() +
@@ -182,7 +182,7 @@ Below are some comparisons of the covariate values relative to each other for th
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = O2_demand_mako250, color = as.factor(PA))) + 
+  ggplot(aes(x = thetao_mean, y = O2_demand250, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
@@ -200,7 +200,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = pO2_250_atm, fill = O2_demand_mako250)) + 
+  ggplot(aes(x = thetao_mean, y = pO2_250_atm, fill = O2_demand250)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
@@ -219,7 +219,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = thetao_mean, fill = O2_demand_mako250)) + 
+  ggplot(aes(x = lat, y = thetao_mean, fill = O2_demand250)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
@@ -238,7 +238,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = pO2_250_atm, fill = O2_demand_mako250)) + 
+  ggplot(aes(x = lat, y = pO2_250_atm, fill = O2_demand250)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
@@ -257,7 +257,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = thetao_mean, fill = O2_demand_mako250)) + 
+  ggplot(aes(x = lon, y = thetao_mean, fill = O2_demand250)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
@@ -276,7 +276,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = pO2_250_atm, fill = O2_demand_mako250)) + 
+  ggplot(aes(x = lon, y = pO2_250_atm, fill = O2_demand250)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
@@ -354,7 +354,7 @@ cmem_dat %>%
 #| fig-align: center
 source(here("functions/oxy_demand_functions.R"))
 
-o2_range <- seq(0.00045, 0.1124, length.out = 100)
+o2_range <- seq(1.000366, 226.3392, length.out = 100)
 temp_range <- seq(4.4, 14.66, length.out = 100)
 AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
   mutate(met_dem = OxyDemand(Tpref = 8.5, PO2_thresh = 0.006, T_C = temp), 

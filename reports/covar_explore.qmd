@@ -21,7 +21,7 @@ library(tidyquant)
 library(MetBrewer)
 library(tidyquant)
 
-cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_0m.rds"))
+cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_covar_AGI_atm_0m_emp.rds"))
 cmem_dat <- cmem_dat %>% rename("pO2_0_atm" = "pO2_0") #removes oxy (atm) col. Was needed to calc AGI
 
 theme_set(theme_tq() +
@@ -145,7 +145,7 @@ cmem_0m_long %>%
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset 
+::: panel-tabset
 #### Temp vs. DO (atm)
 
 ```{r}
@@ -205,8 +205,8 @@ cmem_dat %>%
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset 
-#### Temp vs Demand 
+::: panel-tabset
+#### Temp vs Demand
 
 ```{r}
 #| echo: false
@@ -218,13 +218,14 @@ Below are some comparisons of the covariate values relative to each other for th
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = O2_demand_mako, color = as.factor(PA))) + 
+  ggplot(aes(x = thetao_mean, y = O2_demand0, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
 ```
 
-#### Temp vs. DO (atm) vs. demand 
+#### Temp vs. DO (atm) vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -235,14 +236,15 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = thetao_mean, y = pO2_0_atm, fill = O2_demand_mako)) + 
+  ggplot(aes(x = thetao_mean, y = pO2_0_atm, fill = O2_demand0)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
 
 ```
 
-#### Lat vs. temp vs. demand 
+#### Lat vs. temp vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -253,14 +255,15 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = thetao_mean, fill = O2_demand_mako)) + 
+  ggplot(aes(x = lat, y = thetao_mean, fill = O2_demand0)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
 
 ```
 
-#### Lat vs. DO (atm) vs. demand 
+#### Lat vs. DO (atm) vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -271,14 +274,15 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lat, y = pO2_0_atm, fill = O2_demand_mako)) + 
+  ggplot(aes(x = lat, y = pO2_0_atm, fill = O2_demand0)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
 
 ```
 
-#### Lon vs. temp vs. demand 
+#### Lon vs. temp vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -289,7 +293,7 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = thetao_mean, fill = O2_demand_mako)) + 
+  ggplot(aes(x = lon, y = thetao_mean, fill = O2_demand0)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
@@ -297,6 +301,7 @@ cmem_dat %>%
 ```
 
 #### Lon vs. DO (atm) vs. demand
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -307,20 +312,19 @@ cmem_dat %>%
 
 cmem_dat %>% 
   filter(PA == 0) %>%
-  ggplot(aes(x = lon, y = pO2_0_atm, fill = O2_demand_mako)) + 
+  ggplot(aes(x = lon, y = pO2_0_atm, fill = O2_demand0)) + 
   geom_point(shape = 21, size = 3)+
   theme(legend.position = "right")+
   scale_fill_viridis_c()
 
 ```
-
 :::
 
 ### AGI covar comparisons
 
 Below are some comparisons of the covariate values relative to each other for the observed positions (covariate values at PA positions are excluded).
 
-::: panel-tabset 
+::: panel-tabset
 #### DO (atm) vs. AGI
 
 ```{r}
@@ -404,7 +408,7 @@ cmem_dat %>%
 #| fig-align: center
 source(here("functions/oxy_demand_functions.R"))
 
-o2_range <- seq(0.14, 0.16, length.out = 100)
+o2_range <- seq(198.6259, 324.4232, length.out = 100)
 temp_range <- seq(6, 30, length.out = 100)
 AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
   mutate(met_dem = OxyDemand(Tpref = 19, PO2_thresh = 0.17, T_C = temp), 
@@ -417,7 +421,7 @@ ggplot(AGI_surf, aes(temp, o2)) +
   
 ```
 
-#### Temp vs. DO (atm) vs. AGI  
+#### Temp vs. DO (atm) vs. AGI
 
 ```{r}
 #| echo: false
@@ -435,7 +439,6 @@ cmem_dat %>%
   scale_fill_viridis_c()
 
 ```
-
 :::
 
 ### Lat/lon covar comparisons

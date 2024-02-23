@@ -134,7 +134,8 @@ theme_bls_agi <- function(){
 }
 ### data ####
 #loc & covar data
-cmem_dat <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
+cmem_dat250 <- readRDS(here("data/locs_w_covar/cmems/cmems_locs_covar_250m_emp_dist.rds"))
+cmem_dat0 <- readRDS(here("data/locs_w_covar/cmems/cmems_locs_covar_0m_emp_dist.rds"))
 
 #model data
 agi_tc5_lr01 <- readRDS(here("data/brt/mod_bls/agi_tc5_lr01.rds"))
@@ -152,9 +153,9 @@ cmem_dat2 <- cmem_dat %>% filter(PA == 0)
 
 ggplot(shore, aes(long, lat)) +
   coord_map("mercator", xlim = c(-140, -110), ylim = c(10, 50))+
-  geom_point(data=cmem_dat2, aes(lon, lat, colour=as.factor(tag)), size = 4.5) +
+  geom_path(data=cmem_dat2, aes(lon, lat, colour=as.factor(tag)), size = 4.5) +
   geom_polygon(aes(group=group), fill="grey75",lwd=1) +
-  scale_color_manual(values = met.brewer("OKeeffe2", 23))+
+  scale_color_manual(values = met.brewer("OKeeffe2", 23))
   theme_bls_map()
   
 
@@ -221,7 +222,7 @@ ggplot(agi_temp_inf, aes(rel.inf, reorder(var, rel.inf))) +
   geom_col(fill = "#ADB9CA") +
   xlab("Relative influence (%)")+
   ylab("")+
-  ggtitle("AGI & Temperature")+
+  ggtitle("AGI 0m & 250m")+
   theme_bls_inf()  
 
 ggsave(here("figs/bls/AGI_temp_inf.png"), height = 6, width = 5, units = c("in"))
@@ -256,7 +257,7 @@ temp_range0 <- seq(9.022785, 29.35271, length.out = 100)
 
 AGI_surf_p0 <- expand_grid(o2 = o2_range0, temp = temp_range0) %>% 
   mutate(po2 = rast_to_atm(do = o2, so = 33.46948, temp = temp, depth = 0), #used mean sal at 0m
-         met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.0843513526, T_C = temp), 
+         met_dem = OxyDemand(Tpref = 16.45201, PO2_thresh = 0.04944626, T_C = temp), 
          AGI = po2/met_dem)
 
 ggplot(AGI_surf_p0, aes(temp, o2)) +
@@ -266,18 +267,19 @@ ggplot(AGI_surf_p0, aes(temp, o2)) +
   xlab("Temperature (C)") + 
   ylab(bquote('Dissolved oxygen' ('mmol/m'^'3'))) +
   labs(fill = "AGI") +
-  scale_fill_whitebox_c(palette = "deep", direction = -1)+
+  scale_fill_whitebox_c(palette = "deep", direction = -1, limits = c(0, 7))+
   ggtitle("AGI at 0m") +
-  theme_bls_agi()
+  theme_bls_agi()+
+  theme(legend.position = "none")
 
-ggsave(here("figs/bls/surf_plot0.png"), height = 7, width = 6, units = c("in"))
+ggsave(here("figs/bls/surf_plot0.png"), height = 7, width = 5, units = c("in"))
 
 o2_range250 <- seq(1.000503, 220.2202, length.out = 100)
 temp_range250 <- seq(4.493278, 12.88808, length.out = 100)
 
 AGI_surf_p250 <- expand_grid(o2 = o2_range250, temp = temp_range250) %>% 
   mutate(po2 = rast_to_atm(do = o2, so = 34.221, temp = temp, depth = 250), #used mean sal at 0m
-         met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.0843513526, T_C = temp), 
+         met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.0370183, T_C = temp), 
          AGI = po2/met_dem)
 
 ggplot(AGI_surf_p250, aes(temp, o2)) +
@@ -287,23 +289,21 @@ ggplot(AGI_surf_p250, aes(temp, o2)) +
   xlab("Temperature (C)") + 
   ylab(bquote('Dissolved oxygen' ('mmol/m'^'3'))) + 
   labs(fill = "AGI") + 
-  scale_fill_whitebox_c(palette = "deep", direction = -1)+
+  scale_fill_whitebox_c(palette = "deep", direction = -1, limits = c(0, 7))+
   ggtitle("AGI at 250m") +
   theme_bls_agi()
 
 ggsave(here("figs/bls/surf_plot250.png"), height = 7, width = 6, units = c("in"))
 
 ### lat, dist coast, agi contour ####
-contour <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
-temp <- readRDS(here("data/locs_w_covar/cmems/cmems_locs_covar_0m_AGI_dist.rds"))
+contour <- cmem_dat250
 
-contour$dist_coast <- temp$dist_coast
 contour <- contour %>% 
   filter(PA == 0) %>% 
   filter(AGI_250m != "NA") %>% 
   subset(select = c(dist_coast, lat, AGI_250m))
 
-interp_cont <- with(contour, interp(x = dist_coast, y = lat, z = AGI_250m, 
+interp_cont <- with(contour, akima::interp(x = dist_coast, y = lat, z = AGI_250m, 
                                     xo = seq(min(dist_coast), max(dist_coast), length = 100),
                                     yo = seq(min(lat), max(lat), length = 100), 
                                     duplicate = "mean"))
@@ -456,7 +456,7 @@ ggsave(here("figs/bls/do_temp_hsi09.png"), height = 6, width = 5, units = c("in"
 agi_temp_rast_2005 <- rast(here("data/enviro/CMEMS/hsi_map/agi_all_covar2005_spatrast.nc"))
 names(agi_temp_rast_2005) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
 
-map_pred_agi_temp5 = predict(agi_temp_rast_2005, agi_all_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred_agi_temp5 = predict(agi_temp_rast_2005, agi_temp_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
 map_pred_agi_temp5 = crop(map_pred_agi_temp5,extent1)
 
 df_map = as.points(map_pred_agi_temp5) %>% st_as_sf() %>% as.data.frame()
@@ -484,7 +484,7 @@ ggsave(here("figs/bls/agi_temp_hsi05.png"), height = 6, width = 5, units = c("in
 agi_temp_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_all_covar2007_spatrast.nc"))
 names(agi_temp_rast_2007) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
 
-map_pred_agi_temp7 = predict(agi_temp_rast_2007, agi_all_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred_agi_temp7 = predict(agi_temp_rast_2007, agi_temp_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
 map_pred_agi_temp7 = crop(map_pred_agi_temp7,extent1)
 
 df_map = as.points(map_pred_agi_temp7) %>% st_as_sf() %>% as.data.frame()
@@ -695,12 +695,12 @@ ggplot() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         legend.position = "none")
 
-ggsave(here("figs/bls/agi2005.png"), height = 6, width = 5, units = c("in"))
+ggsave(here("figs/bls/agi2005_250.png"), height = 6, width = 5, units = c("in"))
 
 AGI2007_250m <- rast(here("data/enviro/CMEMS/hsi_map/agi/AGI2007_250m.nc"))
 
 ggplot() + 
-  geom_spatraster(data = AGI2009_0m) + 
+  geom_spatraster(data = AGI2007_250m) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
   scale_y_continuous(expand=c(0,0),limits = c(10,50))+
@@ -712,14 +712,12 @@ ggplot() +
         axis.text.y = element_blank(), 
         axis.title.y = element_blank())
 
-ggsave(here("figs/bls/agi2009.png"), height = 6, width = 5, units = c("in"))
+ggsave(here("figs/bls/agi2007_250.png"), height = 6, width = 5, units = c("in"))
 
 ### agi crit maps ####
-cmem_dat250 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_AGIwdemand_250m.rds"))
-
 AGIcrit_250 <- quantile(cmem_dat250$AGI_250m, 0.10, na.rm = TRUE)
 
-crit_250map <- clamp(AGI2005_250m, upper=AGIcrit_250, values = FALSE) #create raster of values below AGIcrit
+crit_250map <- raster::clamp(AGI2005_250m, upper=AGIcrit_250, values = FALSE) #create raster of values below AGIcrit
 crit_poly <- as.polygons(ext(crit_250map))
 crit_poly <- as.polygons(crit_250map > -Inf)
 
@@ -837,3 +835,26 @@ ggplot() +
         axis.text.x = element_blank())
 
 ggsave(here("figs/bls/covar1.png"), height = 4, width = 3, units = c("in"))
+
+### Null model 
+#fit the model
+try(null_tc5_lr01 <- dismo::gbm.step(data = dat_train,
+                                    gbm.x = c(4, 8:10, 12, 14, 20),
+                                    gbm.y = 5,
+                                    family = "bernoulli",
+                                    tree.complexity = 5,
+                                    learning.rate = 0.01,
+                                    bag.fraction = 0.75,
+                                    silent = TRUE,
+                                    plot.main = TRUE))
+
+
+ggBRT::ggPerformance(null_tc5_lr01)
+
+#predictions
+preds <- predict.gbm(null_tc5_lr01, dat_test, 
+                     n.trees = null_tc5_lr01$gbm.call$best.trees, 
+                     type = "response")
+
+calc.deviance(obs = dat_test$PA, preds)
+
