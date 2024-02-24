@@ -213,6 +213,7 @@ agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "AGI250", "AGI
 agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "j_day", "julian day")
 agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "chl250", "chl 250m")
 agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "so0", "salinity 0m")
+agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "so250", "salinity 250m")
 agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "chl0", "chl 0m")
 agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "AGI0", "AGI 0m")
 agi_temp_inf$var <- replace(agi_temp_inf$var, agi_temp_inf$var == "thetao0", "temp. 0m")
@@ -222,7 +223,7 @@ ggplot(agi_temp_inf, aes(rel.inf, reorder(var, rel.inf))) +
   geom_col(fill = "#ADB9CA") +
   xlab("Relative influence (%)")+
   ylab("")+
-  ggtitle("AGI 0m & 250m")+
+  ggtitle("AGI Model")+
   theme_bls_inf()  
 
 ggsave(here("figs/bls/AGI_temp_inf.png"), height = 6, width = 5, units = c("in"))
@@ -456,7 +457,7 @@ ggsave(here("figs/bls/do_temp_hsi09.png"), height = 6, width = 5, units = c("in"
 agi_temp_rast_2005 <- rast(here("data/enviro/CMEMS/hsi_map/agi_all_covar2005_spatrast.nc"))
 names(agi_temp_rast_2005) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
 
-map_pred_agi_temp5 = predict(agi_temp_rast_2005, agi_temp_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred_agi_temp5 = predict(agi_temp_rast_2005, agi_temp_tc5_lr01, type = "response", n.trees = agi_temp_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
 map_pred_agi_temp5 = crop(map_pred_agi_temp5,extent1)
 
 df_map = as.points(map_pred_agi_temp5) %>% st_as_sf() %>% as.data.frame()
@@ -484,7 +485,7 @@ ggsave(here("figs/bls/agi_temp_hsi05.png"), height = 6, width = 5, units = c("in
 agi_temp_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_all_covar2007_spatrast.nc"))
 names(agi_temp_rast_2007) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
 
-map_pred_agi_temp7 = predict(agi_temp_rast_2007, agi_temp_tc5_lr01, type = "response", n.trees = agi_all_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred_agi_temp7 = predict(agi_temp_rast_2007, agi_temp_tc5_lr01, type = "response", n.trees = agi_temp_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
 map_pred_agi_temp7 = crop(map_pred_agi_temp7,extent1)
 
 df_map = as.points(map_pred_agi_temp7) %>% st_as_sf() %>% as.data.frame()
@@ -521,7 +522,7 @@ map.world = map_data(map="world")
 testt=map.world %>% filter(long<=180)
 
 ggplot() + 
-  geom_spatraster(data = map_pred) + 
+  geom_spatraster(data = map_pred_agi_temp) + 
   geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
   scale_y_continuous(expand=c(0,0),limits = c(10,50))+
@@ -787,6 +788,10 @@ ggplot() +
 ggsave(here("figs/bls/agi0.png"), height = 6, width = 5, units = c("in"))
 
 ### raster difference between DO/temp model and AGI/temp model ####
+diff_locs5 <- dat_train %>%
+  filter(month(dt) %in% c(11)) %>%
+  filter(year(dt) %in% c(2005))
+
 diff_2005 <- diff(c(map_pred_do5, map_pred_agi_temp5))*100
 
 ggplot() + 
@@ -795,13 +800,19 @@ ggplot() +
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
   scale_y_continuous(expand=c(0,0),limits = c(10,50))+
   scale_fill_whitebox_c(palette = "deep", direction = -1) +
+  geom_point(data = diff_locs5, mapping = aes(x = lon, y = lat), size = 1, color = "black", alpha = 0.5)+
   ggtitle("Comparing BRT HSIs") +
   labs(fill = "% change") +
 theme_bls_agi() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         axis.text.y = element_blank(), 
         axis.title.y = element_blank())
+
 ggsave(here("figs/bls/diff_hsi05.png"), height = 6, width = 5.3, units = c("in"))
+
+diff_locs7 <- dat_train %>%
+  filter(month(dt) %in% c(11)) %>%
+  filter(year(dt) %in% c(2007))
 
 diff_2007 <- diff(c(map_pred_do7, map_pred_agi_temp7))*100
 
@@ -811,6 +822,7 @@ ggplot() +
   scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
   scale_y_continuous(expand=c(0,0),limits = c(10,50))+
   scale_fill_whitebox_c(palette = "deep", direction = -1) +
+  geom_point(data = diff_locs7, mapping = aes(x = lon, y = lat), size = 1, color = "black", alpha = 0.5)+
   ggtitle("Comparing BRT HSIs") +
   labs(fill = "% change") +
   theme_bls_agi() +
