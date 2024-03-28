@@ -10,9 +10,7 @@ library(tmvtnorm) #for running the downloaded sim_fit function
 require(parallel) 
 library(doParallel)
 
-#--------------------
-#load presence data 
-#--------------------
+### load shark location data ####
 loc_dat <- read.csv(here("data/presence_locs/tdl.csv"))
 
 ssm_dat <- loc_dat %>% 

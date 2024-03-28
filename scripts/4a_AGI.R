@@ -14,7 +14,7 @@ source(here("functions/oxy_demand_functions.R"))
 ### convert DO to atm ####
 # 0m -- USE AS MODEL
 dat0_DOatm <- DO_to_atm(dat0, depth = 0)
-thresh0 <- thresh_atm(temp = median(dat0_DOatm$thetao_mean, na.rm = TRUE), so_psu = median(dat0_DOatm$so_mean, na.rm = T), depth = 0) #defualt do value is 1.25 mL/L from vetter et al., 2008
+thresh0 <- thresh_atm(temp = median(dat0_DOatm$thetao_mean, na.rm = TRUE), so_psu = median(dat0_DOatm$so_mean, na.rm = T), depth = 0) #defualt do value is 2 mL/L from vetter et al., 2008
 
 hist(dat0_DOatm$pO2_0, xlim = c(0, 0.20))
 abline(v = thresh0, lwd = 2)
@@ -25,6 +25,10 @@ thresh50 <- thresh_atm(temp = median(dat50_DOatm$thetao_mean, na.rm = TRUE), so_
 
 hist(dat50_DOatm$pO2_50)
 abline(v = thresh50, lwd = 2)
+
+  #testing respirometry package instead of respR
+# test <- conv_o2(2, "ml_per_l", "mmol_per_l", temp = median(dat0_DOatm$thetao_mean, na.rm = TRUE), sal = median(dat0_DOatm$so_mean, na.rm = T), atm_pres = press_mbar)
+# test2 <- test*1000 #convert l to cubic meter
 
 #250m 
 dat250_DOatm <- DO_to_atm(dat250, depth = 250)

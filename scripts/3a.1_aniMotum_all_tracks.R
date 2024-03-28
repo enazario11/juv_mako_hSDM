@@ -8,11 +8,27 @@ library(here);here <- here::here
 library(terra)
 library(tmvtnorm) #for running the downloaded sim_fit function
 
-#--------------------
 ##### load presence data ####
-#--------------------
+#spot and psat data
 loc_dat <- read.csv(here::here("data/presence_locs/tdl.csv"))
+loc_dat$deploy_id <- paste(loc_dat$ptt, loc_dat$FL, loc_dat$Sex, sep = "_")
+spot_psat_ids <- unique(loc_dat$deploy_id)
 
+#spot only data
+spot_dat <- read.csv(here("data/presence_locs/mako_spot_filtered_1_step_per_day.csv")) %>% subset(select = 1:19)
+spot_dat$sex <- replace(spot_dat$sex, spot_dat$sex == "F", "Female")
+spot_dat$sex <- replace(spot_dat$sex, spot_dat$sex == "M", "Male")
+spot_dat$deploy_id <- paste(spot_dat$PTT, spot_dat$size, spot_dat$sex, sep = "_")
+spot_ids <- unique(spot_dat$deploy_id)
+
+#remove spot ids that are already accounted for in spot/psat file -- DO AFTER FIGURE OUT GLITCH W/ POINTS W/ HEIDI
+test <- loc_dat[loc_dat$ptt %in% spot_ids, ]
+
+#combine spot positions with spot/psat positions (create all_dat or all_loc df?)
+
+
+
+#format for aniMotum
 ssm_dat <- loc_dat %>% 
   select(id = "ptt", date ="posix", lat = "Lat",lon = "Lon") %>%
   mutate(lc = "G", 
@@ -53,9 +69,7 @@ plot(resid_crw, type = "qq", pages = 0)
 plot(resid_crw, type = "acf", pages = 0)
 plot(resid_crw, type = "ts", pages = 0)
 
-#----------------------------
 ##### aniMotum CRW PA generation ####
-#---------------------------
 # create spatVect for CMEMS domain used to generate gradient
 #get the bounding box of the two x & y coordintates, make sfc
 ylims <- c(10, 50)

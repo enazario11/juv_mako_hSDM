@@ -197,9 +197,6 @@ thresh_atm <- function(do_mL_L = 2, temp_C, so_psu, depth){
   thresh_atm
 }
 
-
-
-
 # thresh_atm <- function(do_mL_L, temp_C, so_psu, depth){
 #   
 #   #convert ml/L to ml/m^3 

@@ -1,15 +1,11 @@
-#load the pacakges 
+### libraries ####
 library(tidyverse)
+library(here)
 
-rm(list = ls())
 
-#---------------------------------------------
-#import and merge raw location files from WC -- generate shark_locs.csv
-#---------------------------------------------
-files = list.files("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/Final_locs")
+### import and merge raw location files from WC -- generate shark_locs.csv ####
+files = list.files(here("data/og_tag_explore/Final_locs"), full.names = TRUE)
 files
-
-setwd("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/Final_locs")
 
 # Change format to POSIX of combined date and time column 
 files_gls <- files[11:26] #assigns just the files that have date and time in the same column 
@@ -195,24 +191,12 @@ td_locs2 <- td_locs %>%
   filter(region != "NA")%>%
   mutate(ptt = as.factor(ptt))
 
-write.csv(td_locs2, "data/tdl.csv", row.names = F)
+#write.csv(td_locs2, "data/tdl.csv", row.names = F)
+spot_psat <- read.csv(here("data/presence_locs/tdl.csv"))
+spot_only <- read.csv(here("data/presence_locs/mako_spot_filtered_1_step_per_day.csv"))
+
+
 
 #to remove duplicates 
 #test <- td_locs2[!duplicated(td_locs2[,c('ID')]),]
-
-#-------------------------------
-#filter dates for SCB Ecoregion -- generate tdl_scbE.csv
-#-------------------------------
-loc_dat <- read.csv("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/tdl.csv") #may need if above hasn't been run
-loc_dat <- loc_dat %>%
-  filter(Lat < 35 & Lat > 25 & Lon > -123 & Lon < -113)
-
-write.csv(loc_dat, "data/tdl_scbE.csv", row.names = F)
-
-#-----------------------------------
-#combining location and enviro data
-#-----------------------------------
-#see points_enviro_viz script. Top part has been updated. See section on how to handle posix dates with time 00:00:00. Rest of script has not been updated since I will extract new vars from different places anyways. 
-
-
 

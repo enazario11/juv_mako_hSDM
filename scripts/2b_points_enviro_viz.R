@@ -14,8 +14,8 @@ library(RColorBrewer)
 library(data.table)
 library(ncdf4)
 library(viridis)
-
-rm(list = ls())
+library(here)
+library(terra)
 
 ### Test mako file -- Nerea method###
 #-----------------------------------
@@ -99,26 +99,26 @@ loc_dat$season <- getSeason(loc_dat$date)
 #bathy (ggOceanMaps and gebco)
 #-------
 ##get low resolution bathy dat from gebco
-r = raster("C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/bathy/GEBCO_10_Feb_2023_7aef09d36419/gebco_2022_n52.375_s7.925_w-145.2_e-104.673.nc")
+new_locs <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
+new_locs <- new_locs %>% filter(PA == 0)
+r = rast(here("data/enviro/bathy/GEBCO_2023_n58.0_s4.0_w-147.0_e-97.0.nc"))
 res(r)
 r_lowres <- aggregate(r, fact=5)
-#res(r_lowres) #check what the resolution is 
 
 bathy_df <- as.data.frame(r_lowres,xy = TRUE)
 
   ##bathy map by age class -- OceanMap (runs faster but figure not as nice)
-bathy_lim <- data.frame(lon = c(-126, -110), lat = c(25, 39))
+bathy_lim <- data.frame(lon = c(-140, -110), lat = c(10, 50))
 basemap(data = bathy_lim, bathymetry = TRUE) +
-  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "gray99", shape = 1, alpha = 0.8) + 
-  facet_wrap(~age_class)+
+  geom_point(data = new_locs, aes(x = lon, y = lat), color = "gray99", shape = 1, alpha = 0.8) + 
+  #facet_wrap(~age_class)+
   theme_tq()+
   theme(legend.position = "right")
 
   ##bathy map by age class -- gebco data (takes a while)
 #filter so bathy values are only positive
 bathy_df <- bathy_df %>%
-  filter(Elevation.relative.to.sea.level <= 0)
-
+  filter(elevation <= 0)
 
 save(bathy_df, file = "C:/Users/Emily Nazario/Documents/R/Projects/juv_mako_hSDM/data/enviro/bathy/df_bathy.RData")
 
@@ -137,12 +137,12 @@ mycolors <- c("#08306B","#023858", "#034B76", "#0B559F", "#045D92","#0469A6","#1
 show_col(mycolors)
 
 ggplot(shore, aes(long, lat)) +
-  coord_map("mercator", xlim=c(-126, -110), ylim=c(25,39)) +
+  coord_map("mercator", xlim=c(-140, -110), ylim=c(10,50)) +
   geom_polygon(aes(group=group), fill="grey60",lwd=1) +
-  geom_contour_filled(data=df_bathy, 
-                      aes(x,y,z=Elevation.relative.to.sea.level)) +#breaks=seq(0,1,by=0.2)
+  geom_contour_filled(data=bathy_df, 
+                      aes(x,y,z= elevation)) +#breaks=seq(0,1,by=0.2)
   scale_fill_manual(values = mycolors)+
-  geom_point(data = loc_dat, aes(x = Lon, y = Lat), color = "goldenrod", shape = 1, alpha = 0.8)+
+  geom_point(data = new_locs, aes(x = lon, y = lat), color = "goldenrod", shape = 1, alpha = 0.8)+
   theme_tq()+
   theme(legend.position = "right")+
   guides(fill=guide_legend(title="Bathymetry (m)"))
