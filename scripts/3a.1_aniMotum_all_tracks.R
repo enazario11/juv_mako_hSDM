@@ -10,45 +10,38 @@ library(tmvtnorm) #for running the downloaded sim_fit function
 
 ##### load presence data ####
 #spot and psat data
-loc_dat <- read.csv(here::here("data/presence_locs/tdl.csv"))
-loc_dat$deploy_id <- paste(loc_dat$ptt, loc_dat$FL, loc_dat$Sex, sep = "_")
-spot_psat_ids <- unique(loc_dat$deploy_id)
-
-#spot only data
-spot_dat <- read.csv(here("data/presence_locs/mako_spot_filtered_1_step_per_day.csv")) %>% subset(select = 1:19)
-spot_dat$sex <- replace(spot_dat$sex, spot_dat$sex == "F", "Female")
-spot_dat$sex <- replace(spot_dat$sex, spot_dat$sex == "M", "Male")
-spot_dat$deploy_id <- paste(spot_dat$PTT, spot_dat$size, spot_dat$sex, sep = "_")
-spot_ids <- unique(spot_dat$deploy_id)
-
-#remove spot ids that are already accounted for in spot/psat file -- DO AFTER FIGURE OUT GLITCH W/ POINTS W/ HEIDI
-test <- loc_dat[loc_dat$ptt %in% spot_ids, ]
-
-#combine spot positions with spot/psat positions (create all_dat or all_loc df?)
-
-
+all_dat <- readRDS(here("data/presence_locs/psat_spot_domain/psat_Nspot_data.rds"))
 
 #format for aniMotum
-ssm_dat <- loc_dat %>% 
-  select(id = "ptt", date ="posix", lat = "Lat",lon = "Lon") %>%
-  mutate(lc = "G", 
-         date = as.POSIXct(strptime(date, format = "%Y-%m-%d")))
+ssm_dat <- all_dat %>% 
+  select(id = "ptt", date ="posix", lat = "lat",lon = "lon", lc = "lc") %>%
+  na.omit() #must remove missing lat/lon/date values for ssm to work
+
+ssm_dat2 <- ssm_dat %>% 
+  filter(lc == "G" | lc == "3" | lc == "2" | lc == "1" | lc == "0" | lc == "A" | lc == "B") %>% #filter out Zlocation classes -- caused error
+  filter(id != "52124" & id != "54607" & id != "60984" & id != "60986") %>% #filter out ptts with < 30 positions
+  filter(id != "52122" & id != "52218" & id != "60993" & id != "68484" & id != "68509" & id != "68518" & id != "87549" & id != "96293" & id != "96364") #filter out ptts with low density data resulting in poor fitting SSMs
 
   #view number of locs by ptt
-ssm_dat %>%
+ssm_dat2 %>%
   group_by(id) %>%
   summarise(n = n()) %>%
-  print(n = 25)
+  print(n = 85)
 
 ##### CRW SSM ####
 set.seed(1004)
-ssm_crw <- fit_ssm(ssm_dat, model = "crw", time.step = 24) #time step in hours
+ssm_crw <- fit_ssm(ssm_dat2,
+                   model = "crw",
+                   time.step = 24) #time step in hours
+                    
+aniMotum::map(ssm_crw, what = "f")|aniMotum::map(ssm_crw, what = "p")
+c(ssm_crw$ssm[[1]]$AICc)
 
-#crop the SSM so modeled points are within the CMEMS data I downloaded in fall 2023
-for (i in 1:23) {
+#crop the SSM so modeled points are within the CMEMS data domain (domain based off of raw data mins and maxs)
+for (i in 1:63) {
   #print(length(ssm_crw$ssm[[i]]$data$geometry))
   temp1 <- st_transform(ssm_crw$ssm[[i]]$predicted$geometry, crs = st_crs("+proj=longlat +datum=WGS84 "))
-  temp <- st_crop(temp1, xmin=-140, xmax=-110, ymin=10, ymax=50)
+  temp <- st_crop(temp1, xmin=-155, xmax=-99, ymin=2, ymax=52)
   temp2 <- st_transform(temp, crs = st_crs("+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=km +no_defs "))
   
   ssm_crw$ssm[[i]]$predicted <- dplyr::filter(ssm_crw$ssm[[i]]$predicted, geometry %in% temp2)
@@ -60,7 +53,7 @@ summary(ssm_crw)
 
 #visually observe fitted and predicted tracks 
 aniMotum::map(ssm_crw, what = "f")|aniMotum::map(ssm_crw, what = "p") #fitted | predicted
-plot(ssm_crw, what = "p", type = 1) #2 shows map, 1 shows movement between lat lons across month
+plot(ssm_crw, what = "p", type = 1, pages = 1) #2 shows map, 1 shows movement between lat lons across month
 
 #visually inspect residuals and diagnostic plots 
 resid_crw <- osar(ssm_crw)
@@ -72,8 +65,8 @@ plot(resid_crw, type = "ts", pages = 0)
 ##### aniMotum CRW PA generation ####
 # create spatVect for CMEMS domain used to generate gradient
 #get the bounding box of the two x & y coordintates, make sfc
-ylims <- c(10, 50)
-xlims <- c(-140, -110)
+ylims <- c(2, 52)
+xlims <- c(-155, -99)
 box_coords <- tibble(x = xlims, y = ylims) %>% 
   st_as_sf(coords = c("x", "y")) %>% 
   st_set_crs(st_crs(4326))
@@ -125,7 +118,7 @@ grad <- c(grad.x, grad.y)
 plot(grad)
 
 ## use land subset to filter ssm_crw points that are on land 
-for (i in 1:23) {
+for (i in 1:63) {
   temp <- st_difference(ssm_crw$ssm[[i]]$predicted$geometry, land_subset)
   
   ssm_crw$ssm[[i]]$predicted <- dplyr::filter(ssm_crw$ssm[[i]]$predicted, geometry %in% temp)
@@ -147,7 +140,7 @@ dat_pred2 <- dat_pred %>%
 dat_pred2$lon_p<-st_coordinates(dat_pred2$geometry)[,1] # get coordinates
 dat_pred2$lat_p<-st_coordinates(dat_pred2$geometry)[,2] # get coordinates
 
-#saveRDS(dat_pred2, file = here("data/presence_locs/cmems_domain/pres_locs_alldat.RDS"))
+#saveRDS(dat_pred2, file = here("data/presence_locs/psat_spot_domain/pres_aniM_dat.RDS"))
 
 #develop pseudo crw locs using the predicted times (constrained to have same number of locs)
 #load 01/10/24 updated sim_fit() function

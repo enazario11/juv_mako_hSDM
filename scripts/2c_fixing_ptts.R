@@ -28,14 +28,15 @@ colnames(psat_subset) <- c("ptt", "sex", "FL", "date", "posix", "year", "month",
 psat_subset$posix <- paste(psat_subset$date, psat_subset$time)
 psat_subset$posix <- as.POSIXct(strptime(psat_subset$posix, format = "%m/%d/%Y %H:%M"))
 psat_subset$date <- as.POSIXct(strptime(psat_subset$date, format = "%m/%d/%Y"))
+psat_subset$lc <- "GL"
 
 spot_subset <- spot_dat %>% 
-  subset(select = -c(lc, Species, SPOT_SEQ, date, ID, sec, time))
+  subset(select = -c(Species, SPOT_SEQ, date, ID, sec, time))
 spot_subset$PDT.date.and.time <- as.POSIXct(strptime(spot_subset$PDT.date.and.time, format = "%m/%d/%Y %H:%M"))
 spot_subset$time <- substr(spot_subset$PDT.date.and.time, 12,16)
 spot_subset <- spot_subset %>%
-  subset(select = c(PTT, sex, size, PDT.date, PDT.date.and.time, year, mo, day, time, lat, long))
-colnames(spot_subset) <- c("ptt","sex", "FL", "date", "posix", "year", "month", "day", "time", "lat", "lon")
+  subset(select = c(PTT, sex, size, PDT.date, PDT.date.and.time, year, mo, day, time, lat, long, lc))
+colnames(spot_subset) <- c("ptt","sex", "FL", "date", "posix", "year", "month", "day", "time", "lat", "lon", "lc")
 spot_subset$date <- as.POSIXct(strptime(spot_subset$date, format = "%m/%d/%Y"))
 spot_subset <- spot_subset %>%
   mutate(ptt = as.character(ptt))
@@ -76,6 +77,9 @@ max_lat = max(all_locs$lat, na.rm = TRUE) + 5 #52.375
 min_lon = min(all_locs$lon, na.rm = TRUE) - 5 #-155.8
 max_lon = max(all_locs$lon, na.rm = TRUE) + 5 #-100.69
 
+#depths?
+#quantile values of max dives: 0% 8m, 25% 56m, 50% 96m, 75% 160m, 90% 248m
+
 #save RDS
-saveRDS(all_locs, "data/presence_locs/psat_spot_domain/psat_Nspot_data.rds")
+#saveRDS(all_locs, "data/presence_locs/psat_spot_domain/psat_Nspot_data.rds")
 
