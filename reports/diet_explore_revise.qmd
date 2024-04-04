@@ -291,7 +291,7 @@ rmpq_prey_year2 %>%
 #| label: two thousand eleven
 
 rmpq_prey_year2 %>%
-  filter(perc_GII >= 1 & Year == 2011) %>% 
+  filter(perc_GII >= 1 & Year == 2011) %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
   geom_bar(stat = "identity") +
   theme_tq() + 
