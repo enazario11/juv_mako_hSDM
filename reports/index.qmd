@@ -7,7 +7,7 @@ editor: visual
 
 Below are links to the pages containing different exploratory analyses for the juvenile mako shark hybrid-SDM work.
 
-[See here](diet_explore.html) for the initial diet data exploration (CMEM domain).
+[See here](Diet_explore.html) for the initial diet data exploration (CMEM domain).
 
 [See here](covar_explore.html) for the figures depicting the covariate values across the CMEM and ROMS domains at the surface.
 
