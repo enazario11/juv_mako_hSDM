@@ -4,7 +4,7 @@ library(here)
 
 #data 
 #spot and psat data
-loc_dat <- read.csv(here::here("data/presence_locs/tdl.csv"))
+loc_dat2 <- read.csv(here::here("data/presence_locs/tdl.csv"))
 
 #52126 spot and 54570 psat case
 loc_dat$ptt <- replace(loc_dat$ptt, loc_dat$ptt == "52126", "54570")
