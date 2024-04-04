@@ -1,6 +1,6 @@
 ---
 title: "Diet exploration"
-author: "Emily Nazario (enazario@ucsc.edu)"
+author: "Emily Nazario"
 date: "`r Sys.Date()`"
 format:
  html: 
