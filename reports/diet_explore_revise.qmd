@@ -1,0 +1,341 @@
+---
+title: "Diet exploration"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  embed-resources: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| label: Load libraries
+#| include: false
+
+library(tidyverse)
+library(tidyquant)
+library(kableExtra)
+library(here)
+
+options(scipen=999)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| label: Import and format data
+#| include: false
+
+dat_coll <- read.csv(here("data/diet/collection.csv"))
+dat_pred <- read.csv(here("data/diet/predator.csv"))
+dat_prey <- read.csv(here("data/diet/prey_comp.csv"))
+dat_prey_size <- read.csv(here("data/diet/prey_size.csv"))
+
+  #limits diet data to SCB Ecoregion
+scbE_coll <- dat_coll %>% 
+  filter(Latitude < 47.33 & Latitude > 2.76 & Longitude > -150.94 & Longitude < -105.63)
+
+#filters predator DF based on IDs from SCB Ecoregion described above. Filters out FL that weren't in the loc DF
+dat_pred <- dat_pred %>% #filters out measurement entries that are blank
+  filter(Predator_Measurement_2 == "FL") %>%
+  filter()
+
+scbE_coll_id <- scbE_coll$Collection_ID #438 IDs
+scbE_pred <- dat_pred[dat_pred$Collection_ID %in% scbE_coll_id, ]
+FL_femaleD <- scbE_pred %>%
+  filter(Predator_Sex == "F") %>%
+  filter(Predator_Length_2 < 249 & Predator_Length_2 > 100)
+
+FL_maleD <- scbE_pred %>%
+  filter(Predator_Sex == "M") %>%
+  filter(Predator_Length_2 < 180 & Predator_Length_2 > 100)
+
+scbE_pred2 <- rbind(FL_femaleD, FL_maleD)
+
+#filters prey DF based on IDs from SCB and FL filtered predator DF 
+scbE_pred_id <- scbE_pred2$Predator_ID #117 IDs
+scbE_prey <- dat_prey[dat_prey$Predator_ID %in% scbE_pred_id, ]
+
+#### RMPQ and GII Calculations -- all years#####
+scbE_prey <- scbE_prey %>%
+  mutate(freq_metric = 1)
+
+rmpq_prey <- scbE_prey %>%
+  group_by(Common_Name) %>%
+  summarise(N = sum(Prey_N), 
+            W = sum(Prey_Wt), 
+            Freq = sum(freq_metric), 
+            perc_N = (N/1353)*100, 
+            perc_W = (W/90099.18)*100, 
+            perc_F = (Freq/264)*100, 
+            GII = (perc_N + perc_W + perc_F)/sqrt(3), 
+            perc_GII = (perc_N + perc_W + perc_F)/3)
+```
+
+## Diet data by year
+
+Here is the diet data by year for the area, FL range, and time period included in the new study parameters. All columns should be how they are typically referenced with the addition of the `pred_metric` column. This is a new one I added representing the unique number of stomachs for that year, which was used to calculate the percent frequency value for each prey item.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#| label: Data preview
+#Match dfs by IDs and bring over the collection year to the prey DF
+yr_coll <- scbE_coll %>%
+  subset(select = c("Collection_ID", "Year"))
+
+scbE_pred3 <- merge(scbE_pred2, yr_coll, by = "Collection_ID", all = T)
+yr_pred <- scbE_pred3 %>%
+  subset(select = c("Year", "Predator_ID"))
+
+scbE_prey2 <- merge(scbE_prey, yr_pred, by = "Predator_ID", all = T) %>%
+  drop_na(Prey_ID)
+
+#calculate the RMPQ values by species and year
+rmpq_prey_year <- scbE_prey2 %>%
+  group_by(Year) %>%
+  mutate(pred_metric = length(unique(Predator_ID))) %>%
+  ungroup() %>%
+  group_by(Year, Common_Name) %>%
+  summarise(N = sum(Prey_N), 
+            W = sum(Prey_Wt), 
+            Freq = sum(freq_metric), 
+            pred_metric = unique(pred_metric)) %>%
+  ungroup() %>%
+  filter(Year != 1998)
+
+#calculate the GII by year using the by species data
+rmpq_prey_year2 <- rmpq_prey_year %>%
+  group_by(Year) %>%
+  mutate(perc_N = (N/sum(N))*100, 
+         perc_W = (W/sum(W))*100, 
+         perc_F = (Freq/pred_metric)*100,
+         GII = (perc_N + perc_W + perc_F)/sqrt(3), 
+         perc_GII = (perc_N + perc_W + perc_F)/3) %>%
+  filter(Year <= 2013 & Year >= 2003)
+
+#generate the formatted quarto table 
+kbl(rmpq_prey_year2) %>% kable_paper("striped") %>% scroll_box(width = "100%", height = "400px")
+```
+
+## GII bar plots
+
+Below are bar plots of the %GII for each prey species by year. Plots are organized from highest to lowest %GII. These %GII values were calculated using the data table above (filtered according to the new study parameters). %GII values less than 1 were not plotted. An important note is that weak El Niño events occurred in 2004-2005 and 2006-2007, while moderate El Niño events occurred in 2009-2010. Additionally, weak La Niña events occurred in 2005-2006 and 2008-2009, while strong La Niña events occurred in 2007-2008.
+
+::: panel-tabset
+## All years
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: All years 
+rmpq_prey %>%
+  filter(perc_GII >= 1) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+```
+
+## 2003
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand three
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2003) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2004
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand four
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2004) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2005
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand five
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2005) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2006
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand six
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2006) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2007
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand seven
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2007) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2008
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand eight
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2008) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2009
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand nine
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2009) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2010
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand ten
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2010) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2011
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand eleven
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2011) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2012
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand twelve
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2012) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
+## 2013
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand thirteen
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2013) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+:::
