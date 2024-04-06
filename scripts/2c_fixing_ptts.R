@@ -4,23 +4,23 @@ library(here)
 
 #data 
 #spot and psat data
-loc_dat2 <- read.csv(here::here("data/presence_locs/tdl.csv"))
+loc_dat <- read.csv(here::here("data/presence_locs/tdl.csv"))
 
-#52126 spot and 54570 psat case
-loc_dat$ptt <- replace(loc_dat$ptt, loc_dat$ptt == "52126", "54570")
-loc_dat$FL[loc_dat$ptt == "54570"] <- 150
-
-#54597 spot and 54575 psat case
-
-#54591 spot and 54574 psat case
+#filter out tracks with incorrect metadata
+loc_dat2 <- loc_dat %>% 
+  filter(ptt != "54575" & ptt != "52126")
 
 #spot only data
 spot_dat <- read.csv(here("data/presence_locs/mako_spot_filtered_1_step_per_day.csv")) %>% subset(select = 1:19)
 spot_dat$sex <- replace(spot_dat$sex, spot_dat$sex == "F", "Female")
 spot_dat$sex <- replace(spot_dat$sex, spot_dat$sex == "M", "Male")
 
+  #filter out tracks with missing metadata that might be repeats of those reported on the dual psat-spot deployments
+spot_dat2 <- spot_dat %>% 
+  filter(PTT != "54597" & PTT != "52126" & PTT != "54591")
+
 #combine datasets
-psat_subset <- loc_dat %>%
+psat_subset <- loc_dat2 %>%
   subset(select = -c(avg_depth, max_depth, med_depth, avg_temp, med_temp, max_temp, min_temp, region))
 psat_subset <- psat_subset %>% 
   subset(select = c(ptt, Sex, FL, date, posix, year, month, day, time, Lat, Lon))
@@ -28,9 +28,9 @@ colnames(psat_subset) <- c("ptt", "sex", "FL", "date", "posix", "year", "month",
 psat_subset$posix <- paste(psat_subset$date, psat_subset$time)
 psat_subset$posix <- as.POSIXct(strptime(psat_subset$posix, format = "%m/%d/%Y %H:%M"))
 psat_subset$date <- as.POSIXct(strptime(psat_subset$date, format = "%m/%d/%Y"))
-psat_subset$lc <- "GL"
+psat_subset$lc <- "G"
 
-spot_subset <- spot_dat %>% 
+spot_subset <- spot_dat2 %>% 
   subset(select = -c(Species, SPOT_SEQ, date, ID, sec, time))
 spot_subset$PDT.date.and.time <- as.POSIXct(strptime(spot_subset$PDT.date.and.time, format = "%m/%d/%Y %H:%M"))
 spot_subset$time <- substr(spot_subset$PDT.date.and.time, 12,16)
@@ -52,17 +52,14 @@ FL_female <- spot_subset %>%
 
 spot_comb <- rbind(FL_female, FL_male) #adds 56 ptts
 
-#temporarily remove odd psat and spot PTTs -- removing odd "duplicate" psats because matching spot tracks have more positions
-psat_subset <- psat_subset %>% filter(ptt != "54570" & ptt != "54575" & ptt != "54591")
-
 #combine and save as RDS for SSM and PA generation
 all_locs <- rbind(psat_subset, spot_comb) %>% mutate(FL = round(FL, digits = 0))
 all_locs$deploy_id <- paste(all_locs$ptt, all_locs$FL, all_locs$sex, sep = "_")
 
 all_locs %>% 
-  summarise(n_deploys = length(unique(deploy_id)), #76
-            n_pos = n(), #18002
-            n_days = length(unique(posix)), #13509
+  summarise(n_deploys = length(unique(deploy_id)), #75
+            n_pos = n(), #17818
+            n_days = length(unique(posix)), #13331
             min_date = min(posix, na.rm = TRUE), #2003-06-25
             max_date = max(posix, na.rm = TRUE), #2013-12-16
             min_lat = min(lat, na.rm = TRUE), #2.77
@@ -78,8 +75,9 @@ min_lon = min(all_locs$lon, na.rm = TRUE) - 5 #-155.8
 max_lon = max(all_locs$lon, na.rm = TRUE) + 5 #-100.69
 
 #depths?
-#quantile values of max dives: 0% 8m, 25% 56m, 50% 96m, 75% 160m, 90% 248m
+quantile(loc_dat2$max_depth, 0.9, na.rm = T) #248m
+quantile(loc_dat2$med_depth, 0.9, na.rm = T) #60m
 
 #save RDS
-#saveRDS(all_locs, "data/presence_locs/psat_spot_domain/psat_Nspot_data.rds")
+#saveRDS(all_locs, "data/presence_locs/psat_spot_domain/psat_spot_data.rds")
 
