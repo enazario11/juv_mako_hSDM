@@ -30,18 +30,18 @@ time_step <- ssm_dat %>%
   group_by(id) %>%
   arrange(id, date) %>%
   mutate(diff = date - lag(date)) %>%
-  summarise(mean_diff = mean(diff, na.rm = T)) %>%
+  summarise(med_diff = median(diff, na.rm = T)) %>%
   ungroup() %>%
-  summarise(all_mean = mean(mean_diff)/3600) #average time step btwn positions for all tracks is 34 hours
+  summarise(all_mean = mean(med_diff)/3600) #average time step btwn positions for all tracks is 34 hours
 
 set.seed(1004)
 ssm_crw <- fit_ssm(ssm_dat,
                    model = "crw",
-                   time.step = 34) #time step in hours
+                   time.step = 35) #average median time step in hours
                     
 c(ssm_crw$ssm[[1]]$AICc) 
 ssm_crw_r <- route_path(ssm_crw, map_scale = 10, what = "predicted")
-aniMotum::map(ssm_sub, what = "predicted")|aniMotum::map(ssm_sub, what = "rerouted")  
+aniMotum::map(ssm_crw_r, what = "predicted")|aniMotum::map(ssm_crw_r, what = "rerouted")  
 
 #crop the SSM so modeled points are within the CMEMS data domain (domain based off of raw data mins and maxs)
 # for (i in 1:62) {
@@ -67,8 +67,6 @@ plot(resid_crw, type = "qq", pages = 0)
 plot(resid_crw, type = "acf", pages = 0)
 plot(resid_crw, type = "ts", pages = 0)
 
-ssm_crw_r <- ssm_crw_r %>%
-  filter(id != "25105")
 #saveRDS(ssm_crw_r, file = here("data/presence_locs/psat_spot_domain/processed/animotum_reroute_crw_ssm.rds"))
 
 ##### aniMotum CRW PA generation ####
@@ -217,6 +215,6 @@ mean(test$n_reps/30*100) #mean is 102% stay in
 #   summarise(n_reps = n_distinct(rep)) %>%
 #   print(n = 23)
 
-#saveRDS(dat_PA_39, file = here("data/presence_locs/psat_spot_domain/processed/psat_spot_PAs.rds"))
+#saveRDS(dat_pa, file = here("data/presence_locs/psat_spot_domain/processed/psat_spot_PAs.rds"))
 
 
