@@ -15,6 +15,12 @@ template_rast <- rast(
 
 #### Surface vars ####
 # Look at UO and VO info to see how to separate, resample, and save as diff files. Then, use writeCDF to combine (see details at bottom of help page, using sds to combine rast files)
+phys_60m <- rast(here("data/enviro/psat_spot_all/60m/CMEMS_MLD_SSH_Temp_SAL_60m_JAN2003_Dec2013_0.083deg_D.nc"))
+phys_250m <- rast(here("data/enviro/psat_spot_all/250m/CMEMS_MLD_SSH_Temp_SAL_250m_JAN2003_Dec2013_0.083deg_D.nc"))
+
+biol_0m <- rast(here("data/enviro/psat_spot_all/0m/CMEMS_CHL_DO_0m_JAN2003_Dec2013_0.25deg_D.nc"))
+biol_60m <- rast(here("data/enviro/psat_spot_all/60m/CMEMS_CHL_DO_60m_JAN2003_Dec2013_0.25deg_D.nc"))
+biol_250m <- rast(here("data/enviro/psat_spot_all/250m/CMEMS_CHL_DO_250m_JAN2003_Dec2013_0.25deg_D.nc"))
 surf_vars <- rast(here("data/enviro/CMEMS/final/phys/CMEMS_SST_SAL_MLD_SSH_UO_VO_0mto10m_Jan2004_Dec2009_0.083_D.nc"))
 
 #surface vars that vary with depth: SST, SO, VO, UO ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

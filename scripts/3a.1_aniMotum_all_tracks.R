@@ -10,11 +10,8 @@ library(tmvtnorm) #for running the downloaded sim_fit function
 
 ##### load presence data ####
 #spot and psat data
-all_dat <- readRDS(here("data/presence_locs/psat_spot_domain/psat_spot_data.rds")) #75 unique deployments
-all_dat <- all_dat %>% 
-  filter(lc != "D") %>% #remove D otherwise get error with ssm
-  filter(ptt != "52124" & ptt != "54607" & ptt != "60984" & ptt != "60986") %>% #filter out ptts with < 30 positions
-  filter(ptt != "52122" & ptt != "52218" & ptt != "60993" & ptt != "68484" & ptt != "68509" & ptt != "68518" & ptt != "87549" & ptt != "96293" & ptt != "96364") #filter out ptts with low density data resulting in poor fitting SSMs
+all_dat <- readRDS(here("data/presence_locs/psat_spot_domain/psat_spot_data.rds")) #73 unique deployments
+  #filter(ptt != "52122" & ptt != "52218" & ptt != "60993" & ptt != "68484" & ptt != "68509" & ptt != "68518" & ptt != "87549" & ptt != "96293" & ptt != "96364") #filter out ptts with low density data resulting in poor fitting SSMs
 
 #format for aniMotum
 ssm_dat <- all_dat %>% 
@@ -22,8 +19,8 @@ ssm_dat <- all_dat %>%
   drop_na(date) #must remove missing lat/lon/date values for ssm to work
  
   #view number of locs by ptt
-ssm_dat %>%
-  group_by(id) %>%
+all_dat %>%
+  group_by(ptt) %>%
   summarise(n = n()) %>%
   print(n = 85)
 
@@ -44,7 +41,7 @@ ssm_crw <- fit_ssm(ssm_dat,
                     
 c(ssm_crw$ssm[[1]]$AICc) 
 ssm_crw_r <- route_path(ssm_crw, map_scale = 10, what = "predicted")
-aniMotum::map(ssm_crw_r, what = "rerouted") 
+aniMotum::map(ssm_sub, what = "predicted")|aniMotum::map(ssm_sub, what = "rerouted")  
 
 #crop the SSM so modeled points are within the CMEMS data domain (domain based off of raw data mins and maxs)
 # for (i in 1:62) {
@@ -61,7 +58,7 @@ aniMotum::map(ssm_crw_r, what = "rerouted")
 #visually observe fitted and predicted tracks 
 aniMotum::map(ssm_crw, what = "f")|aniMotum::map(ssm_crw_routed, what = "p") #fitted | predicted
 plot(ssm_crw[1,], what = "p", type = 1) #2 shows map, 1 shows movement between lat lons across month
-aniMotum::map(ssm_crw_routed, what = "rerouted") #row 5 has some loopy points near baja and number 10 has points in the gulf of california
+aniMotum::map(ssm_crw_r, what = "rerouted") #row 5 has some loopy points near baja and number 10 has points in the gulf of california
 
 #visually inspect residuals and diagnostic plots 
 resid_crw <- osar(ssm_crw)
@@ -72,6 +69,7 @@ plot(resid_crw, type = "ts", pages = 0)
 
 ssm_crw_r <- ssm_crw_r %>%
   filter(id != "25105")
+#saveRDS(ssm_crw_r, file = here("data/presence_locs/psat_spot_domain/processed/animotum_reroute_crw_ssm.rds"))
 
 ##### aniMotum CRW PA generation ####
 # create spatVect for CMEMS domain used to generate gradient
@@ -81,7 +79,6 @@ xlims <- c(-152, -103)
 box_coords <- tibble(x = xlims, y = ylims) %>% 
   st_as_sf(coords = c("x", "y")) %>% 
   st_set_crs(st_crs(4326))
-
 
 bounding_box <- st_bbox(box_coords) %>% st_as_sfc()
 
@@ -161,15 +158,16 @@ dat_pred2$lat_p<-st_coordinates(dat_pred2$geometry)[,2] # get coordinates
 #saveRDS(dat_pred2, file = here("data/presence_locs/psat_spot_domain/processed/psat_spot_animotum.RDS"))
 
 #develop pseudo crw locs using the predicted times (constrained to have same number of locs)
-#load 01/10/24 updated sim_fit() function
+#load 04/08/24 updated sim_fit() function
 obsv_locs <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spot_animotum.RDS"))
+ssm_crw_r <- readRDS(here("data/presence_locs/psat_spot_domain/processed/animotum_reroute_crw_ssm.RDS"))
 source(here("functions/sim_fit.R"))
 
-  #selected a beta value of -375 as this was the smallest absolute value number that resulted in min of 75% of the PAs remaining in the study area (the highest perc IDd)
-pa_crw <- sim_fit(ssm_crw_r, grad = grad, beta = c(-375, -375), what = "rerouted", reps = 100);filter_pa <- sim_filter(pa_crw, keep = 0.30);routed_pa <- route_path(filter_pa, centroids = T)
-plot(routed_pa[23,], ncol = 1)
+  #selected a beta value of -375 as this was the smallest absolute value number that resulted in min of 90% of the PAs remaining in the study area
+pa_crw <- sim_fit(ssm_crw_r, grad = grad, beta = c(-350, -350), what = "predicted", reps = 100);filter_pa <- sim_filter(pa_crw, keep = 0.30, var = c("lon", "lat"), FUN = "mean");routed_pa <- route_path(filter_pa, centroids = TRUE)
+plot(routed_pa[61,])
 
-#saveRDS(routed_pa, file = here("data/presence_locs/cmems_domain/PA_routed_375beta_30perc_cmems.RDS"))
+#saveRDS(routed_pa, file = here("data/presence_locs/psat_spot_domain/PA_routed_350beta_30perc.RDS"))
 
 #IDing how many tracks are outside of the study domain 
     #unnest prediction column
@@ -178,10 +176,10 @@ dat_pa <- routed_pa %>%
 
     #ID by simulation rep how many reps stay in study area
 dat_pa2 <- dat_pa %>% 
-  mutate(domain = ifelse(lon <= -140 |
-                           lon >= -110 |
-                           lat <= 10 | 
-                           lat >= 50, "omit", "keep"))
+  mutate(domain = ifelse(lon <= -152 |
+                           lon >= -103 |
+                           lat <= 0 | 
+                           lat >= 49, "omit", "keep"))
   
 dat_pa_filt <- dat_pa2 %>%
   group_by(id, rep) %>%
@@ -193,32 +191,32 @@ test <- dat_pa_filt %>%
   summarise(n_reps = n_distinct(rep)) %>% #min number of reps inside domain is XXX, sampling rest down to that count
   print(n = 23) #min is 39 tracks -- sample to that
 
-mean(test$n_reps/75*100) #mean is 79% stay in
+mean(test$n_reps/30*100) #mean is 102% stay in
 
   #randomly sample reps so that all have same number
-dat_PA_39 <- NULL
-for(i in 1:length(unique(dat_pa_filt$id))){
-  #select current id
-  curr_ID <- unique(dat_pa_filt$id)[i]
-  temp_df <- dat_pa_filt[dat_pa_filt$id %in% curr_ID,]
-  
-  #sample 52 id's randomly
-  temp_rep_ID <- sample(unique(temp_df$rep), 39, replace = FALSE)
-  
-  #narrow your data set
-  temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
-  
-  #combine in a single df
-  dat_PA_39 <- rbind(dat_PA_39, temp_df2)
-  
-}
+# dat_PA <- NULL
+# for(i in 1:length(unique(dat_pa_filt$id))){
+#   #select current id
+#   curr_ID <- unique(dat_pa_filt$id)[i]
+#   temp_df <- dat_pa_filt[dat_pa_filt$id %in% curr_ID,]
+#   
+#   #sample 52 id's randomly
+#   temp_rep_ID <- sample(unique(temp_df$rep), 39, replace = FALSE)
+#   
+#   #narrow your data set
+#   temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
+#   
+#   #combine in a single df
+#   dat_PA_39 <- rbind(dat_PA_39, temp_df2)
+#   
+# }
 
 #check if it worked 
-dat_PA_39 %>% 
-  group_by(id) %>% 
-  summarise(n_reps = n_distinct(rep)) %>%
-  print(n = 23)
+# dat_PA_39 %>% 
+#   group_by(id) %>% 
+#   summarise(n_reps = n_distinct(rep)) %>%
+#   print(n = 23)
 
-#saveRDS(dat_PA_39, file = here("data/presence_locs/cmems_domain/PA_locs_alldat_39.RDS"))
+#saveRDS(dat_PA_39, file = here("data/presence_locs/psat_spot_domain/processed/psat_spot_PAs.rds"))
 
 

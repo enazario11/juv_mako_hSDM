@@ -56,7 +56,7 @@
 
 sim_fit <-
   function(x,
-           what = c("fitted", "predicted"),
+           what = c("fitted", "predicted", "rerouted"),
            reps = 1,
            start = NULL,
            end = NULL,
@@ -87,8 +87,8 @@ sim_fit <-
   
   stopifnot("x must be an `ssm_df` fit object" = inherits(x, "ssm_df"))
   
-  if(!what %in% c("fitted", "predicted")) 
-    stop("only `fitted` or `predicted` locations can be simulated from a model fit")
+  if(!what %in% c("fitted", "predicted", "rerouted")) 
+    stop("only `fitted` or `predicted` or `rerouted` locations can be simulated from a model fit")
   
   if(!is.null(start)) {
     start <- data.frame(lon = start[1], lat = start[2])
@@ -142,6 +142,9 @@ sim_fit <-
            },
            predicted = {
              loc <- grab(x[k,], "predicted", as_sf = FALSE)
+           }, 
+           rerouted = {
+             loc <- grab(x[k,], "rerouted", as_sf = FALSE)
            })
     
     N <- nrow(loc)
