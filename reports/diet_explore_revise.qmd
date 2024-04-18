@@ -116,7 +116,7 @@ rmpq_prey_year2 <- rmpq_prey_year %>%
          perc_F = (Freq/pred_metric)*100,
          GII = (perc_N + perc_W + perc_F)/sqrt(3), 
          perc_GII = (perc_N + perc_W + perc_F)/3) %>%
-  filter(Year <= 2013 & Year >= 2003)
+  filter(Year <= 2015 & Year >= 2003)
 
 #generate the formatted quarto table 
 kbl(rmpq_prey_year2) %>% kable_paper("striped") %>% scroll_box(width = "100%", height = "400px")
@@ -338,4 +338,23 @@ rmpq_prey_year2 %>%
   ylab('% GII')
 
 ```
+
+## 2014
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.width=9, fig.height=6}
+#| label: two thousand fourteen
+
+rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2014) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+```
+
 :::

@@ -131,9 +131,9 @@ max_step_fix <- all_locs_final %>%
 
 #summary stats for deployments
 all_locs_final %>% 
-  summarise(n_sharks = length(unique(deploy_id)), #74
+  summarise(n_sharks = length(unique(deploy_id)), #73
             n_tracks = length(unique(ptt)),
-            n_pos = n(), #17451
+            n_pos = n(), #17312
             n_days = length(unique(posix)), #12983
             min_date = min(posix, na.rm = TRUE), #2003-06-25
             max_date = max(posix, na.rm = TRUE), #2013-12-16

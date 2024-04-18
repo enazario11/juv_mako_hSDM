@@ -13,13 +13,15 @@ dat_pred <- read.csv("data/diet/predator.csv")
 dat_prey <- read.csv("data/diet/prey_comp.csv")
 dat_prey_size <- read.csv("data/diet/prey_size.csv")
 
-loc_dat <- readRDS("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/presence_locs/psat_spot_domain/pres_aniM_dat.rds")
+loc_dat <- readRDS("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/presence_locs/psat_spot_domain/processed/psat_spot_animotum.rds")
 maxS_lat <- max(loc_dat$lat_p)
 minS_lat <- min(loc_dat$lat_p)
 maxS_long <- max(loc_dat$lon_p)
 minS_long <- min(loc_dat$lon_p)
 
 #FL info for male and female sharks 
+all_dat <- readRDS(here("data/presence_locs/psat_spot_domain/psat_spot_data.rds"))
+
 FL_male <- all_dat %>%
   filter(sex == "Male")
 min(FL_male$FL) #114
@@ -141,7 +143,7 @@ rmpq_prey_year2 <- rmpq_prey_year %>%
 
 #plot all prey data across years in my study
 rmpq_prey_year2 %>%
-  filter(GII > 0.50 & Year <= 2013 & Year >= 2003) %>% #25% quantile value
+  filter(GII > 0.50 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
   ggplot(aes(x = reorder(Common_Name, -GII), y = GII)) +
   geom_bar(stat = "identity") +
   theme_tq() + 
