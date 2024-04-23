@@ -12,14 +12,16 @@ merc_temp0_raw <- list.files(here("data/enviro/model_validate/Mercator"), patter
 merc_temp200_raw <- list.files(here("data/enviro/model_validate/Mercator"), pattern = "Temp_200m", full.names = TRUE)
 
 clim_do_ann <- rast(here("data/enviro/model_validate/Climatology/woa_oxygen/woa18_all_o00_01.nc"))
-clim_do_mo <- list.files(here("data/enviro/model_validate/Climatology/woa_oxygen/monthly"))
+clim_do_mo <- list.files(here("data/enviro/model_validate/Climatology/woa_oxygen/monthly"), full.names = TRUE)
 clim_tempWA <- rast(here("data/enviro/model_validate/Climatology/sst.mon.mean.nc"))
 
-calcofi <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Bottle.csv"), check.names = FALSE)
+calcofi_samp <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Bottle.csv"), check.names = FALSE)
+calcofi_met <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Cast.csv"), check.names = FALSE)
+
 #imecocal
 
 ### Mercator data ####
-#### oxygen #### 
+#### oxygen (mmol/m^3) #### 
 ##### 0m #####
 merc_do0_raw
 
@@ -80,7 +82,7 @@ merc_do_Su200 <- app(merc_do_Su200, mean)
 merc_do_Fa200 <- subset(merc_do_M200, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
 merc_do_Fa200 <- app(merc_do_Fa200, mean)
 
-#### temperature #### 
+#### temperature (C) #### 
 ##### 0m #####
 #combine all temp rasts into two rasters separated by depth layer
 
@@ -175,21 +177,93 @@ merc_temp_Su200 <- app(merc_temp_Su200, mean)
 merc_temp_Fa200 <- subset(merc_temp_M200, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
 merc_temp_Fa200 <- app(merc_temp_Fa200, mean)
 
-### Climatology surface data ####
-#### oxygen ####
+### Climatology data ####
+#### oxygen (umol/kg) ####
+##### 0m #####
 #spatial res: 0.1*, temporal res: averaged annually, temporal range: 1960-2017
+#annual
 clim_do_ann0W <- clim_do_ann$`o_mn_depth=0` 
-clim_do_ann200W <- clim_do_ann$`o_an_depth=200`
 
+#define extent to study area
 e <- ext(-153, -104, 1, 49)
 
 clim_do_ann0 <- crop(clim_do_ann0W, e)
-clim_do_ann200 <- crop(clim_do_ann200W, e)
+plot(clim_do_ann0)
 
 #need to do monthly and seasonal files
-clim_do_mo
+clim_do_mo0 = NULL
+for(i in 1:length(clim_do_mo)){
+  temp_rast <- rast(clim_do_mo[[i]])
+  temp_rast_mean <- temp_rast$`o_mn_depth=0`
+  temp_rast_mean <- crop(temp_rast_mean, e)
+  
+  rast_name <- paste0("m", "_", i)
+  names(temp_rast_mean) <- rast_name
+  
+  clim_do_mo0 <- append(clim_do_mo0, temp_rast_mean)
+}
 
-#### temperature ####
+#monthly
+clim_do_mo0
+
+#convert monthly resolution to seasonal 
+#winter
+clim_do_Wn0 <- subset(clim_do_mo0, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+clim_do_Wn0 <- app(clim_do_Wn0, mean)
+#spring
+clim_do_Sp0 <- subset(clim_do_mo0, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+clim_do_Sp0 <- app(clim_do_Sp0, mean)
+#summer
+clim_do_Su0 <- subset(clim_do_mo0, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+clim_do_Su0 <- app(clim_do_Su0, mean)
+#fall
+clim_do_Fa0 <- subset(clim_do_mo0, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+clim_do_Fa0 <- app(clim_do_Fa0, mean)
+
+##### 200m #####
+#spatial res: 0.1*, temporal res: averaged annually, temporal range: 1960-2017
+clim_do_ann200W <- clim_do_ann$`o_mn_depth=200` 
+clim_do_ann200 <- crop(clim_do_ann200W, e)
+plot(clim_do_ann200)
+
+#need to do monthly and seasonal files
+clim_do_mo200 = NULL
+for(i in 1:length(clim_do_mo)){
+  temp_rast <- rast(clim_do_mo[[i]])
+  temp_rast_mean <- temp_rast$`o_mn_depth=200`
+  temp_rast_mean <- crop(temp_rast_mean, e)
+  
+  rast_name <- paste0("m", "_", i)
+  names(temp_rast_mean) <- rast_name
+  
+  clim_do_mo200 <- append(clim_do_mo200, temp_rast_mean)
+}
+
+clim_do_mo200
+
+#convert monthly resolution to seasonal 
+#winter
+clim_do_Wn200 <- subset(clim_do_mo200, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+clim_do_Wn200 <- app(clim_do_Wn200, mean)
+global(clim_do_Wn200, "mean", na.rm=TRUE)
+
+#spring
+clim_do_Sp200 <- subset(clim_do_mo200, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+clim_do_Sp200 <- app(clim_do_Sp200, mean)
+global(clim_do_Sp200, "mean", na.rm=TRUE)
+
+#summer
+clim_do_Su200 <- subset(clim_do_mo200, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+clim_do_Su200 <- app(clim_do_Su200, mean)
+global(clim_do_Su200, "mean", na.rm=TRUE)
+
+#fall
+clim_do_Fa200 <- subset(clim_do_mo200, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+clim_do_Fa200 <- app(clim_do_Fa200, mean)
+global(clim_do_Fa200, "mean", na.rm=TRUE)
+
+#### temperature (C) ####
+##### 0m #####
 clim_tempWA #spatial res: 0.25*, temporal res: annual, temporal range: 1981-2024
 plot(clim_tempWA)
 
@@ -199,14 +273,117 @@ plot(clim_tempA$sst_1)
 
 clim_tempA <- subset(clim_tempA, time(clim_tempA) > as.Date("2003-01-01"))
 clim_tempA <- subset(clim_tempA, time(clim_tempA) < as.Date("2015-12-31"))
+clim_tempA
 
-#need to separate by year, month, and season
+#convert temporal resolution to monthly and annually
+clim_temp_M0 <- tapp(clim_tempA, "months", mean)
+clim_temp_Y0 <- tapp(clim_tempA, "years", mean)
+
+#convert monthly resolution to seasonal 
+#winter
+clim_temp_Wn0 <- subset(clim_temp_M0, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+clim_temp_Wn0 <- app(clim_temp_Wn0, mean)
+#spring
+clim_temp_Sp0 <- subset(clim_temp_M0, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+clim_temp_Sp0 <- app(clim_temp_Sp0, mean)
+#summer
+clim_temp_Su0 <- subset(clim_temp_M0, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+clim_temp_Su0 <- app(clim_temp_Su0, mean)
+#fall
+clim_temp_Fa0 <- subset(clim_temp_M0, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+clim_temp_Fa0 <- app(clim_temp_Fa0, mean)
 
 ### Station data ####
 #### CalCOFI ####
+#filter to correct dates
+calcofi_met_filt <- calcofi_met %>%
+  filter(Year >= 2003 & Year <= 2015)
+
+calcofi_samp_filt <- calcofi_samp[calcofi_samp$Cst_Cnt %in% calcofi_met_filt$Cst_Cnt, ]
+
+#subset metadata to just Cst_Cnt ID, year, and month to join to sample DF
+calcofi_met_sub <- calcofi_met_filt %>% 
+  subset(select = c(Cst_Cnt, Year, Month))
+
+calcofi_samp_filt1 <- calcofi_samp_filt %>%
+  full_join(calcofi_met_sub, by = "Cst_Cnt")
+
+calcofi_samp_filt1 <- calcofi_samp_filt1 %>%
+  mutate(season = ifelse(Month >= 3 & Month <= 5, "Spring", 
+                         ifelse(Month >= 6 & Month <= 8, "Summer", 
+                                ifelse(Month >= 9 & Month <= 11, "Fall", "Winter"))))
+
 ##### 0m #####
+calcofi_samp0 <- calcofi_samp_filt1 %>% 
+  filter(Depthm == 0)
+
+###### oxygen (ml/L) ######
+#annual 
+calcofi_samp0 %>% 
+  group_by(Year) %>% 
+  summarise(mean_do0_ml_L = mean(O2ml_L, na.rm = TRUE))
+
+#monthly
+calcofi_samp0 %>% 
+  group_by(Month) %>% 
+  summarise(mean_do0_ml_L = mean(O2ml_L, na.rm = TRUE))
+
+#seasonal 
+calcofi_samp0 %>% 
+  group_by(season) %>% 
+  summarise(mean_do0_ml_L = mean(O2ml_L, na.rm = TRUE))
+
+###### temperature (C) #####
+#annual 
+calcofi_samp0 %>% 
+  group_by(Year) %>% 
+  summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
+
+#monthly
+calcofi_samp0 %>% 
+  group_by(Month) %>% 
+  summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
+
+#seasonal 
+calcofi_samp0 %>% 
+  group_by(season) %>% 
+  summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
 
 ##### 200m #####
+calcofi_samp200 <- calcofi_samp_filt1 %>%
+  filter(Depthm == 200)
+
+###### oxygen (ml/L) ######
+#annual 
+calcofi_samp200 %>% 
+  group_by(Year) %>% 
+  summarise(mean_do0_ml_L = mean(O2ml_L, na.rm = TRUE))
+
+#monthly
+calcofi_samp200 %>% 
+  group_by(Month) %>% 
+  summarise(mean_do0_ml_L = mean(O2ml_L, na.rm = TRUE))
+
+#seasonal 
+calcofi_samp200 %>% 
+  group_by(season) %>% 
+  summarise(mean_do0_ml_L = mean(O2ml_L, na.rm = TRUE))
+
+###### temperature (C) #####
+#annual 
+calcofi_samp200 %>% 
+  group_by(Year) %>% 
+  summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
+
+#monthly
+calcofi_samp200 %>% 
+  group_by(Month) %>% 
+  summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
+
+#seasonal 
+calcofi_samp200 %>% 
+  group_by(season) %>% 
+  summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
 
 #### IMECOCAL ####
 ##### 0m #####
