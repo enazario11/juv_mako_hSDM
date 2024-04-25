@@ -1,0 +1,928 @@
+---
+title: "Mercator dissolved oxygen and temperature validation"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+---
+
+On this document I compare the mean Mercator BIORYS4 and GLORYS4 dissolved oxygen (DO) and temperature (temp) data to values from climatology products (DO: World Ocean Atlas; temp: OISST and WOA) and bottle collections at CalCOFI stations. DO and temp values will be compared to the climatology products as averages across the study area (lat: 1 to 49 and lon: -153 to -104) at 0m and at 200m. While the comparisons to the CalCofi data will be done at the nearest grid cell for each station both at 0m and 20m. These spatial averages will also be compared on annual, seasonal, and monthly scales.
+
+Temporal variability was compared by extracting the mean dissolved oxygen and temperature values over the CalCOFI domain for each day a CalCOFI sample was performed throughout the study period (Jun 26th, 2003- Mar. 22nd, 2015). I will then compare the CalCOFI and Mercator dissolved oxygen and temperature means over time.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: libraries
+
+### libraries #### 
+library(tidyverse)
+library(terra)
+library(sf)
+library(here)
+library(ncdf4)
+library(respR)
+library(patchwork)
+library(kableExtra)
+library(tidyterra)
+library(rnaturalearth)
+library(rnaturalearthdata)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Mercator data
+## data ####
+merc_do0_raw <- rast(here("data/enviro/model_validate/Mercator/CMEMS_CHL_DO_0m_JAN2003_Dec2015_0.25deg_D.nc"))
+merc_do200_raw <- rast(here("data/enviro/model_validate/Mercator/CMEMS_CHL_DO_200m_JAN2003_Dec2015_0.25deg_D.nc"))
+merc_temp0_raw <- list.files(here("data/enviro/model_validate/Mercator"), pattern = "Temp_0m", full.names = TRUE)
+merc_temp200_raw <- list.files(here("data/enviro/model_validate/Mercator"), pattern = "Temp_200m", full.names = TRUE)
+
+clim_do_ann <- rast(here("data/enviro/model_validate/Climatology/woa_oxygen/woa18_all_o00_01.nc"))
+clim_do_mo <- list.files(here("data/enviro/model_validate/Climatology/woa_oxygen/monthly"), full.names = TRUE)
+clim_tempWA <- rast(here("data/enviro/model_validate/Climatology/sst.mon.mean.nc"))
+
+calcofi_samp <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Bottle.csv"), check.names = FALSE)
+calcofi_met <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Cast.csv"), check.names = FALSE)
+#imecocal
+
+### Mercator data ####
+#### oxygen (input: mmol/m^3, now: mmol/L) #### 
+##### 0m #####
+merc_do0_raw
+
+#filter to separate variables by the "=" and prep to be able to filter by variable in next step
+merc_vars0 <- str_split(names(merc_do0_raw), "=") %>% map_chr(\(x) x[1]) %>% str_extract("[^_]+")
+
+#identify location of oxygen layers
+merc_pos0 <- which(merc_vars0 == "o2")
+
+#subset to only keep oxygen layers
+merc_do0 <- merc_do0_raw %>% subset(merc_pos0) 
+merc_do0 #spatial res: 0.25*, temporal es: daily, crs: lon/lat WGS 84
+
+#convert DO to mmol/L
+#convert temporal resolution to monthly and annually. Convert DO values from mmol/m^3 to mmol/L.
+merc_do_M0 <- tapp(merc_do0, "months", mean)
+merc_do_M0 <- merc_do_M0/1000
+merc_do_Y0 <- tapp(merc_do0, "years", mean)
+merc_do_Y0 <- merc_do_Y0/1000
+
+#convert monthly resolution to seasonal 
+#winter
+# merc_do_Wn0 <- subset(merc_do_M0, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# merc_do_Wn0 <- app(merc_do_Wn0, mean)
+# #spring
+# merc_do_Sp0 <- subset(merc_do_M0, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# merc_do_Sp0 <- app(merc_do_Sp0, mean)
+# #summer
+# merc_do_Su0 <- subset(merc_do_M0, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# merc_do_Su0 <- app(merc_do_Su0, mean)
+# #fall
+# merc_do_Fa0 <- subset(merc_do_M0, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# merc_do_Fa0 <- app(merc_do_Fa0, mean)
+
+##### 200m #####
+#filter to separate variables by the "=" and prep to be able to filter by variable in next step
+merc_vars200 <- str_split(names(merc_do200_raw), "=") %>% map_chr(\(x) x[1]) %>% str_extract("[^_]+")
+
+#identify location of oxygen layers
+merc_pos200 <- which(merc_vars200 == "o2")
+
+#subset to only keep oxygen layers
+merc_do200 <- merc_do200_raw %>% subset(merc_pos200) 
+merc_do200 #spatial res: 0.25*, temporal es: daily, crs: lon/lat WGS 84
+
+#convert DO to mmol/L
+#convert temporal resolution to monthly and annually. Convert DO from mmol/m^3 to mmol/L.
+merc_do_M200 <- tapp(merc_do200, "months", mean)
+merc_do_M200 <- merc_do_M200/1000
+merc_do_Y200 <- tapp(merc_do200, "years", mean)
+merc_do_Y200 <- merc_do_Y200/1000
+
+# #convert monthly resolution to seasonal 
+# #winter
+# merc_do_Wn200 <- subset(merc_do_M200, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# merc_do_Wn200 <- app(merc_do_Wn200, mean)
+# #spring
+# merc_do_Sp200 <- subset(merc_do_M200, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# merc_do_Sp200 <- app(merc_do_Sp200, mean)
+# #summer
+# merc_do_Su200 <- subset(merc_do_M200, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# merc_do_Su200 <- app(merc_do_Su200, mean)
+# #fall
+# merc_do_Fa200 <- subset(merc_do_M200, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# merc_do_Fa200 <- app(merc_do_Fa200, mean)
+
+#### temperature (C) #### 
+##### 0m #####
+#combine all temp rasts into two rasters separated by depth layer
+
+merc_temp_all0 <- NULL
+for(i in 1:length(merc_temp0_raw)){
+  # temp_nc <- nc_open(merc_temp0_raw[[i]])
+  # 
+  # #get correct lat and lon info from ncdf4 package
+  # mod_rast <- rast(
+  #   rast_lat <- ncvar_get(temp_nc, "nav_lat"),
+  #   rast_lon <- ncvar_get(temp_nc, "nav_lon")
+  # )
+  # 
+  # temp_lat <- rast_lat[1,1:241]
+  # temp_lon <- rast_lon[1,1:241]
+  
+  temp_rast <- rast(merc_temp0_raw[[i]])
+  rast_source <- sources(temp_rast)
+  rast_year <- str_extract_all(rast_source, "\\d{4}")[[1]][1]
+  
+  d1 <- seq(as.Date(paste0(rast_year,"-","01-01")), by = "month",length = 6)
+  d2 <- seq(as.Date(paste0(rast_year,"-","07-01")), by = "month",length = 6)
+  
+  #add year-month info to raster files
+  if(str_detect(rast_source, "JAN") == TRUE){
+    time(temp_rast) <- d1
+  } else {
+    time(temp_rast) <- d2
+  }
+  
+  merc_temp_all0 <- append(merc_temp_all0, temp_rast)
+}
+
+merc_temp_all0 #spatial res: 0.25*, temporal es: year-month, crs: lon/lat WGS 84
+
+#convert temporal resolution to monthly and annually
+merc_temp_M0 <- tapp(merc_temp_all0, "months", mean)
+merc_temp_Y0 <- tapp(merc_temp_all0, "years", mean)
+
+#convert monthly resolution to seasonal 
+#winter
+# merc_temp_Wn0 <- subset(merc_temp_M0, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# merc_temp_Wn0 <- app(merc_temp_Wn0, mean)
+# #spring
+# merc_temp_Sp0 <- subset(merc_temp_M0, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# merc_temp_Sp0 <- app(merc_temp_Sp0, mean)
+# #summer
+# merc_temp_Su0 <- subset(merc_temp_M0, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# merc_temp_Su0 <- app(merc_temp_Su0, mean)
+# #fall
+# merc_temp_Fa0 <- subset(merc_temp_M0, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# merc_temp_Fa0 <- app(merc_temp_Fa0, mean)
+
+##### 200m #####
+#combine all temp rasts into two rasters separated by depth layer
+merc_temp_all200 <- NULL
+for(i in 1:length(merc_temp200_raw)){
+  temp_rast <- rast(merc_temp200_raw[[i]])
+  rast_source <- sources(temp_rast)
+  rast_year <- str_extract_all(rast_source, "\\d{4}")[[1]][1]
+  
+  d1 <- seq(as.Date(paste0(rast_year,"-","01-01")), by = "month",length = 6)
+  d2 <- seq(as.Date(paste0(rast_year,"-","07-01")), by = "month",length = 6)
+  
+  #add year-month info to raster files
+  if(str_detect(rast_source, "JAN") == TRUE){
+    time(temp_rast) <- d1
+  } else {
+    time(temp_rast) <- d2
+  }
+  
+  merc_temp_all200 <- append(merc_temp_all200, temp_rast)
+}
+
+merc_temp_all200 #spatial res: 0.25*, temporal es: year-month, crs: lon/lat WGS 84
+
+#convert temporal resolution to monthly and annually
+merc_temp_M200 <- tapp(merc_temp_all200, "months", mean)
+merc_temp_Y200 <- tapp(merc_temp_all200, "years", mean)
+
+#convert monthly resolution to seasonal 
+# #winter
+# merc_temp_Wn200 <- subset(merc_temp_M200, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# merc_temp_Wn200 <- app(merc_temp_Wn200, mean)
+# #spring
+# merc_temp_Sp200 <- subset(merc_temp_M200, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# merc_temp_Sp200 <- app(merc_temp_Sp200, mean)
+# #summer
+# merc_temp_Su200 <- subset(merc_temp_M200, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# merc_temp_Su200 <- app(merc_temp_Su200, mean)
+# #fall
+# merc_temp_Fa200 <- subset(merc_temp_M200, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# merc_temp_Fa200 <- app(merc_temp_Fa200, mean)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Climatology data
+
+### Climatology data ####
+#### oxygen (input: umol/kg, now: mmol/L) ####
+#define extent to study area
+e <- ext(-153, -104, 1, 49)
+##### 0m #####
+#decadal values for o2 conversion at surface for annual average
+temp_o20 <- rast(here("data/enviro/model_validate/Climatology/woa_oxygen/temp_for_conversions/woa18_decav_t00_01.nc"))
+temp_o20 <- crop(temp_o20,e)
+temp_o20 <- temp_o20$`t_an_depth=0`
+
+sal_o20 <- rast(here("data/enviro/model_validate/Climatology/woa_oxygen/sal_for_conversions/woa18_decav_s00_01.nc"))
+sal_o20 <- crop(sal_o20,e)
+sal_o20 <- sal_o20$`s_an_depth=0`
+
+#spatial res: 0.1*, temporal res: averaged annually, temporal range: 1960-2017
+#annual
+clim_do_ann0W <- clim_do_ann$`o_mn_depth=0` 
+
+clim_do_ann0 <- crop(clim_do_ann0W, e)
+#plot(clim_do_ann0)
+
+#convert to mmol/L
+clim_doY_mmol_L <- clim_do_ann0*1.025*0.001 #1.025 kg/L and 0.001mmol in umol
+#plot(clim_doY_mmol_L)
+
+#monthly and seasonal files
+clim_do_mo0 = NULL
+for(i in 1:length(clim_do_mo)){
+  temp_rast <- rast(clim_do_mo[[i]])
+  temp_rast_mean <- temp_rast$`o_mn_depth=0`
+  temp_rast_mean <- crop(temp_rast_mean, e)
+  
+  rast_name <- paste0("m", "_", i)
+  names(temp_rast_mean) <- rast_name
+  
+  clim_do_mo0 <- append(clim_do_mo0, temp_rast_mean)
+}
+
+#monthly
+clim_doM_mmol_L <- clim_do_mo0*1.025*0.001
+
+# #convert monthly resolution to seasonal 
+# #winter
+# clim_do_Wn0 <- subset(clim_doM_mmol_L, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# clim_do_Wn0 <- app(clim_do_Wn0, mean)
+# #spring
+# clim_do_Sp0 <- subset(clim_doM_mmol_L, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# clim_do_Sp0 <- app(clim_do_Sp0, mean)
+# #summer
+# clim_do_Su0 <- subset(clim_doM_mmol_L, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# clim_do_Su0 <- app(clim_do_Su0, mean)
+# #fall
+# clim_do_Fa0 <- subset(clim_doM_mmol_L, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# clim_do_Fa0 <- app(clim_do_Fa0, mean)
+
+##### 200m #####
+#spatial res: 0.1*, temporal res: averaged annually, temporal range: 1960-2017
+clim_do_ann200W <- clim_do_ann$`o_mn_depth=200` 
+clim_do_ann200 <- crop(clim_do_ann200W, e)
+
+clim_doY_mmol_L200 <- clim_do_ann200*1.025*0.001
+#plot(clim_doY_mmol_L200)
+
+#need to do monthly and seasonal files
+clim_do_mo200 = NULL
+for(i in 1:length(clim_do_mo)){
+  temp_rast <- rast(clim_do_mo[[i]])
+  temp_rast_mean <- temp_rast$`o_mn_depth=200`
+  temp_rast_mean <- crop(temp_rast_mean, e)
+  
+  rast_name <- paste0("m", "_", i)
+  names(temp_rast_mean) <- rast_name
+  
+  clim_do_mo200 <- append(clim_do_mo200, temp_rast_mean)
+}
+
+clim_doM_mmol_L200 <- clim_do_mo200*1.025*0.001
+
+# #convert monthly resolution to seasonal 
+# #winter
+# clim_do_Wn200 <- subset(clim_doM_mmol_L200, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# clim_do_Wn200 <- app(clim_do_Wn200, mean)
+# global(clim_do_Wn200, "mean", na.rm=TRUE)
+# 
+# #spring
+# clim_do_Sp200 <- subset(clim_doM_mmol_L200, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# clim_do_Sp200 <- app(clim_do_Sp200, mean)
+# global(clim_do_Sp200, "mean", na.rm=TRUE)
+# 
+# #summer
+# clim_do_Su200 <- subset(clim_doM_mmol_L200, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# clim_do_Su200 <- app(clim_do_Su200, mean)
+# global(clim_do_Su200, "mean", na.rm=TRUE)
+# 
+# #fall
+# clim_do_Fa200 <- subset(clim_doM_mmol_L200, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# clim_do_Fa200 <- app(clim_do_Fa200, mean)
+# global(clim_do_Fa200, "mean", na.rm=TRUE)
+
+#### temperature (C) ####
+##### 0m #####
+#clim_tempWA #spatial res: 0.25*, temporal res: annual, temporal range: 1981-2024
+#plot(clim_tempWA)
+
+e2 <- ext(207, 256, 1, 49)
+clim_tempA <- crop(clim_tempWA, e2)
+#plot(clim_tempA$sst_1)
+
+clim_tempA <- subset(clim_tempA, time(clim_tempA) > as.Date("2003-01-01"))
+clim_tempA <- subset(clim_tempA, time(clim_tempA) < as.Date("2015-12-31"))
+#clim_tempA
+
+#convert temporal resolution to monthly and annually
+clim_temp_M0 <- tapp(clim_tempA, "months", mean)
+clim_temp_Y0 <- tapp(clim_tempA, "years", mean)
+
+#convert monthly resolution to seasonal 
+# #winter
+# clim_temp_Wn0 <- subset(clim_temp_M0, c("m_12", "m_1", "m_2")) #Dec/Jan/Feb
+# clim_temp_Wn0 <- app(clim_temp_Wn0, mean)
+# #spring
+# clim_temp_Sp0 <- subset(clim_temp_M0, c("m_3", "m_4", "m_5")) #Mar/Apr/May
+# clim_temp_Sp0 <- app(clim_temp_Sp0, mean)
+# #summer
+# clim_temp_Su0 <- subset(clim_temp_M0, c("m_6", "m_7", "m_8")) #Jun/Jul/Aug
+# clim_temp_Su0 <- app(clim_temp_Su0, mean)
+# #fall
+# clim_temp_Fa0 <- subset(clim_temp_M0, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
+# clim_temp_Fa0 <- app(clim_temp_Fa0, mean)
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Station data
+
+### Station data ####
+#### CalCOFI ####
+#filter to correct dates
+calcofi_met_filt <- calcofi_met %>%
+  filter(Year >= 2003 & Year <= 2015)
+
+calcofi_samp_filt <- calcofi_samp[calcofi_samp$Cst_Cnt %in% calcofi_met_filt$Cst_Cnt, ]
+
+#subset metadata to just Cst_Cnt ID, year, and month to join to sample DF
+calcofi_met_sub <- calcofi_met_filt %>% 
+  subset(select = c(Cst_Cnt, Year, Month))
+
+calcofi_samp_filt1 <- calcofi_samp_filt %>%
+  full_join(calcofi_met_sub, by = "Cst_Cnt")
+
+calcofi_samp_filt1 <- calcofi_samp_filt1 %>%
+  mutate(season = ifelse(Month >= 3 & Month <= 5, "Spring", 
+                         ifelse(Month >= 6 & Month <= 8, "Summer", 
+                                ifelse(Month >= 9 & Month <= 11, "Fall", "Winter"))))
+
+##### 0m #####
+calcofi_samp0 <- calcofi_samp_filt1 %>% 
+  filter(Depthm == 0) %>%
+  filter(!is.na(O2ml_L)) %>%
+  mutate(do0_mmol_L = O2ml_L/22.3916)
+
+#convert DO to mmol/L for each row either using the average temp/sal if data isn't available, or the in situ measurements at that station/bottle collection
+# mean_sal = mean(calcofi_samp0$Salnty, na.rm = TRUE)
+# mean_temp = mean(calcofi_samp0$T_degC, na.rm = TRUE)
+# calcofi_samp0$do0_mmol_L = NA
+# 
+# for(i in 1:nrow(calcofi_samp0)){
+#   if(is.na(calcofi_samp0$Salnty[i]) | is.na(calcofi_samp0$T_degC[i])){
+#     
+#    calcofi_samp0$do0_mmol_L[i] = convert_DO(calcofi_samp0$O2ml_L[i], from = "mL/L", to = "mmol/L", S = mean_sal, t = mean_temp, P = 1.013253)
+#    
+#   } else if(!is.na(calcofi_samp0$Salnty[i]) & !is.na(calcofi_samp0$T_degC[i])){
+#     
+#     calcofi_samp0$do0_mmol_L[i] = convert_DO(calcofi_samp0$O2ml_L[i], from = "mL/L", to = "mmol/L", S = calcofi_samp0$Salnty[i], t = calcofi_samp0$T_degC[i], P = 1.013253)
+#     
+#   }
+#   #print(calcofi_samp0$do0_mmol_L[i])
+# }
+
+##### 200m #####
+calcofi_samp200 <- calcofi_samp_filt1 %>%
+  filter(Depthm == 200) %>%
+  filter(!is.na(O2ml_L))%>%
+  mutate(do200_mmol_L = O2ml_L/22.3916)
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Modifying merc and clim domains to calcofi
+
+#subset metadata to just Cst_Cnt ID, year, and month to join to sample DF
+calcofi_coords <- calcofi_met_filt %>% 
+  subset(select = c(Cst_Cnt, Lat_Deg, Lon_Deg))
+
+calcofi_samp_coords <- calcofi_samp0 %>%
+  full_join(calcofi_coords, by = "Cst_Cnt")
+
+calcofi_samp_coords200 <- calcofi_samp200 %>%
+  full_join(calcofi_coords, by = "Cst_Cnt")
+# min(calcofi_samp_coords$Lat_Deg)
+# max(calcofi_samp_coords$Lat_Deg)
+# min(calcofi_samp_coords$Lon_Deg)
+# max(calcofi_samp_coords$Lon_Deg)
+
+e_cal <- ext(-125, -117, 29, 37)
+e_cal_m <- rast(xmin=650, xmax=680, ymin=621, ymax=660, nrows=25, ncols=25)
+e_cal_cl <- ext(235, 243, 29, 37)
+
+#Merc 0m - Y/S/M
+#annual 
+#do
+merc_do_Y0_cal <- crop(merc_do_Y0, e_cal)
+
+#temp
+merc_temp_Y0_cal <- crop(merc_temp_Y0, e_cal_m)
+
+#seasonal 
+#do
+# merc_do_Wn0_cal <- crop(merc_do_Wn0, e_cal)
+# merc_do_Sp0_cal <- crop(merc_do_Sp0, e_cal)
+# merc_do_Su0_cal <- crop(merc_do_Su0, e_cal)
+# merc_do_Fa0_cal <- crop(merc_do_Fa0, e_cal)
+# 
+# #temp
+# merc_temp_Wn0_cal <- crop(merc_temp_Wn0, e_cal_m)
+# merc_temp_Sp0_cal <- crop(merc_temp_Sp0, e_cal_m)
+# merc_temp_Su0_cal <- crop(merc_temp_Su0, e_cal_m)
+# merc_temp_Fa0_cal <- crop(merc_temp_Fa0, e_cal_m)
+# 
+# #month
+# #do
+# merc_do_M0_cal <- crop(merc_do_M0, e_cal)
+# 
+# #temp
+# merc_temp_M0_cal <- crop(merc_temp_M0, e_cal_m)
+# 
+# #Merc 200m - Y/S/M -- DO PENDING ON RESULTS
+# #annual
+# #temp 
+# merc_temp_Y200_cal <- crop(merc_temp_Y200, e_cal_m)
+# 
+# #seasonal
+# #temp
+# merc_temp_Wn200_cal <- crop(merc_temp_Wn200, e_cal_m)
+# merc_temp_Sp200_cal <- crop(merc_temp_Sp200, e_cal_m)
+# merc_temp_Su200_cal <- crop(merc_temp_Su200, e_cal_m)
+# merc_temp_Fa200_cal <- crop(merc_temp_Fa200, e_cal_m)
+# 
+# #month
+# #temp
+# merc_temp_M200_cal <- crop(merc_temp_M200, e_cal_m)
+# 
+# 
+# #Clim 0m - Y/S/M
+# #annual
+# #do
+# clim_doY_mmol_L_cal <- crop(clim_doY_mmol_L, e_cal)
+# 
+# #temp
+# clim_temp_Y0_cal <- crop(clim_temp_Y0, e_cal_cl)
+# 
+# #seasonal
+# #do
+# clim_do_Wn0_cal <- crop(clim_do_Wn0, e_cal)
+# clim_do_Sp0_cal <- crop(clim_do_Sp0, e_cal)
+# clim_do_Su0_cal <- crop(clim_do_Su0, e_cal)
+# clim_do_Fa0_cal <- crop(clim_do_Fa0, e_cal)
+# 
+# #temp
+# clim_temp_Wn0_cal <- crop(clim_temp_Wn0, e_cal_cl)
+# clim_temp_Sp0_cal <- crop(clim_temp_Sp0, e_cal_cl)
+# clim_temp_Su0_cal <- crop(clim_temp_Su0, e_cal_cl)
+# clim_temp_Fa0_cal <- crop(clim_temp_Fa0, e_cal_cl)
+# 
+# #month
+# #do
+# clim_doM_mmol_L_cal <- crop(clim_doM_mmol_L, e_cal)
+# 
+# #temp
+# clim_temp_M0_cal <- crop(clim_temp_M0, e_cal_cl)
+# 
+# #Clim 200m - Y/S/M -- DO and Temp PENDING ON RESULTS
+# #annual
+# #seasonal
+# #month
+```
+
+## DO (mmol/L) at 0m
+
+### Mean across study period (2003-2015)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: DO_0m
+#| fig-width: 10
+#| fig-height: 8
+
+#Mercator plot -- mean across all years
+merc_do_Y0 <- aggregate(merc_do_Y0, fact = 4)
+merc_do_Y0 <- mean(merc_do_Y0, na.rm=TRUE)
+do1 <- ggplot() + 
+  geom_spatraster(data = merc_do_Y0) + 
+  scale_fill_viridis_c()+
+    ggtitle("Mercator") +
+  labs(fill = "DO (mmol/L)")+
+  theme_minimal()
+
+#WOA plot -- mean across all years
+clim_do_Y0 <- mean(clim_doY_mmol_L, na.rm = TRUE)
+do2 <- ggplot() + 
+  geom_spatraster(data = clim_do_Y0) + 
+  scale_fill_viridis_c()+
+   labs(fill = "DO (mmol/L)")+
+    ggtitle("WOA") +
+  theme_minimal()
+
+#calcofi plot -- mean across all years for each station 
+calcofi_coord0 <- st_as_sf(calcofi_samp_coords, coords = c("Lon_Deg", "Lat_Deg"), crs = st_crs(4326))
+
+calcofi_sta0 <- calcofi_coord0 %>% 
+  group_by(geometry) %>% 
+  summarise(mean_do0_mmol_L = mean(do0_mmol_L, na.rm = TRUE))
+
+world <- ne_coastline(scale = "medium", returnclass = "sf")
+st_crs(world) <- st_crs(4326)
+
+do3 <- ggplot()+
+  geom_sf(data = calcofi_sta0, aes(color = mean_do0_mmol_L), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_color_viridis_c()+
+   labs(fill = "DO (mmol/L)")+
+    ggtitle("CalCOFI") +
+  theme_minimal()
+
+do1|do2|do3
+```
+
+### Mercator difference plots
+
+```{r}
+#| warning: false
+#| message: false
+#| label: DO_diff_0m
+#| fig-width: 10
+#| fig-height: 8
+#| echo: false
+
+#Merc vs. WOA
+e <- ext(-153, -104, 2, 49)
+
+#Merc vs. WOA
+origin(merc_do_Y0) <- c(0,0)
+merc_do_Y0 <- crop(merc_do_Y0, e)
+clim_do_Y0 <- crop(clim_do_Y0, e)
+
+diff_merc_clim <- diff(c(merc_do_Y0, clim_do_Y0))
+
+d_do1 <- ggplot() + 
+  geom_spatraster(data = diff_merc_clim) + 
+  ggtitle("Comparing Mercator to WOA") +
+  labs(fill = "Difference (mmol/L)") + 
+  scale_fill_viridis_c(limits = c(-0.02, 0.04))+
+  theme_minimal()
+
+#Merc vs. CalCOFI
+vect_cal_do0 <- vect(calcofi_sta0)
+df_cal_do0 <- as.data.frame(vect_cal_do0)
+merc_cal_extract <- extract(merc_do_Y0, vect_cal_do0)
+diff_merc_cal <- merc_cal_extract$mean - df_cal_do0$mean_do0_mmol_L
+
+calcofi_sta0$merc_diff <- diff_merc_cal
+
+d_do2 <- ggplot()+
+  geom_sf(data = calcofi_sta0, aes(color = merc_diff), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_color_viridis_c(limits = c(-0.02, 0.04))+
+  labs(color = "Difference (mmol/L)") + 
+  ggtitle("Comparing Mercator to CalCOFI") +
+  theme_minimal()
+
+d_do1|d_do2
+```
+
+## DO (mmol/L) at 200m
+
+### Mean across study period (2003-2015)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: DO_200m
+#| fig-width: 10
+#| fig-height: 6
+
+#Mercator plot -- mean across all years
+merc_do_Y200 <- aggregate(merc_do_Y200, fact = 4)
+merc_do_Y200 <- mean(merc_do_Y200, na.rm=TRUE)
+
+do1_200 <- ggplot() + 
+  geom_spatraster(data = merc_do_Y200) + 
+  scale_fill_viridis_c()+
+  theme_minimal()+
+    ggtitle("Mercator") +
+  labs(fill = "DO (mmol/L)")
+
+#WOA plot -- mean across all years
+clim_do_Y200 <- mean(clim_doY_mmol_L200, na.rm = TRUE)
+do2_200 <- ggplot() + 
+  geom_spatraster(data = clim_do_Y200) + 
+  scale_fill_viridis_c()+
+   labs(fill = "DO (mmol/L)")+
+    ggtitle("WOA") +
+  theme_minimal()
+
+#calcofi plot -- mean across all years for each station 
+calcofi_coord200 <- st_as_sf(calcofi_samp_coords200, coords = c("Lon_Deg", "Lat_Deg"), crs = st_crs(4326))
+
+calcofi_sta200 <- calcofi_coord200 %>% 
+  group_by(geometry) %>% 
+  summarise(mean_do200_mmol_L = mean(do200_mmol_L, na.rm = TRUE))
+
+do3_200 <- ggplot()+
+  geom_sf(data = calcofi_sta200, aes(color = mean_do200_mmol_L), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_color_viridis_c()+
+  theme_minimal()+
+    ggtitle("CalCOFI") +
+  labs(color = "DO (mmol/L)")
+
+do1_200|do2_200|do3_200
+```
+
+### Mercator difference plots
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: DO_diff_200m
+#| fig-width: 8
+#| fig-height: 6
+#Merc vs. WOA
+origin(merc_do_Y200) <- c(0,0)
+merc_do_Y200 <- crop(merc_do_Y200, e)
+clim_do_Y200 <- crop(clim_do_Y200, e)
+
+diff_merc_clim200 <- diff(c(merc_do_Y200, clim_do_Y200))
+
+d_do1_200 <- ggplot() + 
+  geom_spatraster(data = diff_merc_clim200) + 
+  ggtitle("Comparing Mercator to WOA") +
+  labs(fill = "Difference (mmol/L)") + 
+  scale_fill_viridis_c(limits = c(-0.03, 0.10))+
+  theme_minimal()
+
+#Merc vs. CalCOFI
+vect_cal_do200 <- vect(calcofi_sta200)
+df_cal_do200 <- as.data.frame(vect_cal_do200)
+merc_cal_extract200 <- extract(merc_do_Y200, vect_cal_do200)
+diff_merc_cal200 <- merc_cal_extract200$mean - df_cal_do200$mean_do200_mmol_L
+
+calcofi_sta200$merc_diff200 <- diff_merc_cal200
+
+d_do2_200 <- ggplot()+
+  geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_color_viridis_c(limits = c(-0.03, 0.10))+ 
+  labs(color = "Difference (mmol/L)") + 
+  ggtitle("Comparing Mercator to CalCOFI") +
+  theme_minimal()
+
+d_do1_200|d_do2_200
+```
+
+## Temp (C) at 0m
+
+::: panel-tabset
+### Annual
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: Temp_0m_y
+
+# merc_Y0 <- as.data.frame(global(merc_temp_Y0, "mean", na.rm=TRUE))
+# colnames(merc_Y0) <- "Mercator means (C)"
+# merc_Y0_cal <- as.data.frame(global(merc_temp_Y0_cal, "mean", na.rm=TRUE))
+# 
+# calcofi <- calcofi_samp0 %>% 
+#   group_by(Year) %>% 
+#   summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE)) 
+# 
+# clim_Y0 <- as.data.frame(global(clim_temp_Y0, "mean", na.rm=TRUE))
+# clim_Y0_cal <- as.data.frame(global(clim_temp_Y0_cal, "mean", na.rm=TRUE))
+# 
+# Temp_0_Y <- merc_Y0 %>%
+#   mutate(`Merc calcofi domain (C)` = merc_Y0_cal$mean,
+#          `OISST mean (C)` =  clim_Y0$mean, 
+#          `OISST calcofi domain (C)` = clim_Y0_cal$mean,
+#          `CalCOFI mean (C)` = calcofi$mean_temp0_C, 
+#          `Merc vs. OISST` = `Mercator means (C)` - `OISST mean (C)`, 
+#          `Merc vs. CalCOFI` = `Merc calcofi domain (C)` - `CalCOFI mean (C)`, 
+#          `OISST vs. CalCOFI` = `OISST calcofi domain (C)`- `CalCOFI mean (C)`)
+# 
+# Temp_0_Y %>%
+#   kbl() %>%
+#   kable_minimal() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+### Seasonal
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: Temp_0m_s
+
+# merc_0_s <- c(as.numeric(global(merc_temp_Wn0, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Sp0, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Su0, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Fa0, "mean", na.rm=TRUE)))
+# 
+# merc_0_s_cal <- c(as.numeric(global(merc_temp_Wn0_cal, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Sp0_cal, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Su0_cal, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Fa0_cal, "mean", na.rm=TRUE)))
+# 
+# clim_0_s <- c(as.numeric(global(clim_temp_Wn0, "mean", na.rm=TRUE)), as.numeric(global(clim_temp_Sp0, "mean", na.rm=TRUE)), as.numeric(global(clim_temp_Su0, "mean", na.rm=TRUE)), as.numeric(global(clim_temp_Fa0, "mean", na.rm=TRUE)))
+# 
+# clim_0_s_cal <- c(as.numeric(global(clim_temp_Wn0_cal, "mean", na.rm=TRUE)), as.numeric(global(clim_temp_Sp0_cal, "mean", na.rm=TRUE)), as.numeric(global(clim_temp_Su0_cal, "mean", na.rm=TRUE)), as.numeric(global(clim_temp_Fa0_cal, "mean", na.rm=TRUE)))
+# 
+# calcofi <- calcofi_samp0 %>% 
+#   group_by(season) %>% 
+#   summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE)) %>%
+#   mutate(season = as.factor(season))
+# 
+# levels(calcofi$season) <- c("Winter", "Spring", "Summer", "Fall")
+# 
+# Temp_0_S <- data.frame(Season = c("Winter", "Spring", "Summer", "Fall")) %>%
+#   mutate(`Mercator means (C)` = merc_0_s, 
+#          `Merc calcofi domain (C)` = merc_0_s_cal,
+#          `OISST mean (C)` = clim_0_s, 
+#          `OISST calcofi domain (C)` = clim_0_s_cal,
+#          `CalCOFI mean (C)` = calcofi$mean_temp0_C, 
+#          `Merc vs. OISST` = `Mercator means (C)` - `OISST mean (C)`, 
+#          `Merc vs. CalCOFI` = `Merc calcofi domain (C)` - `CalCOFI mean (C)`, 
+#          `OISST vs. CalCOFI` = `OISST calcofi domain (C)`- `CalCOFI mean (C)`)
+# 
+# Temp_0_S %>%
+#   kbl() %>%
+#   kable_minimal() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+### Monthly
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: Temp_0m_m
+# merc_M0 <- as.data.frame(global(merc_temp_M0, "mean", na.rm=TRUE))
+# colnames(merc_M0) <- "Mercator means (C)"
+# merc_M0_cal <- as.data.frame(global(merc_temp_M0_cal, "mean", na.rm=TRUE))
+# 
+# calcofi <- calcofi_samp0 %>% 
+#   group_by(Month) %>% 
+#   summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE)) %>%
+#   add_row(Month = 12, mean_temp0_C = NA)
+# 
+# clim_M0 <- as.data.frame(global(clim_temp_M0, "mean", na.rm=TRUE))
+# clim_M0_cal <- as.data.frame(global(clim_temp_M0_cal, "mean", na.rm=TRUE))
+# 
+# Temp_0_M <- merc_M0 %>%
+#   mutate(`Merc calcofi domain (C)` = merc_M0_cal$mean,
+#          `OISST mean (C)` =  clim_M0$mean, 
+#          `OISST calcofi domain (C)` = clim_M0_cal$mean,
+#          `CalCOFI mean (C)` = calcofi$mean_temp0_C, 
+#          `Merc vs. OISST` = `Mercator means (C)` - `OISST mean (C)`, 
+#          `Merc vs. CalCOFI` = `Merc calcofi domain (C)` - `CalCOFI mean (C)`, 
+#          `OISST vs. CalCOFI` =  `OISST calcofi domain (C)` - `CalCOFI mean (C)`)
+# 
+# Temp_0_M %>%
+#   kbl() %>%
+#   kable_minimal() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover"))
+```
+:::
+
+## Temp (C) at 200m
+
+This comparison is only available between Mercator and CalCOFI as OISST is only available at 0m depth. Depending on results, I can redo this using WOA data at 0m and at 200m.
+
+::: panel-tabset
+### Annual
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: Temp_200m_y
+
+# merc_Y200 <- as.data.frame(global(merc_temp_Y200, "mean", na.rm=TRUE))
+# colnames(merc_Y200) <- "Mercator means (C)"
+# 
+# merc_Y200_cal <- as.data.frame(global(merc_temp_Y200_cal, "mean", na.rm=TRUE))
+# 
+# calcofi <- calcofi_samp200 %>% 
+#   group_by(Year) %>% 
+#   summarise(mean_temp200_C = mean(T_degC, na.rm = TRUE)) 
+# 
+# Temp_200_Y <- merc_Y200 %>%
+#   mutate(`Merc calcofi domian (C)` = merc_Y200_cal$mean,
+#          `CalCOFI mean (C)` = calcofi$mean_temp200_C, 
+#          `Merc vs. CalCOFI` = `Merc calcofi domian (C)` - `CalCOFI mean (C)`)
+# 
+# Temp_200_Y %>%
+#   kbl() %>%
+#   kable_minimal() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+### Seasonal
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: Temp_200m_s
+
+# merc_200_s <- c(as.numeric(global(merc_temp_Wn200, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Sp200, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Su200, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Fa200, "mean", na.rm=TRUE)))
+# 
+# merc_200_s_cal <- c(as.numeric(global(merc_temp_Wn200_cal, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Sp200_cal, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Su200_cal, "mean", na.rm=TRUE)), as.numeric(global(merc_temp_Fa200_cal, "mean", na.rm=TRUE)))
+# 
+# calcofi <- calcofi_samp200 %>% 
+#   group_by(season) %>% 
+#   summarise(mean_temp200_C = mean(T_degC, na.rm = TRUE)) %>%
+#   mutate(season = as.factor(season))
+# 
+# levels(calcofi$season) <- c("Winter", "Spring", "Summer", "Fall")
+# 
+# Temp_200_S <- data.frame(Season = c("Winter", "Spring", "Summer", "Fall")) %>%
+#   mutate(`Merc calcofi domain (C)` = merc_200_s_cal,
+#          `Mercator means (C)` = merc_200_s,
+#          `CalCOFI mean (C)` = calcofi$mean_temp200_C,
+#          `Merc vs. CalCOFI` = `Merc calcofi domain (C)` - `CalCOFI mean (C)`)
+# 
+# Temp_200_S %>%
+#   kbl() %>%
+#   kable_minimal() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+
+### Monthly
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: Temp_200m_m
+
+# merc_M200 <- as.data.frame(global(merc_temp_M200, "mean", na.rm=TRUE))
+# colnames(merc_M200) <- "Mercator means (C)"
+# 
+# merc_M200_cal <- as.data.frame(global(merc_temp_M200_cal, "mean", na.rm=TRUE))
+# 
+# calcofi <- calcofi_samp200 %>% 
+#   group_by(Month) %>% 
+#   summarise(mean_temp200_C = mean(T_degC, na.rm = TRUE)) %>%
+#   add_row(Month = 12, mean_temp200_C = NA)
+# 
+# Temp_200_M <- merc_M200 %>%
+#   mutate(`Merc calcofi domain (C)` = merc_M200_cal$mean,
+#          `CalCOFI mean (C)` = calcofi$mean_temp200_C, 
+#          `Merc vs. CalCOFI` = `Merc calcofi domain (C)` - `CalCOFI mean (C)`)
+# 
+# Temp_200_M %>%
+#   kbl() %>%
+#   kable_minimal() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+:::
+
+TO DOOO
