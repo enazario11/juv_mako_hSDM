@@ -15,6 +15,8 @@ code-block-bg: true
 
 On this document I compare the mean Mercator BIORYS4 and GLORYS4 dissolved oxygen (DO) and temperature (temp) data to values from climatology products (DO: World Ocean Atlas; temp: OISST and WOA) and bottle collections at CalCOFI stations. DO and temp values will be compared to the climatology products as averages across the study area (lat: 1 to 49 and lon: -153 to -104) at 0m and at 200m. While the comparisons to the CalCofi data will be done at the nearest grid cell for each station both at 0m and 20m. Difference maps were all set to have the same range to make comparing between products easier, but let me know if the results would be easier to interpret if they each had their own limits adjusted to their difference ranges.
 
+For the Mercator temperature data, it is important to note that this data was downloaded along the model grid (ORCA grid). When I tried to reset the extent to degrees to be compared to the WOA, OISST, and CalCofi data, the spatial resolution was no longer behaving as expected (the values diverged from the 1/4 degree resolution that is stated in the product's documentation on the Mercator website). I have email Mercator and Copernicus to see if there is other processing that needs to happen with this dataset to ensure that the spatial extents are correct. In the meantime, to move on with this analysis, I resampled the temperature data as is along the spatial geometries that align with the other data products, though I anticipate that this could result in slight spatial differences in the location of a given temperature value and could cause larger differences in reported temperatures across products.
+
 Temporal variability was compared by extracting the mean dissolved oxygen and temperature values over the CalCOFI domain for each day a CalCOFI sample was performed throughout the study period (Jun 26th, 2003- Mar. 22nd, 2015). I will then compare the CalCOFI and Mercator dissolved oxygen and temperature means over time.
 
 ```{r}
@@ -767,7 +769,7 @@ diff_merc_WOA0 <- diff(c(merc_temp_Y0, temp_woa0))
 d_temp2_0 <- ggplot() + 
   geom_spatraster(data = diff_merc_WOA0) + 
   ggtitle("Comparing Mercator to WOA") +
-  labs(fill = "Temp (C)") + 
+  labs(fill = "Difference (C)") + 
   scale_fill_viridis_c()+ 
   theme_minimal()
 
@@ -914,7 +916,7 @@ diff_merc_WOA200 <- diff(c(merc_temp_Y200, temp_woa200))
 d_temp1_200 <- ggplot() + 
   geom_spatraster(data = diff_merc_WOA200) + 
   ggtitle("Comparing Mercator to WOA") +
-  labs(fill = "Temp (C)") + 
+  labs(fill = "Difference (C)") + 
   scale_fill_viridis_c()+ 
   theme_minimal()
 
