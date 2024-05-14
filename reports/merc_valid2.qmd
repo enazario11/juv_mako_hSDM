@@ -38,6 +38,7 @@ library(kableExtra)
 library(tidyterra)
 library(rnaturalearth)
 library(rnaturalearthdata)
+library(colorRamps)
 ```
 
 ```{r}
@@ -388,7 +389,7 @@ merc_do_Y0 <- aggregate(merc_do_Y0, fact = 4)
 merc_do_Y0 <- mean(merc_do_Y0, na.rm=TRUE)
 do1 <- ggplot() + 
   geom_spatraster(data = merc_do_Y0) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
     ggtitle("Mercator") +
   labs(fill = "DO (mmol/L)")+
   theme_minimal()
@@ -397,7 +398,7 @@ do1 <- ggplot() +
 clim_do_Y0 <- mean(clim_doY_mmol_L, na.rm = TRUE)
 do2 <- ggplot() + 
   geom_spatraster(data = clim_do_Y0) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
    labs(fill = "DO (mmol/L)")+
     ggtitle("WOA") +
   theme_minimal()
@@ -416,7 +417,7 @@ do3 <- ggplot()+
   geom_sf(data = calcofi_sta0, aes(color = mean_do0_mmol_L), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
    labs(color = "DO (mmol/L)")+
     ggtitle("CalCOFI") +
   theme_minimal()
@@ -449,7 +450,7 @@ d_do1 <- ggplot() +
   geom_spatraster(data = diff_merc_clim) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (mmol/L)") + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -464,7 +465,7 @@ d_do2 <- ggplot()+
   geom_sf(data = calcofi_sta0, aes(color = merc_diff), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
   labs(color = "Difference (mmol/L)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
@@ -546,7 +547,7 @@ merc_do_Y200 <- mean(merc_do_Y200, na.rm=TRUE)
 
 do1_200 <- ggplot() + 
   geom_spatraster(data = merc_do_Y200) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()+
     ggtitle("Mercator") +
   labs(fill = "DO (mmol/L)")
@@ -555,7 +556,7 @@ do1_200 <- ggplot() +
 clim_do_Y200 <- mean(clim_doY_mmol_L200, na.rm = TRUE)
 do2_200 <- ggplot() + 
   geom_spatraster(data = clim_do_Y200) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
    labs(fill = "DO (mmol/L)")+
     ggtitle("WOA") +
   theme_minimal()
@@ -571,7 +572,7 @@ do3_200 <- ggplot()+
   geom_sf(data = calcofi_sta200, aes(color = mean_do200_mmol_L), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
   theme_minimal()+
     ggtitle("CalCOFI") +
   labs(color = "DO (mmol/L)")
@@ -599,7 +600,7 @@ d_do1_200 <- ggplot() +
   geom_spatraster(data = diff_merc_clim200) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (mmol/L)") + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -614,7 +615,7 @@ d_do2_200 <- ggplot()+
   geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+ 
+  scale_colour_gradientn(colours = matlab.like(30))+
   labs(color = "Difference (mmol/L)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
@@ -694,7 +695,7 @@ merc_temp_Y0 <- mean(merc_temp_Y0, na.rm=TRUE)
 
 temp1_0 <- ggplot() + 
   geom_spatraster(data = merc_temp_Y0) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()+
     ggtitle("Mercator") +
   labs(fill = "Temp (C)")
@@ -702,7 +703,7 @@ temp1_0 <- ggplot() +
 #WOA plot -- mean across all years
 temp2_0 <- ggplot() + 
   geom_spatraster(data = temp_woa0) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
    labs(fill = "Temp (C)")+
     ggtitle("WOA") +
   theme_minimal()
@@ -712,7 +713,7 @@ clim_temp_Y0 <- mean(clim_temp_Y0, na.rm = TRUE)
 clim_temp_Y0 <- aggregate(clim_temp_Y0, fact = 4)
 temp3_0 <- ggplot() + 
   geom_spatraster(data = clim_temp_Y0) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
    labs(fill = "Temp (C)")+
     ggtitle("OISST") +
   theme_minimal()
@@ -728,7 +729,7 @@ temp4_0 <- ggplot()+
   geom_sf(data = calcofi_sta0, aes(color = mean_temp0), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
   theme_minimal()+
     ggtitle("CalCOFI") +
   labs(color = "Temp (C)")
@@ -758,7 +759,7 @@ d_temp1_0 <- ggplot() +
   geom_spatraster(data = diff_merc_OISST0) + 
   ggtitle("Comparing Mercator to OISST") +
   labs(fill = "Difference (C)") + 
-  scale_fill_viridis_c()+ 
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()
 
 #Merc vs. WOA
@@ -770,7 +771,7 @@ d_temp2_0 <- ggplot() +
   geom_spatraster(data = diff_merc_WOA0) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (C)") + 
-  scale_fill_viridis_c()+ 
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -785,7 +786,7 @@ d_temp3_0 <- ggplot()+
   geom_sf(data = calcofi_sta0, aes(color = merc_diff0), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
   labs(color = "Difference (C)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
@@ -866,7 +867,7 @@ merc_temp_Y200 <- mean(merc_temp_Y200, na.rm=TRUE)
 
 temp1_200 <- ggplot() + 
   geom_spatraster(data = merc_temp_Y200) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
   theme_minimal()+
     ggtitle("Mercator") +
   labs(fill = "Temp (C)")
@@ -874,7 +875,7 @@ temp1_200 <- ggplot() +
 #WOA plot -- mean across all years
 temp2_200 <- ggplot() + 
   geom_spatraster(data = temp_woa200) + 
-  scale_fill_viridis_c()+
+  scale_fill_gradientn(colours = matlab.like(30))+
    labs(fill = "Temp (C)")+
     ggtitle("WOA") +
   theme_minimal()
@@ -890,7 +891,7 @@ temp4_200 <- ggplot()+
   geom_sf(data = calcofi_sta200, aes(color = mean_temp200), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
   theme_minimal()+
     ggtitle("CalCOFI") +
   labs(color = "Temp (C)")
@@ -917,7 +918,7 @@ d_temp1_200 <- ggplot() +
   geom_spatraster(data = diff_merc_WOA200) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (C)") + 
-  scale_fill_viridis_c()+ 
+  scale_fill_gradientn(colours = matlab.like(30))+ 
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -932,7 +933,7 @@ d_temp2_200 <- ggplot()+
   geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
   geom_sf(data = world)+
   coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
-  scale_color_viridis_c()+
+  scale_colour_gradientn(colours = matlab.like(30))+
   labs(color = "Difference (C)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
