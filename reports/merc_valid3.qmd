@@ -1,0 +1,947 @@
+---
+title: "Mercator dissolved oxygen and temperature validation"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+---
+
+On this document I compare the mean Mercator BIORYS4 and GLORYS4 dissolved oxygen (DO) and temperature (temp) data to values from climatology products (DO: World Ocean Atlas; temp: OISST and WOA) and CalCOFI stations. DO and temp values will be compared to the climatology products as averages across the study area (lat: 1 to 49 and lon: -153 to -104) at 0m and at 200m. While the comparisons to the CalCofi data will be done at the nearest grid cell for each station both at 0m and 200m. Difference maps were all set to have the same range to make comparing between products easier, but let me know if the results would be easier to interpret if they each had their own limits adjusted to their difference ranges.
+
+Temporal variability was compared by extracting the mean dissolved oxygen and temperature values over the CalCOFI domain for each day a CalCOFI sample was performed throughout the study period (Jun 26th, 2003- Mar. 22nd, 2015). I will then compare the CalCOFI and Mercator dissolved oxygen and temperature means over time.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: libraries
+
+### libraries #### 
+library(tidyverse)
+library(terra)
+library(sf)
+library(here)
+library(ncdf4)
+library(respR)
+library(patchwork)
+library(kableExtra)
+library(tidyterra)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(colorRamps)
+library(stars)
+library(stringr)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Mercator data
+## data ####
+merc_do0_raw <- rast(here("data/enviro/model_validate/Mercator/CMEMS_CHL_DO_0m_JAN2003_Dec2015_0.25deg_D.nc"))
+merc_do200_raw <- rast(here("data/enviro/model_validate/Mercator/CMEMS_CHL_DO_200m_JAN2003_Dec2015_0.25deg_D.nc"))
+merc_temp0_raw <- list.files(here("data/enviro/model_validate/Mercator"), pattern = "Temp_0m", full.names = TRUE)
+merc_temp200_raw <- list.files(here("data/enviro/model_validate/Mercator"), pattern = "Temp_200m", full.names = TRUE)
+
+clim_do_ann <- rast(here("data/enviro/model_validate/Climatology/woa_oxygen/woa18_all_o00_01.nc"))
+clim_do_mo <- list.files(here("data/enviro/model_validate/Climatology/woa_oxygen/monthly"), full.names = TRUE)
+clim_tempWA <- rast(here("data/enviro/model_validate/Climatology/sst.mon.mean.nc"))
+
+calcofi_samp <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Bottle.csv"), check.names = FALSE)
+calcofi_met <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Cast.csv"), check.names = FALSE)
+#imecocal
+
+### Mercator data ####
+#### oxygen (input: mmol/m^3, now: mmol/L) #### 
+##### 0m #####
+merc_do0_raw
+
+#filter to separate variables by the "=" and prep to be able to filter by variable in next step
+merc_vars0 <- str_split(names(merc_do0_raw), "=") %>% map_chr(\(x) x[1]) %>% str_extract("[^_]+")
+
+#identify location of oxygen layers
+merc_pos0 <- which(merc_vars0 == "o2")
+
+#subset to only keep oxygen layers
+merc_do0 <- merc_do0_raw %>% subset(merc_pos0) 
+merc_do0 #spatial res: 0.25*, temporal es: daily, crs: lon/lat WGS 84
+
+#convert DO to mmol/L
+#convert temporal resolution to monthly and annually. Convert DO values from mmol/m^3 to mmol/L.
+merc_do_M0 <- tapp(merc_do0, "months", mean)
+merc_do_M0 <- merc_do_M0/1000
+merc_do_Y0 <- tapp(merc_do0, "years", mean)
+merc_do_Y0 <- merc_do_Y0/1000
+
+##### 200m #####
+#filter to separate variables by the "=" and prep to be able to filter by variable in next step
+merc_vars200 <- str_split(names(merc_do200_raw), "=") %>% map_chr(\(x) x[1]) %>% str_extract("[^_]+")
+
+#identify location of oxygen layers
+merc_pos200 <- which(merc_vars200 == "o2")
+
+#subset to only keep oxygen layers
+merc_do200 <- merc_do200_raw %>% subset(merc_pos200) 
+merc_do200 #spatial res: 0.25*, temporal es: daily, crs: lon/lat WGS 84
+
+#convert DO to mmol/L
+#convert temporal resolution to monthly and annually. Convert DO from mmol/m^3 to mmol/L.
+merc_do_M200 <- tapp(merc_do200, "months", mean)
+merc_do_M200 <- merc_do_M200/1000
+merc_do_Y200 <- tapp(merc_do200, "years", mean)
+merc_do_Y200 <- merc_do_Y200/1000
+
+#### temperature (C) #### 
+##### 0m #####
+#combine all temp rasts into two rasters separated by depth layer. Fix temporal and spatial data.
+merc_temp_all0 <- readRDS(here("data/enviro/model_validate/Mercator/processed/merc_temp_all0.rds"))
+
+#convert temporal resolution to monthly and annually
+merc_temp_M0 <- tapp(merc_temp_all0, "months", mean)
+merc_temp_Y0 <- tapp(merc_temp_all0, "years", mean)
+
+##### 200m #####
+#combine all temp rasts into two rasters separated by depth layer
+merc_temp_all200 <- readRDS(here("data/enviro/model_validate/Mercator/processed/merc_temp_all200.rds"))
+
+#convert temporal resolution to monthly and annually
+merc_temp_M200 <- tapp(merc_temp_all200, "months", mean)
+merc_temp_Y200 <- tapp(merc_temp_all200, "years", mean)
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Climatology data
+
+### Climatology data ####
+#### oxygen (input: umol/kg, now: mmol/L) ####
+#define extent to study area
+e <- ext(-153, -104, 1, 49)
+##### 0m #####
+#spatial res: 0.1*, temporal res: averaged annually, temporal range: 1960-2017
+#annual
+clim_do_ann0W <- clim_do_ann$`o_mn_depth=0` 
+clim_do_ann0 <- crop(clim_do_ann0W, e)
+
+#convert to mmol/L
+clim_doY_mmol_L <- clim_do_ann0*1.025*0.001 #1.025 kg/L and 0.001mmol in umol
+
+#monthly
+clim_do_mo0 = NULL
+for(i in 1:length(clim_do_mo)){
+  temp_rast <- rast(clim_do_mo[[i]])
+  temp_rast_mean <- temp_rast$`o_mn_depth=0`
+  temp_rast_mean <- crop(temp_rast_mean, e)
+  
+  rast_name <- paste0("m", "_", i)
+  names(temp_rast_mean) <- rast_name
+  
+  clim_do_mo0 <- append(clim_do_mo0, temp_rast_mean)
+}
+
+#monthly
+clim_doM_mmol_L <- clim_do_mo0*1.025*0.001
+
+##### 200m #####
+#spatial res: 0.1*, temporal res: averaged annually, temporal range: 1960-2017
+clim_do_ann200W <- clim_do_ann$`o_mn_depth=200` 
+clim_do_ann200 <- crop(clim_do_ann200W, e)
+
+clim_doY_mmol_L200 <- clim_do_ann200*1.025*0.001
+#plot(clim_doY_mmol_L200)
+
+#need to do monthly and seasonal files
+clim_do_mo200 = NULL
+for(i in 1:length(clim_do_mo)){
+  temp_rast <- rast(clim_do_mo[[i]])
+  temp_rast_mean <- temp_rast$`o_mn_depth=200`
+  temp_rast_mean <- crop(temp_rast_mean, e)
+  
+  rast_name <- paste0("m", "_", i)
+  names(temp_rast_mean) <- rast_name
+  
+  clim_do_mo200 <- append(clim_do_mo200, temp_rast_mean)
+}
+
+clim_doM_mmol_L200 <- clim_do_mo200*1.025*0.001
+
+#### temperature (C) ####
+##### 0m #####
+#clim_tempWA #spatial res: 0.25*, temporal res: annual, temporal range: 1981-2024
+e2 <- ext(207, 256, 1, 49)
+clim_tempA <- crop(clim_tempWA, e2)
+
+clim_tempA <- subset(clim_tempA, time(clim_tempA) > as.Date("2003-01-01"))
+clim_tempA <- subset(clim_tempA, time(clim_tempA) < as.Date("2015-12-31"))
+
+#convert temporal resolution to monthly and annually
+clim_temp_M0 <- tapp(clim_tempA, "months", mean)
+clim_temp_Y0 <- tapp(clim_tempA, "years", mean)
+
+#WOA temp (0m and 200m)
+temp_woa <- rast(here("data/enviro/model_validate/Climatology/woa_temp/woa18_decav_t00_01.nc"))
+temp_woa <- crop(temp_woa,e)
+temp_woa0 <- temp_woa$`t_mn_depth=0`
+temp_woa200 <- temp_woa$`t_mn_depth=200`
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Station data
+
+### Station data ####
+#### CalCOFI ####
+#filter to correct dates
+calcofi_met_filt <- calcofi_met %>%
+  filter(Year >= 2003 & Year <= 2015)
+
+calcofi_samp_filt <- calcofi_samp[calcofi_samp$Cst_Cnt %in% calcofi_met_filt$Cst_Cnt, ]
+
+#subset metadata to just Cst_Cnt ID, year, and month to join to sample DF
+calcofi_met_sub <- calcofi_met_filt %>% 
+  subset(select = c(Cst_Cnt, Year, Month, Date))
+
+calcofi_samp_filt1 <- calcofi_samp_filt %>%
+  full_join(calcofi_met_sub, by = "Cst_Cnt")
+
+calcofi_samp_filt1 <- calcofi_samp_filt1 %>%
+  mutate(season = ifelse(Month >= 3 & Month <= 5, "Spring", 
+                         ifelse(Month >= 6 & Month <= 8, "Summer", 
+                                ifelse(Month >= 9 & Month <= 11, "Fall", "Winter"))))
+
+##### 0m #####
+calcofi_samp0 <- calcofi_samp_filt1 %>% 
+  filter(Depthm == 0) %>%
+  filter(!is.na(O2ml_L)) %>%
+  mutate(do0_mmol_L = O2ml_L/22.3916)
+
+##### 200m #####
+calcofi_samp200 <- calcofi_samp_filt1 %>%
+  filter(Depthm == 200) %>%
+  filter(!is.na(O2ml_L))%>%
+  mutate(do200_mmol_L = O2ml_L/22.3916)
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+#| label: Modifying merc and clim domains to calcofi
+
+#subset metadata to just Cst_Cnt ID, year, and month to join to sample DF
+calcofi_coords <- calcofi_met_filt %>% 
+  subset(select = c(Cst_Cnt, Lat_Deg, Lon_Deg))
+
+calcofi_samp_coords <- calcofi_samp0 %>%
+  full_join(calcofi_coords, by = "Cst_Cnt")
+
+calcofi_samp_coords200 <- calcofi_samp200 %>%
+  full_join(calcofi_coords, by = "Cst_Cnt")
+# min(calcofi_samp_coords$Lat_Deg)
+# max(calcofi_samp_coords$Lat_Deg)
+# min(calcofi_samp_coords$Lon_Deg)
+# max(calcofi_samp_coords$Lon_Deg)
+
+e_cal <- ext(-125, -117, 29, 37)
+e_cal_m <- rast(xmin=650, xmax=680, ymin=621, ymax=660, nrows=25, ncols=25)
+e_cal_cl <- ext(235, 243, 29, 37)
+
+#Merc 0m - Y/S/M
+#annual 
+#do
+#merc_do_Y0_cal <- crop(merc_do_Y0, e_cal)
+
+#temp
+#merc_temp_Y0_cal <- crop(merc_temp_Y0, e_cal_m)
+
+# #month
+# #do
+# merc_do_M0_cal <- crop(merc_do_M0, e_cal)
+# 
+# #temp
+# merc_temp_M0_cal <- crop(merc_temp_M0, e_cal_m)
+# 
+# #Merc 200m - Y/S/M -- DO PENDING ON RESULTS
+# #annual
+# #temp 
+# merc_temp_Y200_cal <- crop(merc_temp_Y200, e_cal_m)
+# #month
+# #temp
+# merc_temp_M200_cal <- crop(merc_temp_M200, e_cal_m)
+# 
+# 
+# #Clim 0m - Y/S/M
+# #annual
+# #do
+# clim_doY_mmol_L_cal <- crop(clim_doY_mmol_L, e_cal)
+# 
+# #temp
+# clim_temp_Y0_cal <- crop(clim_temp_Y0, e_cal_cl)
+# #temp
+# clim_temp_Wn0_cal <- crop(clim_temp_Wn0, e_cal_cl)
+# clim_temp_Sp0_cal <- crop(clim_temp_Sp0, e_cal_cl)
+# clim_temp_Su0_cal <- crop(clim_temp_Su0, e_cal_cl)
+# clim_temp_Fa0_cal <- crop(clim_temp_Fa0, e_cal_cl)
+# 
+# #month
+# #do
+# clim_doM_mmol_L_cal <- crop(clim_doM_mmol_L, e_cal)
+# 
+# #temp
+# clim_temp_M0_cal <- crop(clim_temp_M0, e_cal_cl)
+# 
+# #Clim 200m - Y/S/M -- DO and Temp PENDING ON RESULTS
+# #annual
+# #seasonal
+# #month
+```
+
+## DO (mmol/L) at 0m
+
+### Mean across study period (2003-2015)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: DO_0m
+#| fig-width: 10
+#| fig-height: 8
+#| fig-align: center
+
+#Mercator plot -- mean across all years
+merc_do_Y0 <- aggregate(merc_do_Y0, fact = 4)
+merc_do_Y0 <- mean(merc_do_Y0, na.rm=TRUE)
+do1 <- ggplot() + 
+  geom_spatraster(data = merc_do_Y0) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+    ggtitle("Mercator") +
+  labs(fill = "DO (mmol/L)")+
+  theme_minimal()
+
+#WOA plot -- mean across all years
+clim_do_Y0 <- mean(clim_doY_mmol_L, na.rm = TRUE)
+do2 <- ggplot() + 
+  geom_spatraster(data = clim_do_Y0) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+   labs(fill = "DO (mmol/L)")+
+    ggtitle("WOA") +
+  theme_minimal()
+
+#calcofi plot -- mean across all years for each station 
+calcofi_coord0 <- st_as_sf(calcofi_samp_coords, coords = c("Lon_Deg", "Lat_Deg"), crs = st_crs(4326))
+
+calcofi_sta0 <- calcofi_coord0 %>% 
+  group_by(geometry) %>% 
+  summarise(mean_do0_mmol_L = mean(do0_mmol_L, na.rm = TRUE))
+
+world <- ne_coastline(scale = "medium", returnclass = "sf")
+st_crs(world) <- st_crs(4326)
+
+do3 <- ggplot()+
+  geom_sf(data = calcofi_sta0, aes(color = mean_do0_mmol_L), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+   labs(color = "DO (mmol/L)")+
+    ggtitle("CalCOFI") +
+  theme_minimal()
+
+ggpubr::ggarrange(do1, do2, do3)
+```
+
+### Mercator difference plots
+
+```{r}
+#| warning: false
+#| message: false
+#| label: DO_diff_0m
+#| fig-width: 10
+#| fig-height: 4
+#| echo: false
+#| fig-align: center
+
+#Merc vs. WOA
+e <- ext(-153, -104, 2, 49)
+
+#Merc vs. WOA
+origin(merc_do_Y0) <- c(0,0)
+merc_do_Y0 <- crop(merc_do_Y0, e)
+clim_do_Y0 <- crop(clim_do_Y0, e)
+
+diff_merc_clim <- diff(c(merc_do_Y0, clim_do_Y0))
+
+d_do1 <- ggplot() + 
+  geom_spatraster(data = diff_merc_clim) + 
+  ggtitle("Comparing Mercator to WOA") +
+  labs(fill = "Difference (mmol/L)") + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()
+
+#Merc vs. CalCOFI
+vect_cal_do0 <- vect(calcofi_sta0)
+df_cal_do0 <- as.data.frame(vect_cal_do0)
+merc_cal_extract <- terra::extract(merc_do_Y0, vect_cal_do0)
+diff_merc_cal <- merc_cal_extract$mean - df_cal_do0$mean_do0_mmol_L
+
+calcofi_sta0$merc_diff <- diff_merc_cal
+
+d_do2 <- ggplot()+
+  geom_sf(data = calcofi_sta0, aes(color = merc_diff), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  labs(color = "Difference (mmol/L)") + 
+  ggtitle("Comparing Mercator to CalCOFI") +
+  theme_minimal()
+
+d_do1|d_do2
+```
+
+### Mercator temporal variation vs. CalCOFI data 0m
+
+Here, the mercator dissolved oxygen rasters were subset the month-day-year that a CalCOFI bottle sample was collected. The plotted mercator values represent the closest grid cell to that CalCOFI station when a sample was collected. A daily temporal resolution was possible here.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| fig-align: center
+#| fig-width: 12
+#| fig-height: 6
+#| label: temporal_variation0_DO
+
+#Merc subset to CalCOFI domain in year-month temporal resolution 
+merc_do_D0 <- merc_do0/1000
+#merc_do_cal0 <- crop(merc_do_D0, e_cal)
+calcofi_coord0$Date <- as.Date(calcofi_coord0$Date, format = "%m/%d/%Y")
+calcofi_coord0 <- calcofi_coord0 %>% drop_na(Date)
+
+merc_vari0 <- NULL
+for(i in 1:nrow(calcofi_coord0)){
+  #subset raster according to calcofi sample date
+  temp_date <- calcofi_coord0$Date[i]
+  temp_rast <- merc_do_D0[[time(merc_do_D0) == temp_date]]
+  
+  #get coords of station 
+  sta_loc <- calcofi_coord0$geometry[i]
+  
+  #extract mercator temp at the cell closest to that station
+  sta_vect <- vect(sta_loc)
+  merc_extract <- terra::extract(temp_rast, sta_vect)
+  
+  #save merc cell value, station value, and difference between in three cols
+  temp_vari <- NULL
+  temp_vari$Date <- temp_date
+  temp_vari$geometry <- sta_loc
+  temp_vari$merc_do_0m <- merc_extract[,2]
+  temp_vari$calcofi_do_0m <- calcofi_coord0$do0_mmol_L[i]
+  
+  df_vari <- as.data.frame(temp_vari)
+  
+  merc_vari0 <- rbind(merc_vari0, df_vari)
+}
+
+merc_vari0_l <- merc_vari0 %>% pivot_longer(c(3:4), names_to = "data_source", values_to = "DO_mmol_L") %>%
+  mutate(sta_geom = as.character(geometry))
+
+ggplot(merc_vari0_l, aes(Date, DO_mmol_L, color = data_source)) + 
+  geom_point(size = 2) + 
+  geom_line() +
+  scale_color_manual(values = c("steelblue4", "goldenrod"))+
+  theme_minimal()
+
+```
+
+## DO (mmol/L) at 200m
+
+### Mean across study period (2003-2015)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: DO_200m
+#| fig-width: 10
+#| fig-height: 8
+#| fig-align: center
+
+#Mercator plot -- mean across all years
+merc_do_Y200 <- aggregate(merc_do_Y200, fact = 4)
+merc_do_Y200 <- mean(merc_do_Y200, na.rm=TRUE)
+
+do1_200 <- ggplot() + 
+  geom_spatraster(data = merc_do_Y200) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()+
+    ggtitle("Mercator") +
+  labs(fill = "DO (mmol/L)")
+
+#WOA plot -- mean across all years
+clim_do_Y200 <- mean(clim_doY_mmol_L200, na.rm = TRUE)
+do2_200 <- ggplot() + 
+  geom_spatraster(data = clim_do_Y200) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+   labs(fill = "DO (mmol/L)")+
+    ggtitle("WOA") +
+  theme_minimal()
+
+#calcofi plot -- mean across all years for each station 
+calcofi_coord200 <- st_as_sf(calcofi_samp_coords200, coords = c("Lon_Deg", "Lat_Deg"), crs = st_crs(4326))
+
+calcofi_sta200 <- calcofi_coord200 %>% 
+  group_by(geometry) %>% 
+  summarise(mean_do200_mmol_L = mean(do200_mmol_L, na.rm = TRUE))
+
+do3_200 <- ggplot()+
+  geom_sf(data = calcofi_sta200, aes(color = mean_do200_mmol_L), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  theme_minimal()+
+    ggtitle("CalCOFI") +
+  labs(color = "DO (mmol/L)")
+
+ggpubr::ggarrange(do1_200,do2_200,do3_200)
+```
+
+### Mercator difference plots
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: DO_diff_200m
+#| fig-width: 10
+#| fig-height: 4
+#Merc vs. WOA
+origin(merc_do_Y200) <- c(0,0)
+merc_do_Y200 <- crop(merc_do_Y200, e)
+clim_do_Y200 <- crop(clim_do_Y200, e)
+
+diff_merc_clim200 <- diff(c(merc_do_Y200, clim_do_Y200))
+
+d_do1_200 <- ggplot() + 
+  geom_spatraster(data = diff_merc_clim200) + 
+  ggtitle("Comparing Mercator to WOA") +
+  labs(fill = "Difference (mmol/L)") + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()
+
+#Merc vs. CalCOFI
+vect_cal_do200 <- vect(calcofi_sta200)
+df_cal_do200 <- as.data.frame(vect_cal_do200)
+merc_cal_extract200 <- terra::extract(merc_do_Y200, vect_cal_do200)
+diff_merc_cal200 <- merc_cal_extract200$mean - df_cal_do200$mean_do200_mmol_L
+
+calcofi_sta200$merc_diff200 <- diff_merc_cal200
+
+d_do2_200 <- ggplot()+
+  geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  labs(color = "Difference (mmol/L)") + 
+  ggtitle("Comparing Mercator to CalCOFI") +
+  theme_minimal()
+
+d_do1_200|d_do2_200
+```
+
+### Mercator temporal variation vs. CalCOFI data 200m
+
+Here, the mercator dissolved oxygen rasters were subset the month-day-year that a CalCOFI bottle sample was collected. The plotted mercator values represent the closest grid cell to that CalCOFI station when a sample was collected. A daily temporal resolution was possible here.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| fig-align: center
+#| fig-width: 12
+#| fig-height: 4
+#| label: temporal_variation200_DO
+
+#Merc subset to CalCOFI domain in year-month temporal resolution 
+merc_do_D200 <- merc_do200/1000
+calcofi_coord200$Date <- as.Date(calcofi_coord200$Date, format = "%m/%d/%Y")
+calcofi_coord200 <- calcofi_coord200 %>% drop_na(Date)
+
+merc_vari200 <- NULL
+for(i in 1:nrow(calcofi_coord200)){
+  #subset raster according to calcofi sample date
+  temp_date <- calcofi_coord200$Date[i]
+  temp_rast <- merc_do_D200[[time(merc_do_D200) == temp_date]]
+  
+  #get coords of station 
+  sta_loc <- calcofi_coord200$geometry[i]
+  
+  #extract mercator temp at the cell closest to that station
+  sta_vect <- vect(sta_loc)
+  merc_extract <- terra::extract(temp_rast, sta_vect)
+  
+  #save merc cell value, station value, and difference between in three cols
+  temp_vari <- NULL
+  temp_vari$Date <- temp_date
+  temp_vari$geometry <- sta_loc
+  temp_vari$merc_do_200m <- merc_extract[,2]
+  temp_vari$calcofi_do_200m <- calcofi_coord200$do200_mmol_L[i]
+  
+  df_vari <- as.data.frame(temp_vari)
+  
+  merc_vari200 <- rbind(merc_vari200, df_vari)
+}
+
+merc_vari200_l <- merc_vari200 %>% pivot_longer(c(3:4), names_to = "data_source", values_to = "DO_mmol_L") %>%
+  mutate(sta_geom = as.character(geometry))
+
+ggplot(merc_vari200_l, aes(Date, DO_mmol_L, color = data_source)) + 
+  geom_point(size = 2) + 
+  geom_line() +
+  scale_color_manual(values = c("steelblue4", "goldenrod"))+
+  theme_minimal()
+```
+
+## Temp (C) at 0m
+
+### Mean across study period (2003-2015)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: temp_0m
+#| fig-align: center
+#| fig-width: 10
+#| fig-height: 8
+
+#Mercator plot -- mean across all years
+merc_temp_Y0 <- aggregate(merc_temp_Y0, fact = 4)
+merc_temp_Y0 <- mean(merc_temp_Y0, na.rm=TRUE)
+
+temp1_0 <- ggplot() + 
+  geom_spatraster(data = merc_temp_Y0) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()+
+    ggtitle("Mercator") +
+  labs(fill = "Temp (C)")
+
+#WOA plot -- mean across all years
+temp2_0 <- ggplot() + 
+  geom_spatraster(data = temp_woa0) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+   labs(fill = "Temp (C)")+
+    ggtitle("WOA") +
+  theme_minimal()
+
+#OISST plot -- mean across all years
+clim_temp_Y0 <- mean(clim_temp_Y0, na.rm = TRUE)
+clim_temp_Y0 <- aggregate(clim_temp_Y0, fact = 4)
+temp3_0 <- ggplot() + 
+  geom_spatraster(data = clim_temp_Y0) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+   labs(fill = "Temp (C)")+
+    ggtitle("OISST") +
+  theme_minimal()
+
+#calcofi plot -- mean across all years for each station 
+calcofi_coord0 <- st_as_sf(calcofi_samp_coords, coords = c("Lon_Deg", "Lat_Deg"), crs = st_crs(4326))
+
+calcofi_sta0 <- calcofi_coord0 %>% 
+  group_by(geometry) %>% 
+  summarise(mean_temp0 = mean(T_degC, na.rm = TRUE))
+
+temp4_0 <- ggplot()+
+  geom_sf(data = calcofi_sta0, aes(color = mean_temp0), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  theme_minimal()+
+    ggtitle("CalCOFI") +
+  labs(color = "Temp (C)")
+
+(temp1_0|temp2_0)/(temp3_0|temp4_0)
+```
+
+### Mercator difference plots
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: temp_diff_0m
+#| fig-width: 10
+#| fig-height: 8
+#Merc vs. OISST
+ext(clim_temp_Y0) <- c(-152.75, -103.75, 2.377594, 49.37759)
+resamp_geom <- rast(ext(-152.75, -103.75, 2.377594, 49.37759), 
+                    crs = "EPSG:4326",
+                    res = 0.25)
+OISST_resamp0 <- terra::resample(clim_temp_Y0, resamp_geom, method='bilinear')
+OISST_resamp0 <- aggregate(OISST_resamp0, fact = 4)
+merc_temp_Y0 <- crop(merc_temp_Y0, e)
+OISST_temp_Y0 <- crop(OISST_resamp0, e)
+
+diff_merc_OISST0 <- diff(c(merc_temp_Y0, OISST_temp_Y0))
+
+d_temp1_0 <- ggplot() + 
+  geom_spatraster(data = diff_merc_OISST0) + 
+  ggtitle("Comparing Mercator to OISST") +
+  labs(fill = "Difference (C)") + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()
+
+#Merc vs. WOA
+e3 <- c(-152.75, -103.75, 2.377594, 49.37759)
+temp_woa0 <- crop(temp_woa0, e3)
+ext(temp_woa0) <- c(-152.75, -103.75, 2.377594, 49.37759)
+
+diff_merc_WOA0 <- diff(c(merc_temp_Y0, temp_woa0))
+
+d_temp2_0 <- ggplot() + 
+  geom_spatraster(data = diff_merc_WOA0) + 
+  ggtitle("Comparing Mercator to WOA") +
+  labs(fill = "Difference (C)") + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()
+
+#Merc vs. CalCOFI
+vect_cal_temp0 <- vect(calcofi_sta0)
+df_cal_temp0 <- as.data.frame(vect_cal_temp0)
+merc_cal_extract0 <- terra::extract(merc_temp_Y0, vect_cal_temp0)
+diff_merc_cal0 <- merc_cal_extract0$mean - df_cal_temp0$mean_temp0
+
+calcofi_sta0$merc_diff0 <- diff_merc_cal0
+
+d_temp3_0 <- ggplot()+
+  geom_sf(data = calcofi_sta0, aes(color = merc_diff0), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  labs(color = "Difference (C)") + 
+  ggtitle("Comparing Mercator to CalCOFI") +
+  theme_minimal()
+
+ggpubr::ggarrange(d_temp2_0, d_temp1_0, d_temp3_0)
+```
+
+### Mercator temporal variation vs. CalCOFI data 0m
+
+Here, the mercator temperature rasters were subset the month-year that a CalCOFI bottle sample was collected. The plotted mercator values represent the closest grid cell to that CalCOFI station when a sample was collected. A monthly temporal resolution was possible here and not daily due to computational power of extracting the mercator temperature data directly from mercator rather than Copernicus, which is how the dissolved oxygen rasters were obtained.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| fig-align: center
+#| fig-width: 12
+#| fig-height: 6
+#| label: temporal_variation0_Temp
+
+# calcofi_coord0_temp <- calcofi_coord0 %>% mutate(mo_ch = substr(Date, 1,2),
+#                                   yr_mo_day = paste0(Year,"-", mo_ch, "-", "01"),
+#                                   Date_merc = as.Date(yr_mo_day, format = "%Y-%m-%d"))
+# 
+# calcofi_coord0_temp <- calcofi_coord0_temp %>% drop_na(Date_merc)
+# 
+# merc_vari0_temp <- NULL
+# for(i in 1:nrow(calcofi_coord0_temp)){
+#   #subset raster according to calcofi sample date
+#   temp_date <- calcofi_coord0_temp$Date_merc[i]
+#   temp_rast <- merc_temp_all0[[time(merc_temp_all0) == temp_date]]
+# 
+#   #get coords of station
+#   sta_loc <- calcofi_coord0_temp$geometry[i]
+# 
+#   #extract mercator temp at the cell closest to that station
+#   sta_vect <- vect(sta_loc)
+#   merc_extract <- terra::extract(temp_rast, sta_vect)
+# 
+#   #save merc cell value, station value, and difference between in three cols
+#   temp_vari <- NULL
+#   temp_vari$Date <- temp_date
+#   temp_vari$geometry <- sta_loc
+#   temp_vari$merc_temp_0m <- merc_extract[,2]
+#   temp_vari$calcofi_temp_0m <- calcofi_coord0_temp$T_degC[i]
+# 
+#   df_vari <- as.data.frame(temp_vari)
+# 
+#   merc_vari0_temp <- rbind(merc_vari0_temp, df_vari)
+# }
+# 
+# merc_vari0_temp_l <- merc_vari0_temp %>% pivot_longer(c(3:4), names_to = "data_source", values_to = "Temp_C") %>%
+#   mutate(sta_geom = as.character(geometry))
+# 
+# temp_var0 <- ggplot(merc_vari0_temp_l, aes(Date, Temp_C, color = data_source)) +
+#   geom_point(size = 1) +
+#   geom_line() +
+#   scale_color_manual(values = c("steelblue4", "goldenrod"))+
+#   theme_minimal()
+
+```
+
+![](images/temp_varo-02.png){fig-align="center"}
+
+## Temp (C) at 200m
+
+### Mean across study period (2003-2015)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: temp_200m
+#| fig-width: 10
+#| fig-height: 8
+#Mercator plot -- mean across all years
+merc_temp_Y200 <- aggregate(merc_temp_Y200, fact = 4)
+merc_temp_Y200 <- mean(merc_temp_Y200, na.rm=TRUE)
+
+temp1_200 <- ggplot() + 
+  geom_spatraster(data = merc_temp_Y200) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+  theme_minimal()+
+    ggtitle("Mercator") +
+  labs(fill = "Temp (C)")
+
+#WOA plot -- mean across all years
+temp2_200 <- ggplot() + 
+  geom_spatraster(data = temp_woa200) + 
+  scale_fill_gradientn(colours = matlab.like(30))+
+   labs(fill = "Temp (C)")+
+    ggtitle("WOA") +
+  theme_minimal()
+
+#calcofi plot -- mean across all years for each station 
+calcofi_coord200 <- st_as_sf(calcofi_samp_coords200, coords = c("Lon_Deg", "Lat_Deg"), crs = st_crs(4326))
+
+calcofi_sta200 <- calcofi_coord200 %>% 
+  group_by(geometry) %>% 
+  summarise(mean_temp200 = mean(T_degC, na.rm = TRUE))
+
+temp4_200 <- ggplot()+
+  geom_sf(data = calcofi_sta200, aes(color = mean_temp200), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  theme_minimal()+
+    ggtitle("CalCOFI") +
+  labs(color = "Temp (C)")
+
+ggpubr::ggarrange(temp1_200, temp2_200, temp4_200)
+```
+
+### Mercator difference plots
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| label: temp_diff_200m
+#| fig-width: 10
+#| fig-height: 5
+#Merc vs. WOA
+merc_temp_Y200 <- crop(merc_temp_Y200, e)
+temp_woa200 <- crop(temp_woa200, e3)
+ext(temp_woa200) <- c(-152.75, -103.75, 2.377594, 49.37759)
+
+diff_merc_WOA200 <- diff(c(merc_temp_Y200, temp_woa200))
+
+d_temp1_200 <- ggplot() + 
+  geom_spatraster(data = diff_merc_WOA200) + 
+  ggtitle("Comparing Mercator to WOA") +
+  labs(fill = "Difference (C)") + 
+  scale_fill_gradientn(colours = matlab.like(30))+ 
+  theme_minimal()
+
+#Merc vs. CalCOFI
+vect_cal_temp200 <- vect(calcofi_sta200)
+df_cal_temp200 <- as.data.frame(vect_cal_temp200)
+merc_cal_extract200 <- terra::extract(merc_temp_Y200, vect_cal_temp200)
+diff_merc_cal200 <- merc_cal_extract200$mean - df_cal_temp200$mean_temp200
+
+calcofi_sta200$merc_diff200 <- diff_merc_cal200
+
+d_temp2_200 <- ggplot()+
+  geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
+  geom_sf(data = world)+
+  coord_sf(xlim = c(-125, -117), ylim = c(29, 37)) +
+  scale_colour_gradientn(colours = matlab.like(30))+
+  labs(color = "Difference (C)") + 
+  ggtitle("Comparing Mercator to CalCOFI") +
+  theme_minimal()
+
+ggpubr::ggarrange(d_temp1_200, d_temp2_200)
+```
+
+### Mercator temporal variation vs. CalCOFI data 200m
+
+Here, the mercator temperature rasters were subset the month-year that a CalCOFI bottle sample was collected. The plotted mercator values represent the closest grid cell to that CalCOFI station when a sample was collected. A monthly temporal resolution was possible here and not daily due to computational power of extracting the mercator temperature data directly from mercator rather than Copernicus, which is how the dissolved oxygen rasters were obtained.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#| fig-align: center
+#| fig-width: 12
+#| fig-height: 6
+#| label: temporal_variation200_Temp
+
+# calcofi_coord200_temp <- calcofi_coord200 %>% mutate(mo_ch = substr(Date, 1,2),
+#                                   yr_mo_day = paste0(Year, "-", mo_ch, "-", "01"),
+#                                   Date_merc = as.Date(yr_mo_day, format = "%Y-%m-%d"))
+# calcofi_coord200_temp <- calcofi_coord200_temp %>% drop_na(Date_merc)
+# merc_vari200_temp <- NULL
+# for(i in 1:nrow(calcofi_coord200_temp)){
+#   #subset raster according to calcofi sample date
+#   temp_date <- calcofi_coord200_temp$Date_merc[i]
+#   temp_rast <- merc_temp_all200[[time(merc_temp_all200) == temp_date]]
+# 
+#   #get coords of station
+#   sta_loc <- calcofi_coord200_temp$geometry[i]
+# 
+#   #extract mercator temp at the cell closest to that station
+#   sta_vect <- vect(sta_loc)
+#   merc_extract <- terra::extract(temp_rast, sta_vect)
+# 
+#   #save merc cell value, station value, and difference between in three cols
+#   temp_vari <- NULL
+#   temp_vari$Date <- temp_date
+#   temp_vari$geometry <- sta_loc
+#   temp_vari$merc_temp_200m <- merc_extract[,2]
+#   temp_vari$calcofi_temp_200m <- calcofi_coord200_temp$T_degC[i]
+# 
+#   df_vari <- as.data.frame(temp_vari)
+# 
+#   merc_vari200_temp <- rbind(merc_vari200_temp, df_vari)
+# }
+# 
+# merc_vari200_temp_l <- merc_vari200_temp %>% pivot_longer(c(3:4), names_to = "data_source", values_to = "Temp_C") %>%
+#   mutate(sta_geom = as.character(geometry))
+# 
+# temp_var200 <- ggplot(merc_vari200_temp_l, aes(Date, Temp_C, color = data_source)) +
+#   geom_point(size = 1) +
+#   geom_line() +
+#   scale_color_manual(values = c("steelblue4", "goldenrod"))+
+#   theme_minimal()
+
+```
+
+![](images/temp_varo200.png){fig-align="center"}
