@@ -15,7 +15,8 @@ all_dat <- readRDS(here("data/presence_locs/psat_spot_domain/psat_spot_data.rds"
 
 #format for aniMotum
 ssm_dat <- all_dat %>% 
-  select(id = "ptt", date ="posix", lat = "lat",lon = "lon", lc = "lc") %>%
+  mutate(posix2 = as.POSIXct(date)) %>% #re-do because was filtering out dates w/o a time stamp
+  select(id = "ptt", date ="posix2", lat = "lat",lon = "lon", lc = "lc") %>%
   drop_na(date) #must remove missing lat/lon/date values for ssm to work
  
   #view number of locs by ptt
@@ -32,12 +33,12 @@ time_step <- ssm_dat %>%
   mutate(diff = date - lag(date)) %>%
   summarise(med_diff = median(diff, na.rm = T)) %>%
   ungroup() %>%
-  summarise(all_mean = mean(med_diff)/3600) #average time step btwn positions for all tracks is 34 hours
+  summarise(all_mean = mean(med_diff)/3600) #average time step btwn positions for all tracks is 29 hours
 
 set.seed(1004)
 ssm_crw <- fit_ssm(ssm_dat,
                    model = "crw",
-                   time.step = 35) #average median time step in hours
+                   time.step = 29) #average median time step in hours
                     
 c(ssm_crw$ssm[[1]]$AICc) 
 ssm_crw_r <- route_path(ssm_crw, map_scale = 10, what = "predicted")
@@ -57,8 +58,8 @@ aniMotum::map(ssm_crw_r, what = "predicted")|aniMotum::map(ssm_crw_r, what = "re
 
 #visually observe fitted and predicted tracks 
 aniMotum::map(ssm_crw, what = "f")|aniMotum::map(ssm_crw_routed, what = "p") #fitted | predicted
-plot(ssm_crw[1,], what = "p", type = 1) #2 shows map, 1 shows movement between lat lons across month
-aniMotum::map(ssm_crw_r, what = "rerouted") #row 5 has some loopy points near baja and number 10 has points in the gulf of california
+plot(ssm_crw[20,], what = "p", type = 2) #2 shows map, 1 shows movement between lat lons across month
+aniMotum::map(ssm_crw_r[20,], what = "rerouted") #row 5 has some loopy points near baja and number 10 has points in the gulf of california
 
 #visually inspect residuals and diagnostic plots 
 resid_crw <- osar(ssm_crw)
@@ -69,11 +70,26 @@ plot(resid_crw, type = "ts", pages = 0)
 
 #saveRDS(ssm_crw_r, file = here("data/presence_locs/psat_spot_domain/processed/animotum_reroute_crw_ssm.rds"))
 
+#checking min and max lat/lon for describing PA domain
+ssm_locs <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spot_animotum.rds"))
+
+    #observed min and max
+min(ssm_locs$lon_p) #-151.08
+max(ssm_locs$lon_p) #-105.41
+min(ssm_locs$lat_p) #2.99
+max(ssm_locs$lat_p) #47.37
+
+ #buffered min and max for CMEMS data download
+min(ssm_locs$lon_p) -2 #-153.41
+max(ssm_locs$lon_p) +2 #-103.41
+min(ssm_locs$lat_p) -2 #0.98
+max(ssm_locs$lat_p) +2 #49.37
+
 ##### aniMotum CRW PA generation ####
 # create spatVect for CMEMS domain used to generate gradient
 #get the bounding box of the two x & y coordintates, make sfc -- min and max of interpolated data + or - 2
-ylims <- c(0, 49)
-xlims <- c(-152, -103)
+ylims <- c(2.99, 47.37)
+xlims <- c(-151.08, -105.41)
 box_coords <- tibble(x = xlims, y = ylims) %>% 
   st_as_sf(coords = c("x", "y")) %>% 
   st_set_crs(st_crs(4326))
@@ -163,9 +179,9 @@ source(here("functions/sim_fit.R"))
 
   #selected a beta value of -375 as this was the smallest absolute value number that resulted in min of 90% of the PAs remaining in the study area
 pa_crw <- sim_fit(ssm_crw_r, grad = grad, beta = c(-350, -350), what = "predicted", reps = 100);filter_pa <- sim_filter(pa_crw, keep = 0.30, var = c("lon", "lat"), FUN = "mean");routed_pa <- route_path(filter_pa, centroids = TRUE)
-plot(routed_pa[61,])
+plot(routed_pa[4,])
 
-#saveRDS(routed_pa, file = here("data/presence_locs/psat_spot_domain/PA_routed_350beta_30perc.RDS"))
+#saveRDS(routed_pa, file = here("data/presence_locs/psat_spot_domain/processed/PA_routed_350beta_30perc.RDS"))
 
 #IDing how many tracks are outside of the study domain 
     #unnest prediction column
@@ -174,10 +190,10 @@ dat_pa <- routed_pa %>%
 
     #ID by simulation rep how many reps stay in study area
 dat_pa2 <- dat_pa %>% 
-  mutate(domain = ifelse(lon <= -152 |
-                           lon >= -103 |
-                           lat <= 0 | 
-                           lat >= 49, "omit", "keep"))
+  mutate(domain = ifelse(lon <= -151.08 |
+                           lon >= -105.41 |
+                           lat <= 2.99 | 
+                           lat >= 47.37, "omit", "keep"))
   
 dat_pa_filt <- dat_pa2 %>%
   group_by(id, rep) %>%
@@ -187,34 +203,35 @@ dat_pa_filt <- dat_pa2 %>%
 test <- dat_pa_filt %>% 
   group_by(id) %>% 
   summarise(n_reps = n_distinct(rep)) %>% #min number of reps inside domain is XXX, sampling rest down to that count
-  print(n = 23) #min is 39 tracks -- sample to that
+  print(n = 73) #min is 39 tracks -- sample to that
 
-mean(test$n_reps/30*100) #mean is 102% stay in
+mean(test$n_reps/30*100) #mean is 101% stay in
 
   #randomly sample reps so that all have same number
-# dat_PA <- NULL
-# for(i in 1:length(unique(dat_pa_filt$id))){
-#   #select current id
-#   curr_ID <- unique(dat_pa_filt$id)[i]
-#   temp_df <- dat_pa_filt[dat_pa_filt$id %in% curr_ID,]
-#   
-#   #sample 52 id's randomly
-#   temp_rep_ID <- sample(unique(temp_df$rep), 39, replace = FALSE)
-#   
-#   #narrow your data set
-#   temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
-#   
-#   #combine in a single df
-#   dat_PA_39 <- rbind(dat_PA_39, temp_df2)
-#   
-# }
+dat_PA_22 <- NULL
+for(i in 1:length(unique(dat_pa_filt$id))){
+  #select current id
+  curr_ID <- unique(dat_pa_filt$id)[i]
+  print(curr_ID)
+  temp_df <- dat_pa_filt[dat_pa_filt$id %in% curr_ID,]
+
+  #sample 52 id's randomly
+  temp_rep_ID <- sample(unique(temp_df$rep), 22, replace = FALSE)
+
+  #narrow your data set
+  temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
+
+  #combine in a single df
+  dat_PA_22 <- rbind(dat_PA_24, temp_df2)
+
+}
 
 #check if it worked 
-# dat_PA_39 %>% 
-#   group_by(id) %>% 
-#   summarise(n_reps = n_distinct(rep)) %>%
-#   print(n = 23)
+dat_PA_22 %>%
+  group_by(id) %>%
+  summarise(n_reps = n_distinct(rep)) %>%
+  print(n = 73)
 
-#saveRDS(dat_pa, file = here("data/presence_locs/psat_spot_domain/processed/psat_spot_PAs.rds"))
+saveRDS(dat_PA_22, file = here("data/presence_locs/psat_spot_domain/processed/psat_spot_PAs.rds"))
 
 
