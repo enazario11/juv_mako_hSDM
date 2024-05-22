@@ -77,16 +77,6 @@ head(input_file)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # extract bathy and rugosity ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#modify CRS and res of GEBCO NC file. Write New CDF
-# bathy <- rast(here("data/enviro/bathy/GEBCO_2023_n58.0_s4.0_w-147.0_e-97.0.nc"))
-# template_rast <- rast(
-#   crs = 'EPSG:4326',
-#   extent = ext(-153, -100, -3, 55), #cmems domain
-#   resolution = 0.25
-# )
-# bathy_mod <- resample(bathy, template_rast)
-# writeCDF(bathy_mod, here("data/enviro/bathy/processed/gebco_bathy_cmems_domain.nc"), overwrite = TRUE)
-
 bathy_file <- list.files(here("data/enviro/bathy/processed"), pattern = "cmems", full.names = TRUE)
     
 all_dat_bathy_cmem <- getBathy(bathy_file, input_file, 'gebco_bathy_cmems_domain', 0.25)

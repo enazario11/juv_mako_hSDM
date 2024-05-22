@@ -81,7 +81,7 @@ pa_dat_sum %>%
             max_lon = max(lon, na.rm = TRUE)) #-105
 
 
-#buffered min and max for CMEMS data download
+#buffered min and max for CMEMS data download (actual download was -153, -103, 1, 49)
 min(ssm_locs$lon_p) -2 #-153.41
 max(ssm_locs$lon_p) +2 #-103.41
 min(ssm_locs$lat_p) -2 #0.98
