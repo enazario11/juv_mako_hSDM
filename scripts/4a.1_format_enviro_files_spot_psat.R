@@ -117,6 +117,8 @@ stars_to_terra_no_depth <- function(nc_files, nc_var_name, depth){
     print(paste0(dat_year, "_", dat_mo))
     write_mdim(merc_reg, here(paste0("data/enviro/psat_spot_all/phys_merc/stars_to_terra_temp_files/", nc_var_name, "_", dat_year, "_", dat_mo, "_", depth, "m", ".nc")))
     
+    Sys.sleep(0.1)
+    
     #read with terra 
     temp_terra <- rast(here(paste0("data/enviro/psat_spot_all/phys_merc/stars_to_terra_temp_files/", nc_var_name, "_", dat_year, "_", dat_mo, "_", depth, "m", ".nc")))
     
@@ -195,8 +197,8 @@ vostr_0h <- vostr0_terra %>% resample(template_rast)
 
 #SSH (height above geoid)
 ssh0_curv <- list.files(here("data/enviro/psat_spot_all/phys_merc/0m/ssh"), full.names = TRUE)
-ssh0_reg <- stars_to_terra_no_depth(ssh0_curv, nc_var_name = " sossheig", depth = 0)
-saveRDS(ssh0_reg, here("data/enviro/psat_spot_all/phys_merc/0m/processed/ssh0_terra.rds"))
+ssh0_reg <- stars_to_terra_no_depth(ssh0_curv, nc_var_name = "sossheig", depth = 0)
+#saveRDS(ssh0_reg, here("data/enviro/psat_spot_all/phys_merc/0m/processed/ssh0_terra.rds"))
 ssh0_terra <- readRDS(here("data/enviro/psat_spot_all/phys_merc/0m/processed/ssh0_terra.rds"))
 
 ssh_0h <- ssh0_terra %>% resample(template_rast)
