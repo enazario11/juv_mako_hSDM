@@ -8,7 +8,7 @@ library(stringr)
 
 template_rast <- rast(
   crs = 'EPSG:4326',
-  extent = ext(-153, -103, -1, 49), #study domain (+/- 2 deg of min and max lat/lons from observed and PA locs)
+  extent = ext(-153, -103, 1, 49), #study domain (+/- 2 deg of min and max lat/lons from observed and PA locs)
   resolution = 0.25 #coarsest spatial resolution
 )
 
@@ -16,7 +16,8 @@ template_rast <- rast(
 bathy_dat <- rast(here("data/enviro/psat_spot_all/bathy_gebco/gebco_2023_n49.0_s1.0_w-153.0_e-103.0.nc"))
 
 bathy_mod <- resample(bathy_dat, template_rast)
-#writeCDF(bathy_mod, here("data/enviro/psat_spot_all/bathy_gebco/processed/gebco_bathy_0.25deg.nc"))
+names(bathy_mod) <- c("bathy")
+#writeCDF(bathy_mod, here("data/enviro/psat_spot_all/all_processed/gebco_bathy_0.25deg2.nc"))
 
 ###CMEM Data####
 ##### 0m #####
@@ -223,7 +224,7 @@ temp_60h <- temp60_terra %>% resample(template_rast)
 #salinity
 sal60_curv <- list.files(here("data/enviro/psat_spot_all/phys_merc/60m/so"), full.names = TRUE)
 sal60_reg <- stars_to_terra(sal60_curv, nc_var_name = "vosaline", depth = 60)
-saveRDS(sal60_reg, here("data/enviro/psat_spot_all/phys_merc/60m/processed/sal60_terra.rds"))
+#saveRDS(sal60_reg, here("data/enviro/psat_spot_all/phys_merc/60m/processed/sal60_terra.rds"))
 sal60_terra <- readRDS(here("data/enviro/psat_spot_all/phys_merc/60m/processed/sal60_terra.rds"))
 
 sal_60h <- sal60_terra %>% resample(template_rast)
@@ -263,33 +264,33 @@ sal_250h <- sal250_terra %>% resample(template_rast)
 
 ### Merge MERC and CMEM data ####
 ##### 0m ####
-all_0h <- sds(do_0h, chl_0h, temp_0h)
-names(all_0h) <- c("o2", "chl", "votemper")
-longnames(all_0h) <- c("dissolved oxygen", "chlorophyll", "Sea water tempearture")
-units(all_0h) <- c("mmol/m^3", "mg/m^3", "C")
+all_0h <- sds(do_0h, chl_0h, temp_0h, sal_0h, uo_0h, uostr_0h, vo_0h, vostr_0h, ssh_0h, mld_0h)
+names(all_0h) <- c("o2", "chl", "votemper", "vosaline", "vozocrtx", "sozotaux", "vomecrty", "sometauy", "sossheig", "somxlavt")
+longnames(all_0h) <- c("dissolved oxygen", "chlorophyll", "sea water temperature", "salinity", "eastward velocity", "eastward wind stress", "northward velocity", "northward wind stress", "sea surface height", "mixed layer depth")
+units(all_0h) <- c("mmol/m^3", "mg/m^3", "C", "PSU", "m/s", "Pa", "m/s", "Pa", "m", "m")
 all_0h
 
-#writeCDF(all_0h, filename = here("data/enviro/processed/CMEM_DO_Temp_SO_0m_Jan2003_Dec2015_0.25_D.nc"))
-test <- rast(here("data/enviro/processed/CMEM_SST_SAL_UO_VO_CHL_NPP_DO_250m_Jan2004_Dec2009_0.25_D.nc"))
+#writeCDF(all_0h, filename = here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
+test <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
 
 ##### 60m ####
-all_60h <- sds(do_60h, temp_60h, so_60h)
-names(all_60h) <- c("o2", "thetao", "so")
-longnames(all_60h) <- c("dissolved oxygen", "Sea water tempearture", "salinity")
-units(all_60h) <- c("mmol/m^3", "C", "psu")
+all_60h <- sds(do_60h, temp_60h, sal_60h)
+names(all_60h) <- c("o2", "votemper", "vosaline")
+longnames(all_60h) <- c("dissolved oxygen", "sea water temperature", "salinity")
+units(all_60h) <- c("mmol/m^3", "C", "PSU")
 all_60h
 
-#writeCDF(all_60h, filename = here("data/enviro/processed/CMEM_DO_Temp_SO_60m_Jan2003_Dec2015_0.25_D.nc"))
-test <- rast(here("data/enviro/processed/CMEM_DO_Temp_SO_60m_Jan2003_Dec2015_0.25_D.nc"))
+#writeCDF(all_60h, filename = here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_60m_Jan2003_Dec2015_0.25_D.nc"))
+test <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_60m_Jan2003_Dec2015_0.25_D.nc"))
 
 ##### 250m ####
-all_250h <- sds(do_250h, temp_250h, so_250h)
-names(all_250h) <- c("o2", "thetao", "so")
-longnames(all_250h) <- c("dissolved oxygen", "Sea water tempearture", "salinity")
-units(all_250h) <- c("mmol/m^3", "C", "psu")
+all_250h <- sds(do_250h, temp_250h, sal_250h)
+names(all_250h) <- c("o2", "votemper", "vosaline")
+longnames(all_250h) <- c("dissolved oxygen", "sea water temperature", "salinity")
+units(all_250h) <- c("mmol/m^3", "C", "PSU")
 all_250h
 
-#writeCDF(all_250h, filename = here("data/enviro/processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
-test <- rast(here("data/enviro/processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
+#writeCDF(all_250h, filename = here("data/enviro/psat_Spot_all/all_processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
+test <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
 
 

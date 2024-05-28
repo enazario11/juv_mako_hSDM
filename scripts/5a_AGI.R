@@ -5,9 +5,9 @@ library(tidyquant)
 library(respR)
 
 ### read data ####
-dat0 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_0m.rds"))
-dat50 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_50m.rds"))
-dat250 <- readRDS(here("data/locs_w_covar/cmems/cmem_locs_covar_250m.rds"))
+dat0 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_0m.rds"))
+dat60 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_60m.rds"))
+dat250 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_250m.rds"))
 
 source(here("functions/oxy_demand_functions.R"))
 

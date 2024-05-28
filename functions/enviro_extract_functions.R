@@ -98,6 +98,7 @@ getBathy <- function(nc,inpts,bathy_inpt,desired.resolution){
   desired.resolution = desired.resolution/2
   
   for (i in 1:nrow(inpts)){
+    print(i)
     #print(i)
     # #Compute bathymetry: point extraction
     # c <- which.min(abs(lon-data$lon[i]))
