@@ -26,12 +26,12 @@ DO_to_atm <- function(loc_enviro_dat, depth){
     pressure = (1025 * 9.81 * depth) + 101325 #avg density of sea water (kg/m^3) * gravity * depth + atmospheric pressure at surface in Pa
     press_dbar = pressure / 1000000 #get calculated pressure into dbar
     
-    Tpot = loc_enviro_dat$thetao_mean[i] #temp in C
+    Tpot = loc_enviro_dat$votemper_mean[i] #temp in C
     T_scaled = log((298.15 - Tpot) / (KC + Tpot))
-    rho = gsw::gsw_rho(SA = loc_enviro_dat$so_mean[i], p = press_dbar, CT = Tpot)
+    rho = gsw::gsw_rho(SA = loc_enviro_dat$vosaline_mean[i], p = press_dbar, CT = Tpot)
     
     #calculate saturation concentration of O2 in seawater
-    l = b1+b2*T_scaled+b3*(T_scaled^2)+b4*(T_scaled^3)+b5*(T_scaled^4)+b6*(T_scaled^5)+loc_enviro_dat$so_mean[i]*(b7+b8*T_scaled+b9*(T_scaled^2)+b10*(T_scaled^3)) + b11*loc_enviro_dat$so_mean[i]^2
+    l = b1+b2*T_scaled+b3*(T_scaled^2)+b4*(T_scaled^3)+b5*(T_scaled^4)+b6*(T_scaled^5)+loc_enviro_dat$vosaline_mean[i]*(b7+b8*T_scaled+b9*(T_scaled^2)+b10*(T_scaled^3)) + b11*loc_enviro_dat$vosaline_mean[i]^2
     calc_sat_o2 = (1000/GSmv) * exp(l)
     calc_sat_o2_molm3 = calc_sat_o2/1000 #mol/m^3
     

@@ -14,17 +14,17 @@ source(here("functions/oxy_demand_functions.R"))
 ### convert DO to atm ####
 # 0m -- USE AS MODEL
 dat0_DOatm <- DO_to_atm(dat0, depth = 0)
-thresh0 <- thresh_atm(temp = median(dat0_DOatm$thetao_mean, na.rm = TRUE), so_psu = median(dat0_DOatm$so_mean, na.rm = T), depth = 0) #defualt do value is 2 mL/L from vetter et al., 2008
+thresh0 <- thresh_atm(temp = median(dat0_DOatm$votemper_mean, na.rm = TRUE), so_psu = median(dat0_DOatm$vosaline_mean, na.rm = TRUE), depth = 0) #defualt do value is 2 mL/L from vetter et al., 2008
 
-hist(dat0_DOatm$pO2_0, xlim = c(0, 0.20))
+hist(dat0_DOatm$pO2_0, xlim = c(0, 0.20)) 
 abline(v = thresh0, lwd = 2)
 
-# 50m
-dat50_DOatm <- DO_to_atm(dat50, depth = 50)
-thresh50 <- thresh_atm(temp = median(dat50_DOatm$thetao_mean, na.rm = TRUE), so_psu = median(dat50_DOatm$so_mean, na.rm = T), depth = 50)
+# 60m
+dat60_DOatm <- DO_to_atm(dat60, depth = 60)
+thresh60 <- thresh_atm(temp = median(dat60_DOatm$votemper_mean, na.rm = TRUE), so_psu = median(dat60_DOatm$vosaline_mean, na.rm = TRUE), depth = 60)
 
-hist(dat50_DOatm$pO2_50)
-abline(v = thresh50, lwd = 2)
+hist(dat60_DOatm$pO2_60)
+abline(v = thresh60, lwd = 2)
 
   #testing respirometry package instead of respR
 # test <- conv_o2(2, "ml_per_l", "mmol_per_l", temp = median(dat0_DOatm$thetao_mean, na.rm = TRUE), sal = median(dat0_DOatm$so_mean, na.rm = T), atm_pres = press_mbar)
@@ -32,7 +32,7 @@ abline(v = thresh50, lwd = 2)
 
 #250m 
 dat250_DOatm <- DO_to_atm(dat250, depth = 250)
-thresh250 <- thresh_atm(temp = median(dat250_DOatm$thetao_mean, na.rm = TRUE), so_psu = median(dat250_DOatm$so_mean, na.rm = T), depth = 250)
+thresh250 <- thresh_atm(temp = median(dat250_DOatm$votemper_mean, na.rm = TRUE), so_psu = median(dat250_DOatm$vosaline_mean, na.rm = TRUE), depth = 250)
 
 hist(dat250_DOatm$pO2_250)
 abline(v = thresh250, lwd = 2)
@@ -56,44 +56,45 @@ abline(v = thresh250, lwd = 2)
 Tpref50 = 16.45201 #50m tpref is 16.452
 
 #run oxygen demand function with mako specific parameters
-dat0_DOatm$O2_demand0 <- OxyDemand(Tpref = Tpref50, PO2_thresh = thresh0, T_C = dat0_DOatm$thetao_mean)
-dat_DO_atm50$O2_demand_mako50 <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh, T_C = dat_DO_atm50$thetao_mean)
-dat250_DOatm$O2_demand250 <- OxyDemand(Tpref = Tpref50, PO2_thresh = thresh250, T_C = dat250_DOatm$thetao_mean)
-
+dat0_DOatm$O2_demand0 <- OxyDemand(Tpref = Tpref50, PO2_thresh = thresh0, T_C = dat0_DOatm$votemper_mean)
+dat60_DOatm$O2_demand60 <- OxyDemand(Tpref = Tpref50, PO2_thresh = thresh60, T_C = dat60_DOatm$votemper_mean)
+dat250_DOatm$O2_demand250 <- OxyDemand(Tpref = Tpref50, PO2_thresh = thresh250, T_C = dat250_DOatm$votemper_mean)
 
   #explore outputs
+hist(dat0_DOatm$O2_demand0)
+hist(dat60_DOatm$O2_demand60)
 hist(dat250_DOatm$O2_demand250)
-hist(dat250_DOatm$O2_demand250)
-plot(dat0_DOatm$thetao_mean, dat0_DOatm$O2_demand_mako0) #should increase with temp
+plot(dat0_DOatm$votemper_mean, dat0_DOatm$O2_demand0) #should increase with temp
 
 #calculate AGI
 dat0_DOatm$AGI_0m <- dat0_DOatm$pO2_0/dat0_DOatm$O2_demand0
-dat50_DOatm$AGI_50m <- dat0_DOatm$pO2_50/dat0_DOatm$O2_demand50
+dat60_DOatm$AGI_60m <- dat60_DOatm$pO2_60/dat60_DOatm$O2_demand60
 dat250_DOatm$AGI_250m <- dat250_DOatm$pO2_250/dat250_DOatm$O2_demand250
 
   #explore outputs
 hist(dat0_DOatm$AGI_0m)
+hist(dat60_DOatm$AGI_60m)
 hist(dat250_DOatm$AGI_250m)
 
-plot(dat250_DOatm$thetao_mean, dat250_DOatm$AGI_250m)
+plot(dat250_DOatm$votemper_mean, dat250_DOatm$AGI_250m)
 plot(dat0_DOatm$pO2_0, dat0_DOatm$AGI_0m)
-plot(dat0_DOatm$o2_atm, dat0_DOatm$AGI_0m)
 
 quantile(dat0_DOatm$AGI_0m, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = T)
-mean(dat_DO_atm$AGI_250m, na.rm = T)
-min(dat_DO_atm$AGI_250m, na.rm = T)
-max(dat_DO_atm$AGI_250m, na.rm = T)
-sd(dat_DO_atm$AGI_250m, na.rm = T)
+mean(dat250_DOatm$AGI_250m, na.rm = T)
+min(dat250_DOatm$AGI_250m, na.rm = T)
+max(dat250_DOatm$AGI_250m, na.rm = T)
+sd(dat250_DOatm$AGI_250m, na.rm = T)
 
-#saveRDS(dat0_DOatm, here("data/locs_w_covar/cmems/cmem_covar_AGI_atm_0m_emp.rds"))
+#saveRDS(dat250_DOatm, here("data/locs_w_covar/psat_spot/cmem_locs_covar_AGI_250m.rds"))
 
 #calculate AGI critical value (10th percentile)
-AGIcrit0 <- quantile(dat0_DOatm$AGI_0m, c(.10), na.rm = T) #2.55
-AGIcrit250 <- quantile(dat250_DOatm$AGI_250m, c(.10), na.rm = T) #0.111
+AGIcrit0 <- quantile(dat0_DOatm$AGI_0m, c(.10), na.rm = T) #4.14
+AGIcrit60 <- quantile(dat60_DOatm$AGI_60m, c(.10), na.rm = T) #2.8
+AGIcrit250 <- quantile(dat250_DOatm$AGI_250m, c(.10), na.rm = T) #0.191
 
-map_DO_atm <- dat250_DOatm %>%
+map_DO_atm <- dat0_DOatm %>%
   filter(PA == 0) %>%
-  mutate(AGI_crit = ifelse(AGI_250m > AGIcrit250, "yes", "no")) #yes or no above AGIcrit
+  mutate(AGI_crit = ifelse(AGI_0m > AGIcrit0, "yes", "no")) #yes or no above AGIcrit
 
 #coarse look at where the sharks were above the AGIcrit 
 north_map = map_data("world") %>% group_by(group)
