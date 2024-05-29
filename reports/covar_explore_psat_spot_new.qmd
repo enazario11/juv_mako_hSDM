@@ -19,6 +19,7 @@ library(here)
 library(terra)
 library(MetBrewer)
 library(tidyquant)
+library(tidyterra)
 
 cmem_dat0 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_AGI_distcoast_0m.rds"))
 colnames(cmem_dat0) <- c("tag", "date", "lon", "lat", "PA", "rep", "dt", "o2_mean", "chl_mean", "temp_mean", "sal_mean", "uo_mean", "uostr_mean", "vo_mean", "vostr_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "pO2_atm_0m", "o2_demand_0m", "AGI_0m", "dist_coast")
@@ -75,12 +76,9 @@ ggplot(shore, aes(long, lat)) +
   geom_path(data=cmem_dat2, aes(lon, lat, colour=as.factor(tag)), lwd = 1) +
   geom_polygon(aes(group=group), fill="grey60",lwd=1) +
   scale_color_manual(values = met.brewer("Hokusai2", 73))+
-  theme(legend.position = "right", 
-        legend.key.size = unit(0.75,'cm'), 
-        legend.text = element_text(size = 10), 
+  theme(legend.position = "none", 
         panel.spacing.x = unit(0, "lines"),
-        panel.spacing.y = unit(0, "lines"),
-        legend.margin=margin(0,0,0,0))
+        panel.spacing.y = unit(0, "lines"))
 
 ```
 
@@ -346,6 +344,24 @@ cmem_dat60 %>%
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
 ```
+
+### Temp vs. DO (mmol/m^3)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat60 %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = temp_mean, y = o2_mean, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
 :::
 
 ## Abiotic covariate comparisons at 250m
@@ -366,6 +382,24 @@ Below are some comparisons of the covariate values relative to each other for th
 cmem_dat250 %>% 
   filter(PA == 0) %>%
   ggplot(aes(x = temp_mean, y = pO2_atm_250m, color = as.factor(PA))) + 
+  geom_point(alpha = 0.2) +
+  scale_color_manual(values = c("#0a3351"))+
+  theme(legend.position = "none")
+```
+
+### Temp vs. DO (mmol/m^3)
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: center
+
+cmem_dat250 %>% 
+  filter(PA == 0) %>%
+  ggplot(aes(x = temp_mean, y = o2_mean, color = as.factor(PA))) + 
   geom_point(alpha = 0.2) +
   scale_color_manual(values = c("#0a3351"))+
   theme(legend.position = "none")
@@ -817,17 +851,22 @@ cmem_dat0 %>%
 #| fig-align: center
 source(here("functions/oxy_demand_functions.R"))
 
-o2_range <- seq(198.6259, 324.4232, length.out = 100)
-temp_range <- seq(6, 30, length.out = 100)
-AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
-  mutate(met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.0488, T_C = temp), 
-         AGI = o2/met_dem)
+o2_range <- seq(176.7334, 328.9446, length.out = 100)
+temp_range <- seq(4.945004, 32.50116, length.out = 100)
 
-ggplot(AGI_surf, aes(temp, o2)) +
+AGI_surf0 <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
+  mutate(po2 = rast_to_atm(do = o2, so = 33.71317, temp = temp, depth = 0),
+         met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.0488, T_C = temp), 
+         AGI = po2/met_dem)
+
+ggplot(AGI_surf0, aes(temp, o2)) +
   geom_raster(aes(fill = AGI)) +
   stat_contour(aes(z = AGI), color = "black") +
-  scale_fill_gradient()
-  
+  scale_fill_gradient() + 
+  xlab("Temperature (C)") + 
+  ylab(bquote('Dissolved oxygen' ('mmol/m'^'3'))) +
+  labs(fill = "AGI") +
+  scale_fill_whitebox_c(palette = "deep", direction = -1)
 ```
 
 ### Temp vs. DO (atm) vs. AGI
@@ -918,18 +957,24 @@ cmem_dat60 %>%
 #| fig-width: 6
 #| fig-height: 6
 #| fig-align: center
-source(here("functions/oxy_demand_functions.R"))
 
-o2_range <- seq(198.6259, 324.4232, length.out = 100)
-temp_range <- seq(6, 30, length.out = 100)
-AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
-  mutate(met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.046413, T_C = temp), 
-         AGI = o2/met_dem)
 
-ggplot(AGI_surf, aes(temp, o2)) +
+o2_range <- seq(6.581265, 321.6142, length.out = 100)
+temp_range <- seq(5.069174, 29.21631, length.out = 100)
+
+AGI_surf60 <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
+  mutate(po2 = rast_to_atm(do = o2, so = 33.81795, temp = temp, depth = 60),
+         met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.046413, T_C = temp), 
+         AGI = po2/met_dem)
+
+ggplot(AGI_surf60, aes(temp, o2)) +
   geom_raster(aes(fill = AGI)) +
   stat_contour(aes(z = AGI), color = "black") +
-  scale_fill_gradient()
+  scale_fill_gradient() + 
+  xlab("Temperature (C)") + 
+  ylab(bquote('Dissolved oxygen' ('mmol/m'^'3'))) +
+  labs(fill = "AGI") +
+  scale_fill_whitebox_c(palette = "deep", direction = -1)
   
 ```
 
@@ -1023,16 +1068,22 @@ cmem_dat250 %>%
 #| fig-align: center
 source(here("functions/oxy_demand_functions.R"))
 
-o2_range <- seq(198.6259, 324.4232, length.out = 100)
-temp_range <- seq(6, 30, length.out = 100)
-AGI_surf <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
-  mutate(met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.03815, T_C = temp), 
-         AGI = o2/met_dem)
+o2_range <- seq(1.000011, 240.0723, length.out = 100)
+temp_range <- seq(4.688958, 17.49262, length.out = 100)
 
-ggplot(AGI_surf, aes(temp, o2)) +
+AGI_surf250 <- expand_grid(o2 = o2_range, temp = temp_range) %>% 
+  mutate(po2 = rast_to_atm(do = o2, so = 34.28668, temp = temp, depth = 60),
+         met_dem = OxyDemand(Tpref = 16.452, PO2_thresh = 0.03815, T_C = temp), 
+         AGI = po2/met_dem)
+
+ggplot(AGI_surf250, aes(temp, o2)) +
   geom_raster(aes(fill = AGI)) +
   stat_contour(aes(z = AGI), color = "black") +
-  scale_fill_gradient()
+  scale_fill_gradient() + 
+  xlab("Temperature (C)") + 
+  ylab(bquote('Dissolved oxygen' ('mmol/m'^'3'))) +
+  labs(fill = "AGI") +
+  scale_fill_whitebox_c(palette = "deep", direction = -1)
   
 ```
 
@@ -1733,7 +1784,7 @@ ggplot(cmem_dat_sub2, aes(x = lon, y = AGI_250m, color = as.factor(PA))) +
 
 ## CMEM DO
 
-These figures track how DO changes through a shark's track for both its observed positions ('0') and PA positions ('1').
+These figures track how DO concentrations (mmol/m^3) change through a shark's track for both its observed positions ('0') and PA positions ('1').
 
 ::: panel-tabset
 ### track values vs. space/time
@@ -1750,6 +1801,7 @@ ggplot(shore, aes(long, lat)) +
   geom_point(data = cmem_dat_sub2, aes(lon, lat, colour = o2_mean), size = 2) +
   geom_polygon(aes(group = group), fill = "grey60",lwd = 1) +
   facet_grid(tag~PA)+
+  labs(colour = "DO concentration (mmol/m^3)") +
   theme(legend.position = "right", 
         legend.key.size = unit(0.75,'cm'), 
         legend.text = element_text(size = 10), 
@@ -1775,8 +1827,8 @@ ggplot(cmem_dat_sub2, aes(x = dt, y = o2_mean, color = as.factor(PA))) +
   facet_grid(~tag, scales = "free") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   scale_color_manual(values = met.brewer("Hokusai2", 2))+
-  xlab("")
-
+  xlab("") +
+  ylab("DO concentration (mmol/m^3)")
 ```
 
 ### track values vs. lat
@@ -1793,7 +1845,8 @@ ggplot(cmem_dat_sub2, aes(x = lat, y = o2_mean, color = as.factor(PA))) +
   geom_smooth(se = FALSE)+
   facet_grid(~tag, scales = "free") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_color_manual(values = met.brewer("Hokusai2", 2))
+  scale_color_manual(values = met.brewer("Hokusai2", 2)) +
+  ylab("DO concentration (mmol/m^3)")
 
 ```
 
@@ -1811,7 +1864,8 @@ ggplot(cmem_dat_sub2, aes(x = lon, y = o2_mean, color = as.factor(PA))) +
   geom_smooth(se = FALSE)+
   facet_grid(~tag, scales = "free") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  scale_color_manual(values = met.brewer("Hokusai2", 2))
+  scale_color_manual(values = met.brewer("Hokusai2", 2)) +
+  ylab("DO concentration (mmol/m^3)")
 
 ```
 :::
@@ -1864,7 +1918,7 @@ ggplot(cmem_dat_sub2, aes(x = dt, y = temp_mean, color = as.factor(PA))) +
 
 ```
 
-#### track values vs. lat
+### track values vs. lat
 
 ```{r}
 #| echo: false
@@ -1903,12 +1957,10 @@ ggplot(cmem_dat_sub2, aes(x = lon, y = temp_mean, color = as.factor(PA))) +
 
 # Maps
 
-Plot DO and temp. values over space for a few representative dates for sanity check of mapped values. Randomly selected three days (day)
-
-## Maps at 0m
+Plot DO and temp. values over space for a few representative dates for sanity check of mapped values. Randomly selected day (Nov. 20, 2006) plotted for each depth layer (top = 0 m, middle = 60 m, bottom = 250 m). 
 
 ::: panel-tabset
-### DO (mmol/L)
+## DO (mmol/L)
 
 ```{r}
 #| echo: false
@@ -1918,14 +1970,16 @@ Plot DO and temp. values over space for a few representative dates for sanity ch
 #| fig-height: 6
 set.seed(1004)
 #sample(1:2192, 3) #gives the date layers selected below
-cmem_rast <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
+cmem_rast0 <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
+cmem_rast60 <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_60m_Jan2003_Dec2015_0.25_D.nc"))
+cmem_rast250 <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
 
-plot(cmem_rast$o2_1419)
-plot(cmem_rast$o2_1878)
-plot(cmem_rast$o2_52)
+plot(cmem_rast0$o2_1419)
+plot(cmem_rast60$o2_1419)
+plot(cmem_rast250$o2_1419)
 ```
 
-### Temp.(\*C)
+## Temperature (C)
 
 ```{r}
 #| echo: false
@@ -1934,9 +1988,8 @@ plot(cmem_rast$o2_52)
 #| fig-width: 8
 #| fig-height: 6
 
-plot(cmem_rast$votemper_1419)
-plot(cmem_rast$votemper_1878)
-plot(cmem_rast$votemper_52)
-
+plot(cmem_rast0$votemper_1419)
+plot(cmem_rast60$votemper_1419)
+plot(cmem_rast250$votemper_1419)
 ```
 :::
