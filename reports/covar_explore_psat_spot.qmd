@@ -1667,7 +1667,7 @@ cmem_obsv_sub <- cmem_dat_sub %>% filter(PA == 0)
 I then randomly select which repetition number I want to include as a representative for this series of analyses. I am left with a subset of the data which will be used for the Select Shark Analyses portion of this document.
 
 ```{r}
-sample(1:32, 1) 
+sample(1:22, 1) 
 cmem_rep_sub = NULL
 for(i in 1:length(unique(cmem_dat_sub$tag))){
   curr_ID <- unique(cmem_dat_sub$tag)[i]
