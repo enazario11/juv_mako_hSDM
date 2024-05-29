@@ -85,7 +85,7 @@ min(dat250_DOatm$AGI_250m, na.rm = T)
 max(dat250_DOatm$AGI_250m, na.rm = T)
 sd(dat250_DOatm$AGI_250m, na.rm = T)
 
-#saveRDS(dat250_DOatm, here("data/locs_w_covar/psat_spot/cmem_locs_covar_AGI_250m.rds"))
+#saveRDS(dat60_DOatm, here("data/locs_w_covar/psat_spot/cmem_locs_covar_AGI_60m.rds"))
 
 #calculate AGI critical value (10th percentile)
 AGIcrit0 <- quantile(dat0_DOatm$AGI_0m, c(.10), na.rm = T) #4.14
