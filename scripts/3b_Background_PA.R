@@ -11,64 +11,17 @@ library(adehabitatHR)
 library(here)
 library(maps)
 library(glue)
-library(ggplot2)
 library(tidyverse)
-
-rm(list = ls())
 
 #----------------------------------------
 ###load the data (get min/max lat/lon)
 #----------------------------------------
-loc_dat <- read.csv("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/tdl_scbE.csv")
+loc_dat <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spot_animotum.RDS"))
 
-loc_dat <- loc_dat %>%
-  mutate(ptt = as.factor(ptt),
-         Sex = as.factor(Sex),
-         posix = as.POSIXct(strptime(posix, format = "%m/%d/%Y %H:%M")), 
-         time = substr(posix, 11, 18),
-         hour = hour(posix),
-         date = substr(posix, 1, 10),
-         month = str_pad(month, 2, pad = "0"),
-         day = str_pad(day, 2, pad = "0"),
-         mo_day = paste0(month,day), 
-         mo_day = as.numeric(mo_day), 
-         year = as.factor(year),
-         depth_neg = med_depth*-1,
-         age_class = as.factor(age_class), 
-         ID = as.factor(ID), 
-         region = as.factor(region)) %>%
-  filter(med_depth < 120, 
-         max_depth < 1000, 
-         avg_depth < 120) %>%
-  rename(sex = Sex)
-loc_dat$age_class <- factor(loc_dat$age_class, levels = c("Adult", "SA", "Age-2", "YOY"))
-
-length(unique(loc_dat$date)) #732 unique days
-
-lonMax <- max(loc_dat$Lon)+3
-lonMin <- min(loc_dat$Lon)-3
-latMax <- max(loc_dat$Lat)+3
-latMin <- min(loc_dat$Lat)-3
-
-#get season 
-getSeason <- function(DATES) {
-  WS <- as.Date("2012-12-15", format = "%Y-%m-%d") # Winter Solstice
-  SE <- as.Date("2012-3-15",  format = "%Y-%m-%d") # Spring Equinox
-  SS <- as.Date("2012-6-15",  format = "%Y-%m-%d") # Summer Solstice
-  FE <- as.Date("2012-9-15",  format = "%Y-%m-%d") # Fall Equinox
-  
-  # Convert dates from any year to 2012 dates
-  d <- as.Date(strftime(DATES, format="2012-%m-%d"))
-  
-  ifelse (d >= WS | d < SE, "Winter",
-          ifelse (d >= SE & d < SS, "Spring",
-                  ifelse (d >= SS & d < FE, "Summer", "Fall")))
-}
-
-loc_dat$season <- getSeason(loc_dat$date)
-
-###Min date of deployment: 06/28/2004
-###Max date of deployment: 12/06/2013
+lonMax <- max(loc_dat$lon_p)+2
+lonMin <- min(loc_dat$lon_p)-2
+latMax <- max(loc_dat$lat_p)+2
+latMin <- min(loc_dat$lat_p)-2
 
 #------------------------------
 #load world data and get coord sys. Create polygon object with all country shapes
@@ -83,7 +36,6 @@ world_simpl <- map2SpatialPolygons(world_dat, IDs = IDs, proj4string = CRS("+pro
 world_final <- SpatialPolygons(world_simpl@polygons, proj4string = world_simpl@proj4string) %>%
   gBuffer(., byid = TRUE, width = 0)
 plot(world_final)
-
 
 #---------------------------------
 # Load template raster for sea level anomoly data
@@ -105,22 +57,11 @@ plot(template)
 # column 'lat' -> -90 to 90 latitude column in numeric format (will likely be in correct format in original data)
 
 mako_pa <- loc_dat %>%
-  mutate(age_class = as.character(age_class)) %>%
-  filter(grepl('SA|YOY|Age-2', age_class)) %>%
-  subset(select = c(ptt, Lon, Lat, date))
+  mutate(date2 = substr(date, 1, 10), 
+         date = as.Date(date2)) %>%
+  subset(select = c(id, lon_p, lat_p, date))
 
-    #checking my DF matches the above conditions, lat and lon do not, will correct below 
-class(mako_pa$date)
-min(mako_pa$Lon)
-max(mako_pa$Lon)
-min(mako_pa$Lat)
-max(mako_pa$Lat)
-
-  #reformating the data so the function works
-mako_pa$date = as.Date(mako_pa$date, "%Y-%m-%d")
-
-mako_pa$ptt = as.character(mako_pa$ptt)
-
+#reformating the data so the function works
 colnames(mako_pa)[1] <- "tag"
 colnames(mako_pa)[2] <- "lon"
 colnames(mako_pa)[3] <- "lat"
@@ -158,8 +99,13 @@ generate_pseudo_abs_fcn = function(dat, csv_outdir, poly_outdir, sp_name){
            unique2 = glue("{date}{unique}"))
   
   ## creates a minimum bounding polygon to constrain where PAs are generated around the presences
-  ch <- chull(x = dat_coords$lon, y = dat_coords$lat) #chull function computes the subset of points which lie in the space of the points specified (areas of overlap)
-  coords <- dat_coords[c(ch, ch[1]), ]
+  ylims <- c(2.98, 2.98, 47.37,  47.37, 2.98)
+  xlims <- c(208.92, 254.59, 254.59, 208.92, 208.92)
+  box_coords <- tibble(x = xlims, y = ylims)
+  
+  coords <- box_coords
+  #ch <- chull(x = dat_coords$lon, y = dat_coords$lat) #chull function computes the subset of points which lie in the space of the points specified (areas of overlap)
+  #coords <- dat_coords[c(ch, ch[1]), ]
   plot(dat_coords, pch = 19)
   lines(coords, col = "red")
   sp_poly <- SpatialPolygons(list(Polygons(list(Polygon(coords)), ID = 1)))
@@ -195,9 +141,10 @@ generate_pseudo_abs_fcn = function(dat, csv_outdir, poly_outdir, sp_name){
 #------------------------------
 #run the PA buffer function - generated above
 #-----------------------------
-csvdir = "C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/PAs/background"
-polydir = "C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/PAs/background"
+csvdir = "C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/PAs/background/psat_spot_domain"
+polydir = "C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/PAs/background/psat_spot_domain"
 species = "mako"
+set.seed(1004)
 
 generate_pseudo_abs_fcn(dat = mako_pa, 
                         csv_outdir = csvdir, 
@@ -212,11 +159,6 @@ head(PA_dat)
 str(PA_dat)
 poly = st_read(glue("{polydir}/{species}.shp"))
 
-minx = min(PA_dat$lon)
-maxx = max(PA_dat$lon)
-miny = min(PA_dat$lat)
-maxy = max(PA_dat$lat)
-
 ggplot()+
   geom_polygon(data = fortify(maps::map("world2", plot = F, fill = T)), aes(x = long, y = lat, group = group), color = "grey20", fill = "grey60")+ #fortify converts spatial objects to data frames for ggplot
   geom_point(data = PA_dat, aes(x = lon, y = lat, color = as.factor(presAbs), group = presAbs), size = 0.7, alpha = 0.8)+
@@ -226,4 +168,4 @@ ggplot()+
   ggtitle(glue("{species} npre = {nrow(PA_dat)} (1:1 ratio)"))+
   theme_tq()
 
-ggsave("images/buffer_ps.png", width = 40, height = 20, units = "cm")
+ggsave("figs/buffer_ps.png", width = 40, height = 20, units = "cm")

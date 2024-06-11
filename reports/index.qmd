@@ -11,7 +11,9 @@ Below are links to the pages containing different exploratory analyses for the j
 
 [See here](merc_valid3.html) for the Mercator BIORYS4 and GLORYS4 data product validation work.
 
-[See here](covar_explore_psat_spot_new.html) for the figures depicting the covariate exploration across depth layers (0m, 60m, 250m)
+[See here](covar_explore_psat_spot_new.html) for the figures depicting the covariate exploration (CRW PA) across depth layers (0m, 60m, 250m)
+
+[See here](covar_explore_psat_spot_back.html) for the figures depicting the covariate exploration (Background PA) across depth layers (0m, 60m, 250m)
 
 [See here](brt_explore.html) for the initial BRT output exploration for both the CMEM and ROMS domain data.
 
