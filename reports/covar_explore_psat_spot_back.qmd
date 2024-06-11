@@ -52,9 +52,9 @@ theme_set(theme_tq() +
 
 ```
 
-For each of the figures below, I have visualized what the covariate values are for the CRW pseudo absence positions and observed positions across three depth layers (0m, 60m, and 250m). I have also explored the covariate values using the full range of the available positions using environmental data from Copernicus Marine and Environment Monitoring Service (CMEMS).
+For each of the figures below, I have visualized what the covariate values are for the Background pseudo absence positions and observed positions across three depth layers (0m, 60m, and 250m). I have also explored the covariate values using the full range of the available positions using environmental data from Copernicus Marine and Environment Monitoring Service (CMEMS).
 
-Lastly, for each collection of a shark's observed positions, there are 22 replicate pseudo absence CRW tracks for the CMEM domain. This will eventually be sampled down to PA replicate for each observed track to maintain a 1:1 ration between observed and pseudo absence locations.
+Background PA positions were developed at random and at a 1:1 ratio with the number of observed locations.
 
 # Covariate summary plots for all sharks
 
