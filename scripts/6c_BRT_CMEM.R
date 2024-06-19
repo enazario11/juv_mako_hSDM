@@ -4,73 +4,171 @@ library(gbm)
 library(dismo)
 library(here);here <- here::here
 library(ggBRT)
-library(caret)
-library(pROC)
 
 set.seed(1004)
 
 ### load data ####
 #CRW data
-dat_base <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds"))
-dat_do <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds"))
-dat_agi <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds"))
+dat_base <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% mutate(tag = as.factor(tag))
+dat_do <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% mutate(tag = as.factor(tag))
 
-### optimize hyperparameters ####
 #split into test and train
 #base
 dat_train_base <- dat_base %>% sample_frac(0.75)
 dat_test_base <- dat_base %>% sample_frac(0.25)
 
-dat_train_base_hp <- na.omit(dat_train_base)
-
 #do
 dat_train_do <- dat_do %>% sample_frac(0.75)
-dat_test_do <- dat_agi %>% sample_frac(0.25)
-
-dat_train_do_hp <- na.omit(dat_train_do)
+dat_test_do <- dat_do %>% sample_frac(0.25)
 
 #agi
 dat_train_agi <- dat_agi %>% sample_frac(0.75)
 dat_test_agi <- dat_agi %>% sample_frac(0.25)
 
-dat_train_agi_hp <- na.omit(dat_train_agi)
+### run BRT ####
+#### base ####
+#base w/o spatial predictors, w/ tag id predictor and covars only at the surface (no DO or AGI)
+try(brt_base_0m_Nspat_Ytag <- dismo::gbm.step(
+                              data = dat_train_base, 
+                              gbm.x = c(1, 8:18), 
+                              gbm.y = 5,
+                              family = "bernoulli", 
+                              tree.complexity = 3,
+                              learning.rate = 0.05, 
+                              bag.fraction = 0.75, 
+                              silent = TRUE, 
+                              plot.main = TRUE
+                              )
+    )
+#saveRDS(brt_base_0m_Nspat_Ytag, here("data/brt/mod_outputs/brt_base_0m_Nspat_Ytag.rds"))
 
-# Set optimization options using caret
-fitControl <- trainControl(method = "cv", number = 5) # Can be very slow with high "number"
+#base w/o spatial predictors, w/o tag id predictor and covars only at the surface (no DO or AGI)
+try(brt_base_0m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_base, 
+  gbm.x = c(8:18), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_base_0m_Nspat_Ntag, here("data/brt/mod_outputs/brt_base_0m_Nspat_Ntag.rds"))
 
-# Set the range of options for each parameter: I'm varying interaction.depth (tree complexity), shrinkage (learning rate), and n.trees. Range of values based on BRT paper from Elith et al (2008)
-gbmGrid <- expand.grid(interaction.depth = seq(2, 5, by = 1), 
-                       n.trees = seq(430000, 440000, by = 10000), 
-                       shrinkage = (0.0005:0.1), n.minobsinnode = 10)
+#base w/ spatial predictors, w/ tag id predictor and covars only at the surface (no DO or AGI)
+try(brt_base_0m_Yspat_Ytag <- dismo::gbm.step(
+  data = dat_train_base, 
+  gbm.x = c(1, 4, 8:19), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_base_0m_Yspat_Ytag, here("data/brt/mod_outputs/brt_base_0m_Yspat_Ytag.rds"))
 
-# Now test which combination of parameters works best. For some reason, the presence/absence variable must be a factor
-gbmFit1 <- caret::train(factor(PA) ~ chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd + dist_coast + lat + tag, 
-                        data = dat_train_base_hp, method = "gbm", trControl = fitControl, 
-                        verbose = FALSE, tuneGrid = gbmGrid)
+#do
+#do w/ spatial predictors, w/ tag id predictors, and DO covar at the surface
+try(brt_do_0m_Yspat_Ytag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(1, 4, 8:20), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_do_0m_Yspat_Ytag, here("data/brt/mod_outputs/brt_do_0m_Yspat_Ytag.rds"))
 
-# You can plot the results: ideally, a shrinkage value (= learning rate) somewhere in the middle
-# of the options you provided will be chosen, otherwise you may need to expand the range
-plot(gbmFit1)
+#do w/o spatial predictors, w/ tag id predictors, and DO covar at the surface
+try(brt_do_0m_Nspat_Ytag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(1, 8:19), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_do_0m_Nspat_Ytag, here("data/brt/mod_outputs/brt_do_0m_Nspat_Ytag.rds"))
 
-# Save the best values for learning rate, tree complexity, and no. trees
-lr.best <- gbmFit1$bestTune$shrinkage
-tc.best <- gbmFit1$bestTune$interaction.depth
-n.trees.best <- gbmFit1$bestTune$n.trees
+#do w/o spatial predictors, w/ tag id predictors, and DO covar at the surface and at 60m 
+try(brt_do_0m_60m_Nspat_Ytag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(1, 8:19, 21), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_do_0m_60m_Nspat_Ytag, here("data/brt/mod_outputs/brt_do_0m_60m_Nspat_Ytag.rds"))
+
+#do w/o spatial predictors, w/ tag id predictors, and DO covar at the surface and at 250m 
+try(brt_do_0m_250m_Nspat_Ytag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(1, 8:19, 22), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_do_0m_250m_Nspat_Ytag, here("data/brt/mod_outputs/brt_do_0m_250m_Nspat_Ytag.rds"))
+
+#do w/o spatial predictors, w/ tag id predictors, and DO covar at the surface and at 60m and 250m 
+try(brt_do_0m_60m_250m_Nspat_Ytag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(1, 8:19, 21, 22), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_do_0m_60m_250m_Nspat_Ytag, here("data/brt/mod_outputs/brt_do_0m_60m_250m_Nspat_Ytag.rds"))
+
+#do w/ spatial predictors, w/ tag id predictors, and DO covar at the surface and at 60m and 250m
+try(brt_do_0m_60m_250m_Yspat_Ytag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(1, 4, 8:22), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_do_0m_60m_250m_Yspat_Ytag, here("data/brt/mod_outputs/brt_do_0m_60m_250m_Yspat_Ytag.rds"))
+
+#agi
 
 
 
-
-
-
-
-#run BRT
-try(test <- dismo::gbm.step(data = dat_train0, gbm.x = c(8:19, 23), gbm.y = 5,
-                                              family = "bernoulli", tree.complexity = 5,
-                                              learning.rate = 0.01, bag.fraction = 0.75, 
-                            silent = TRUE, 
-                            plot.main = TRUE))
-
-#### explore outputs ####
+#### explore outputs -- will more thoroughly do in quarto doc ####
 ggBRT::ggPerformance(test)
 
 gbm.plot(test, nplots = 13, plot.layout = c(3,4), write.title = FALSE) 
