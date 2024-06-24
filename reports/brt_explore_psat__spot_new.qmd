@@ -1,5 +1,5 @@
 ---
-title: "Mako hSDM BRT explore (ROMS and CMEM domains)"
+title: "Mako hSDM BRT explore (CRW PAs)"
 author: "Emily Nazario"
 date: "`r Sys.Date()`"
 format:
@@ -13,19 +13,29 @@ fontcolor: "#134f5c"
 code-block-bg: true
 ---
 
-On this document I start my initial exploration with the different model outputs, ranking of covariate influence, and projections. Here, I only explore BRT approaches, but later I may also explore and compare those from GAMMs. The hypotheses I would like to test with these models are as follows:
+On this document, I start my initial exploration into the different model outputs, ranking of covariate influence, performance metrics, and prediction maps. This first set of models only includes extracted covariate data at a daily temporal resolution, but I am also considering exploring models that include covariate data at a seasonal or annual temporal resolution. The pseudo absences used in these models were generated using correlated random walk approaches, but another quarto document includes models with background sampling pseudo absences. Lastly, hyperparameters were tuned using the caret package and across all models, a learning rate of 0.05 and tree complexity of 3 resulted in the highest accuracy. Lastly, the 'pred_var' predictor is a random set of numbers that will be used to identify which predictor variables should be included in the final model, and which are not informative. 
 
-**H1:** The aerobic growth index (AGI) at deeper depths will have a larger relative influence on habitat suitability than the AGI values closer to the surface.
+The hypotheses I would like to test with these models are as follows:
 
-*study objective being met:* Understand how the AGI across depth layers influences habitat suitability. Are AGI values at deeper depths more influential? This would make sense given the reductions in oxygen availability and would be interesting given anticipated changes for the shoaling OMZ.
+**H1:** The AGI model will perform better than the dissolved oxygen and null model, and the dissolved oxygen model will perform better than the null model.
 
-**H2:** The AGI will have important pairwise interactions with latitude and longitude.
+*study objective being met:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)? 
 
-*study objective being met:* Understand how the AGI moving towards the equator (theoretical thermal and metabolic edge for makos) and towards the coast (more shallow OMZs) may influence habitat suitability. Coastal areas in Baja are expected to be the regions that would be the first to become metabolically challenging under prediceted climate change scenarios.
+**H2:** The inclusion of dissolved oxygen at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the dissolved oxygen model considering surface values alone.
 
-**H3:** Models with the AGI as a covariate will have better predictive power than models with just dissolved oxygen and temperature.
+*study objective being met:* How does dissolved oxygen at different depths influence habitat suitability predictions relative to oxygen at the surface?
 
-*study objective being met:* Here, I am interested in understanding how model performance differs when AGI is a covariate relative to when DO and temperature are covariates. This will be an interesting feature to see what this physio-informed metric brings to the table for this study. Will it be informative? Or will the unique metabolic demands of mako sharks be underrepresented in this metric?
+**H3:** The inclusion of the AGI at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the AGI model considering surface values alone.
+
+*study objective being met:* How does the aerobic growth index (AGI; environmental oxygen supply:theoretical oxygen demand) at different depths influence habitat suitability predictions relative to the aerobic growth index at the surface? 
+
+**H4:** There will be important relationships between dissolved oxygen/the AGI and latitude/distance to coast.
+
+*study objective being met:* Are there any important relationships between dissolved oxygen or AGI at the surface or at depth and latitude or distance to the coast?
+
+**H5:** The null model will predict higher habitat suitability in areas or during seasons or periods (upwelling or La Niña) with lower dissolved oxygen through the water column relative to the dissolved oxygen and AGI models. 
+
+*study objective being met:* How do the habitat suitability maps differ between the models? How do these variations compare for different points in time? 
 
 ```{r}
 #| echo: false
@@ -43,191 +53,205 @@ library(sf)
 library(tidyterra)
 library(here);here <- here::here #plyr's here function masks here::here
 
-
 set.seed(1004)
 
-#load data w/ covars
-dat0 <- readRDS(here("data/locs_w_covar/cmems/cmems_locs_covar_0m_emp_dist.rds")) %>%
-  subset(select = -c(pO2_0, O2_demand0, mlotst_mean, zos_mean, uo_mean, vo_mean, bathy_sd, nppv_mean))
-dat0$bathy <- replace(dat0$bathy, dat0$bathy == "NaN", NA)
-dat0 <- dat0 %>% 
-  rename( "thetao0"= "thetao_mean", "so0" = "so_mean", "chl0" = "chl_mean", "o20" = "o2_mean", "AGI0" = "AGI_0m")
+source(here("functions/BRT_evaluation_functions.R"))
 
-dat250 <- readRDS(here("data/locs_w_covar/cmems/cmems_locs_covar_250m_emp_dist.rds")) %>%
-  subset(select = -c(tag, date, lon, lat, PA, rep, dt, pO2_250, O2_demand250, uo_mean, vo_mean, nppv_mean, dist_coast))
-colnames(dat250) <- c("thetao250", "so250","chl250", "o2250", "AGI250")
+#get test and train data sets 
+#CRW data
+dat_base <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% mutate(tag = as.factor(tag))
+dat_do <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% mutate(tag = as.factor(tag))
 
-dat_all <- cbind(dat0, dat250)
+### add random variable for predictor selection ####
+pred_var <- rnorm(31084, mean = 50, sd = 10)
 
-#originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-dat_all$PA <- replace(dat_all$PA, dat_all$PA == 1, 2) #change PAs to temporarily equal 2
-dat_all$PA <- replace(dat_all$PA, dat_all$PA == 0, 1) #change true positions to a 1
-dat_all$PA <- replace(dat_all$PA, dat_all$PA == 2, 0) #change PA positions to a 0
+dat_base$pred_var <- pred_var
+dat_do$pred_var <- pred_var
+dat_agi$pred_var <- pred_var
 
-#randomly select 1 PA rep for each tag 
-dat_pos <- dat_all %>% filter(PA == 1)
-dat_pa <- dat_all %>% filter(PA == 0)
+#split into test and train
+#base
+dat_train_base <- dat_base %>% sample_frac(0.75)
+dat_test_base <- dat_base %>% sample_frac(0.25)
 
-#randomly select one PA for each tag
-dat2 <- NULL
-for(i in 1:length(unique(dat_pa$tag))){
-  #select current id
-  curr_ID <- unique(dat_pa$tag)[i]
-  temp_df <- dat_pa[dat_pa$tag %in% curr_ID,]
-  
-  #sample 52 id's randomly
-  temp_rep_ID <- sample(unique(temp_df$rep), 1, replace = FALSE)
-  
-  #narrow your data set
-  temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
-  
-  #combine in a single df
-  dat2 <- rbind(dat2, temp_df2)
-  
-}
+#do
+dat_train_do <- dat_do %>% sample_frac(0.75)
+dat_test_do <- dat_do %>% sample_frac(0.25)
 
-dat2 <- rbind(dat2, dat_pos)
-  
-  #get Julian day of year
-j_day <- as.POSIXlt(dat2$dt, format = "%Y-%m-%d")
-dat2$j_day <- j_day$yday
+#agi
+dat_train_agi <- dat_agi %>% sample_frac(0.75)
+dat_test_agi <- dat_agi %>% sample_frac(0.25)
 
-#set up training and test datasets
-dat_train <- dat2 %>% sample_frac(0.75)
-dat_test <- dat2 %>% sample_frac(0.25)
+#load BRT outputs
+brt_outputs <- list.files(here("data/brt/mod_outputs"), full.names = TRUE)
+
 ```
 
-# CMEM Surface BRT w/ AGI at 0m and 250m (all covar included except DO and Temp at those depths)
+# Base models
 
-Below are the model outputs for a BRT developed with all covariates values extracted at 0m and 250m depth except for DO and Temperature. By doing this I hoped to isolate the effect that the AGI has on model predictive power that I can then compare to the other models on this document (1) a BRT without AGI and DO and temperature, and (2) a BRT with AGI and temperature (not DO).
+These three models represent three different options for the base model and either include spatial predictors, a tag ID predictor, both, or neither. These models were developed by splitting the data set into 75/25 train/test, and thus that is the model evaluation approach used here. However, once a model is selected, I can run additional evaluation metrics (i.e., LOO, k-fold) now depending on when that is typically completed. 
 
-## AGI tc5, lr0.01, bf0.75
+::: panel-tabset
 
+## 0m, no spatial predictors, no tag ID predictor 
 ```{r}
 #| warning: false
 #| fig-width: 12
 #| fig-height: 10
 
-# try(agi_tc5_lr01 <- dismo::gbm.step(data = dat_train,
-#                                     gbm.x = c(4, 9:10, 12:14, 16:17, 19:20),
-#                                     gbm.y = 5,
-#                                     family = "bernoulli",
-#                                     tree.complexity = 5,
-#                                     learning.rate = 0.01,
-#                                     bag.fraction = 0.75,
-#                                     silent = TRUE,
-#                                     plot.main = TRUE))
+base_Nspat_Ntag <- readRDS(brt_outputs[7])
 
-#saveRDS(agi_tc5_lr01, here("data/brt/mod_bls/agi_tc5_lr01.rds"))
-
-  #load model so I don't run every time
-agi_tc5_lr01 <- readRDS(here("data/brt/mod_bls/agi_tc5_lr01.rds"))
-
-ggBRT::ggPerformance(agi_tc5_lr01)
+# model performance 
+ggBRT::ggPerformance(base_Nspat_Ntag)
 
 #relative influence of predictors
-ggBRT::ggInfluence(agi_tc5_lr01) 
+ggBRT::ggInfluence(base_Nspat_Ntag) 
 
 #explore partial plots
-gbm.plot(agi_tc5_lr01, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+gbm.plot(base_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
 
 #find the 5 most important pairwise interactions 
-AGI_int <- gbm.interactions(agi_tc5_lr01)
-AGI_int$rank.list
+base_int <- gbm.interactions(base_Nspat_Ntag)
+base_int$rank.list
 
-#predictions
-preds <- predict.gbm(agi_tc5_lr01, dat_test, 
-                     n.trees = agi_tc5_lr01$gbm.call$best.trees, 
+#predictive performance using test dataset 
+preds <- predict.gbm(base_Nspat_Ntag, dat_test_base,
+                     n.trees = base_Nspat_Ntag$gbm.call$best.trees,
                      type = "response")
 
-calc.deviance(obs = dat_test$PA, preds)
+calc.deviance(obs = dat_test_base$PA, preds) #get % deviance
 
-dat_pred <- cbind(dat_test$PA, preds)
-pres <- dat_pred[dat_pred[,1] == 1, 2]
-abs <- dat_pred[dat_pred[,1] == 0, 2]
+dat_pred_base <- cbind(dat_test_base$PA, preds)
+pres_base <- dat_pred_base[dat_pred_base[,1] == 1, 2]
+abs_base <- dat_pred_base[dat_pred_base[,1] == 0, 2]
 
-evaluate(p = pres, a = abs)
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_base, a = abs_base)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(base_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(base_Nspat_Ntag, 
+                 testInput = dat_test_base, 
+                 gbm.y = "PA")
+
 ```
 
-## HSI map
-
-::: panel-tabset
-### 2004
-
+## 0m, yes spatial predictors, no tag ID predictor 
 ```{r}
 #| warning: false
-   #make HSI plot
-agi_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_covar2004_spatrast.nc"))
-names(agi_rast_2004) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+#| fig-width: 12
+#| fig-height: 10
 
-map_pred = predict(agi_rast_2004, agi_tc5_lr01, type = "response", n.trees = agi_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-extent1<-c(-140,-110,10,50)
-map_pred = crop(map_pred,extent1)
+base_Nspat_Ytag <- readRDS(brt_outputs[8])
 
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
+# model performance 
+ggBRT::ggPerformance(base_Nspat_Ytag)
 
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
+#relative influence of predictors
+ggBRT::ggInfluence(base_Nspat_Ytag) 
 
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
+#explore partial plots
+gbm.plot(base_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+base_int <- gbm.interactions(base_Nspat_Ytag)
+base_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(base_Nspat_Ytag, dat_test_base,
+                     n.trees = base_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_base$PA, preds) #get % deviance
+
+dat_pred_base <- cbind(dat_test_base$PA, preds)
+pres_base <- dat_pred_base[dat_pred_base[,1] == 1, 2]
+abs_base <- dat_pred_base[dat_pred_base[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_base, a = abs_base)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(base_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(base_Nspat_Ytag, 
+                 testInput = dat_test_base, 
+                 gbm.y = "PA")
+
 ```
 
-### 2007
 
+## 0m, yes spatial predictors, yes tag ID predictor 
 ```{r}
 #| warning: false
-   #make HSI plot
-agi_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_covar2007_spatrast.nc"))
-names(agi_rast_2007) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+#| fig-width: 12
+#| fig-height: 10
 
-map_pred = predict(agi_rast_2007, agi_tc5_lr01, type = "response", n.trees = agi_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
+base_Yspat_Ytag <- readRDS(brt_outputs[9])
 
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
+# model performance 
+ggBRT::ggPerformance(base_Yspat_Ytag)
 
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
+#relative influence of predictors
+ggBRT::ggInfluence(base_Yspat_Ytag) 
 
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
+#explore partial plots
+gbm.plot(base_Yspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+base_int <- gbm.interactions(base_Yspat_Ytag)
+base_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(base_Yspat_Ytag, dat_test_base,
+                     n.trees = base_Yspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_base$PA, preds) #get % deviance
+
+dat_pred_base <- cbind(dat_test_base$PA, preds)
+pres_base <- dat_pred_base[dat_pred_base[,1] == 1, 2]
+abs_base <- dat_pred_base[dat_pred_base[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_base, a = abs_base)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(base_Yspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(base_Yspat_Ytag, 
+                 testInput = dat_test_base, 
+                 gbm.y = "PA")
+
 ```
 
-### 2009
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_rast_2009 <- rast(here("data/enviro/CMEMS/hsi_map/agi_covar2009_spatrast.nc"))
-names(agi_rast_2009) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_rast_2009, agi_tc5_lr01, type = "response", n.trees = agi_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-:::
+::: 
 
 # CMEM model w/ DO and Temp. at 0m and 250m depth. Plus all covar except AGI at those depths.
 
@@ -280,85 +304,6 @@ abs <- dat_pred[dat_pred[,1] == 0, 2]
 evaluate(p = pres, a = abs)
 ```
 
-## HSI map
-
-::: panel-tabset
-### 2004
-
-```{r}
-#| warning: false
-   #make HSI plot
-do_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/do_covar2004_spatrast.nc"))
-names(do_rast_2004) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "lat", "j_day")
-
-map_pred = predict(do_rast_2004, do_tc5_lr01, type = "response", n.trees = do_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-
-### 2007
-
-```{r}
-#| warning: false
-   #make HSI plot
-do_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/do_covar2007_spatrast.nc"))
-names(do_rast_2007) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "lat", "j_day")
-
-map_pred = predict(do_rast_2007, do_tc5_lr01, type = "response", n.trees = do_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-
-### 2009
-
-```{r}
-#| warning: false
-   #make HSI plot
-do_rast_2009 <- rast(here("data/enviro/CMEMS/hsi_map/do_covar2009_spatrast.nc"))
-names(do_rast_2009) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "lat", "j_day")
-
-map_pred = predict(do_rast_2009, do_tc5_lr01, type = "response", n.trees = do_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-:::
-
 # CMEM model w/ AGI and Temp. at 0m and 250m depth. Plus all covar except DO at those depths.
 
 Here is the BRT with AGI and temp, and not DO. Here, I was interested in still including temperature because of all of the effects it has independent of its influence on the metabolic rate which is being captured by the AGI. Such influence includes temperature affects on prey species and temperature effects on the mako sharks physiology.
@@ -409,110 +354,6 @@ abs <- dat_pred[dat_pred[,1] == 0, 2]
 
 evaluate(p = pres, a = abs)
 ```
-
-## HSI map
-
-::: panel-tabset
-### 2004
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_temp_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
-names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_temp_rast_2004, agi_temp_tc5_lr01, type = "response", n.trees = agi_temp_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-
-### 2005
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_all_rast_2005 <- rast(here("data/enviro/CMEMS/hsi_map/agi_all_covar2005_spatrast.nc"))
-names(agi_all_rast_2005) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_all_rast_2005, agi_temp_tc5_lr01, type = "response", n.trees = agi_temp_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-
-### 2007
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_temp_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2007_spatrast.nc"))
-names(agi_temp_rast_2007) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_temp_rast_2007, agi_temp_tc5_lr01, type = "response", n.trees = agi_temp_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-
-### 2009
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_temp_rast_2009 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2009_spatrast.nc"))
-names(agi_temp_rast_2009) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_temp_rast_2009, agi_temp_tc5_lr01, type = "response", n.trees = agi_temp_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-:::
 
 # CMEM model w/ AGI and Temp. at 0m depth. Plus all covar at that depth.
 
@@ -565,33 +406,6 @@ abs <- dat_pred[dat_pred[,1] == 0, 2]
 evaluate(p = pres, a = abs)
 ```
 
-## HSI map
-
-### 2004
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_temp_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
-names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_0_rast_2004, agi_0_tc5_lr01, type = "response", n.trees = agi_0_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-
 # CMEM model w/ AGI at 250m plus all covar at those depths.
 
 ## AGI 250m tc5, lr0.01, bf0.75
@@ -640,32 +454,3 @@ abs <- dat_pred[dat_pred[,1] == 0, 2]
 
 evaluate(p = pres, a = abs)
 ```
-
-## HSI map
-
-::: panel-tabset
-### 2004
-
-```{r}
-#| warning: false
-   #make HSI plot
-agi_temp_rast_2004 <- rast(here("data/enviro/CMEMS/hsi_map/agi_temp_covar2004_spatrast.nc"))
-names(agi_temp_rast_2004) <- c("thetao0", "so0", "chl0", "thetao250", "so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
-
-map_pred = predict(agi_250_rast_2004, agi_250_tc5_lr01, type = "response", n.trees = agi_250_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
-
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
-
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-    scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_viridis_c()
-```
-:::
