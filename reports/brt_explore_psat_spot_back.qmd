@@ -1,0 +1,1547 @@
+---
+title: "Mako hSDM BRT explore (Background PAs)"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+---
+
+On this document, I've included the results from the initial exploration into the different model outputs, ranking of covariate influence, performance metrics, and prediction maps. This first set of models only includes extracted covariate data at a daily temporal resolution, but I am also considering exploring models that include covariate data at a seasonal or annual temporal resolution. The pseudo absences used in these models were generated using background sampling approaches. Lastly, hyperparameters were tuned using the caret package and across all models, a learning rate of 0.05 and tree complexity of 3 resulted in the highest accuracy. Lastly, the 'pred_var' predictor is a random set of numbers that will be used to identify which predictor variables should be included in the final model, and which are not informative. 
+
+The hypotheses I would like to test with these models are as follows:
+
+**H1:** The AGI model will perform better than the dissolved oxygen and null model, and the dissolved oxygen model will perform better than the null model.
+
+*study objective being met:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)? 
+
+**H2:** The inclusion of dissolved oxygen at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the dissolved oxygen model considering surface values alone.
+
+*study objective being met:* How does dissolved oxygen at different depths influence habitat suitability predictions relative to oxygen at the surface?
+
+**H3:** The inclusion of the AGI at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the AGI model considering surface values alone.
+
+*study objective being met:* How does the aerobic growth index (AGI; environmental oxygen supply:theoretical oxygen demand) at different depths influence habitat suitability predictions relative to the aerobic growth index at the surface? 
+
+**H4:** There will be important relationships between dissolved oxygen/the AGI and latitude/distance to coast.
+
+*study objective being met:* Are there any important relationships between dissolved oxygen or AGI at the surface or at depth and latitude or distance to the coast?
+
+**H5:** The null model will predict higher habitat suitability in areas or during seasons or periods (upwelling or La Niña) with lower dissolved oxygen through the water column relative to the dissolved oxygen and AGI models. 
+
+*study objective being met:* How do the habitat suitability maps differ between the models? How do these variations compare for different points in time? 
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+
+#libraries
+library(tidyverse)
+library(gbm)
+library(dismo)
+library(here)
+library(terra)
+library(sf)
+library(tidyterra)
+library(here);here <- here::here #plyr's here function masks here::here
+
+set.seed(1004)
+
+source(here("functions/BRT_evaluation_functions.R"))
+
+#get test and train data sets 
+#CRW data
+dat_base <- readRDS(here("data/locs_brts/bckg_pas/dat_base_back.rds")) %>% mutate(tag = as.factor(tag))
+dat_do <- readRDS(here("data/locs_brts/bckg_pas/dat_do_back.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi <- readRDS(here("data/locs_brts/bckg_pas/dat_agi_back.rds")) %>% mutate(tag = as.factor(tag))
+
+### add random variable for predictor selection ####
+pred_var <- rnorm(31084, mean = 50, sd = 10)
+
+dat_base$pred_var <- pred_var
+dat_do$pred_var <- pred_var
+dat_agi$pred_var <- pred_var
+
+#split into test and train
+#base
+dat_train_base <- dat_base %>% sample_frac(0.75)
+dat_test_base <- dat_base %>% sample_frac(0.25)
+
+#do
+dat_train_do <- dat_do %>% sample_frac(0.75)
+dat_test_do <- dat_do %>% sample_frac(0.25)
+
+#agi
+dat_train_agi <- dat_agi %>% sample_frac(0.75)
+dat_test_agi <- dat_agi %>% sample_frac(0.25)
+
+#load BRT outputs
+brt_outputs <- list.files(here("data/brt/mod_outputs/background"), full.names = TRUE)
+brt_outputs_Ntag <- list.files(here("data/brt/mod_outputs/background/no_tag"), full.names = TRUE)
+
+```
+
+# Base models
+
+These three models represent three different options for the base model and either include spatial predictors, a tag ID predictor, both, or neither. These models were developed by splitting the data set into 75/25 train/test, and thus that is the model evaluation approach used here. However, once a model is selected, I can run additional evaluation metrics (i.e., LOO, k-fold). I can also complete these now depending on when that is typically performed. 
+
+::: panel-tabset
+
+## 0m, no spatial predictors, no tag ID predictor 
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+base_Nspat_Ntag <- readRDS(brt_outputs[7])
+
+# model performance 
+ggBRT::ggPerformance(base_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(base_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(base_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+base_int <- gbm.interactions(base_Nspat_Ntag)
+base_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(base_Nspat_Ntag, dat_test_base,
+                     n.trees = base_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_base$PA, preds) #get % deviance
+
+dat_pred_base <- cbind(dat_test_base$PA, preds)
+pres_base <- dat_pred_base[dat_pred_base[,1] == 1, 2]
+abs_base <- dat_pred_base[dat_pred_base[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_base, a = abs_base)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(base_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(base_Nspat_Ntag, 
+                 testInput = dat_test_base, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, no spatial predictors, yes tag ID predictor 
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+base_Nspat_Ytag <- readRDS(brt_outputs[8])
+
+# model performance 
+ggBRT::ggPerformance(base_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(base_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(base_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+base_int <- gbm.interactions(base_Nspat_Ytag)
+base_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(base_Nspat_Ytag, dat_test_base,
+                     n.trees = base_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_base$PA, preds) #get % deviance
+
+dat_pred_base <- cbind(dat_test_base$PA, preds)
+pres_base <- dat_pred_base[dat_pred_base[,1] == 1, 2]
+abs_base <- dat_pred_base[dat_pred_base[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_base, a = abs_base)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(base_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(base_Nspat_Ytag, 
+                 testInput = dat_test_base, 
+                 gbm.y = "PA")
+
+```
+
+
+## 0m, yes spatial predictors, yes tag ID predictor 
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+base_Yspat_Ytag <- readRDS(brt_outputs[9])
+
+# model performance 
+ggBRT::ggPerformance(base_Yspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(base_Yspat_Ytag) 
+
+#explore partial plots
+gbm.plot(base_Yspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+base_int <- gbm.interactions(base_Yspat_Ytag)
+base_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(base_Yspat_Ytag, dat_test_base,
+                     n.trees = base_Yspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_base$PA, preds) #get % deviance
+
+dat_pred_base <- cbind(dat_test_base$PA, preds)
+pres_base <- dat_pred_base[dat_pred_base[,1] == 1, 2]
+abs_base <- dat_pred_base[dat_pred_base[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_base, a = abs_base)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(base_Yspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(base_Yspat_Ytag, 
+                 testInput = dat_test_base, 
+                 gbm.y = "PA")
+
+```
+
+::: 
+
+# DO models
+I ran a suite of models that include various combinations of data at depth, spatial predictors, and tag ID predictors. Moving forward, I would also like to include DO and the other environmental predictor variables as longer time scales (seasonal/annual).
+
+::: panel-tabset
+
+## 0m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_Nspat_Ytag <- readRDS(brt_outputs[14])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(do_0m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_Nspat_Ytag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_Nspat_Ytag, dat_test_do,
+                     n.trees = do_0m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(do_0m_Nspat_Ytag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, yes spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_Yspat_Ytag <- readRDS(brt_outputs[15])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_Yspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_Yspat_Ytag) 
+
+#explore partial plots
+gbm.plot(do_0m_Yspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_Yspat_Ytag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_Yspat_Ytag, dat_test_do,
+                     n.trees = do_0m_Yspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_Yspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(do_0m_Yspat_Ytag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 60m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_60m_Nspat_Ytag <- readRDS(brt_outputs[13])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_60m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_60m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(do_0m_60m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_60m_Nspat_Ytag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_60m_Nspat_Ytag, dat_test_do,
+                     n.trees = do_0m_60m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_60m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(do_0m_60m_Nspat_Ytag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 250m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_250m_Nspat_Ytag <- readRDS(brt_outputs[10])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_250m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_250m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(do_0m_250m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_250m_Nspat_Ytag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_250m_Nspat_Ytag, dat_test_do,
+                     n.trees = do_0m_250m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_250m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(do_0m_250m_Nspat_Ytag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_60m_250m_Nspat_Ytag <- readRDS(brt_outputs[11])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_60m_250m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_60m_250m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(do_0m_60m_250m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_60m_250m_Nspat_Ytag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_60m_250m_Nspat_Ytag, dat_test_do,
+                     n.trees = do_0m_60m_250m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_60m_250m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(do_0m_60m_250m_Nspat_Ytag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, yes spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_60m_250m_Yspat_Ytag <- readRDS(brt_outputs[12])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_60m_250m_Yspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_60m_250m_Yspat_Ytag) 
+
+#explore partial plots
+gbm.plot(do_0m_60m_250m_Yspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_60m_250m_Yspat_Ytag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_60m_250m_Yspat_Ytag, dat_test_do,
+                     n.trees = do_0m_60m_250m_Yspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_60m_250m_Yspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(do_0m_60m_250m_Yspat_Ytag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+:::
+
+# AGI models 
+I ran a suite of models that include various combinations of data at depth, spatial predictors, and tag ID predictors. Moving forward, I would also like to include AGI and the other environmental predictor variables as longer time scales (seasonal/annual).
+
+::: panel-tabset 
+
+## 0m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_Nspat_Ytag <- readRDS(brt_outputs[5])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(agi_0m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_Nspat_Ytag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_Nspat_Ytag, dat_test_agi,
+                     n.trees = agi_0m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_Nspat_Ytag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, yes spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_Yspat_Ytag <- readRDS(brt_outputs[6])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_Yspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_Yspat_Ytag) 
+
+#explore partial plots
+gbm.plot(agi_0m_Yspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_Yspat_Ytag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_Yspat_Ytag, dat_test_agi,
+                     n.trees = agi_0m_Yspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_Yspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_Yspat_Ytag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 60m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_60m_Nspat_Ytag <- readRDS(brt_outputs[4])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_60m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_60m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(agi_0m_60m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_60m_Nspat_Ytag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_60m_Nspat_Ytag, dat_test_agi,
+                     n.trees = agi_0m_60m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_60m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_60m_Nspat_Ytag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 250m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_250m_Nspat_Ytag <- readRDS(brt_outputs[1])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_250m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_250m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(agi_0m_250m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_250m_Nspat_Ytag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_250m_Nspat_Ytag, dat_test_agi,
+                     n.trees = agi_0m_250m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_250m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_250m_Nspat_Ytag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, no spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_60m_250m_Nspat_Ytag <- readRDS(brt_outputs[2])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_60m_250m_Nspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_60m_250m_Nspat_Ytag) 
+
+#explore partial plots
+gbm.plot(agi_0m_60m_250m_Nspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_60m_250m_Nspat_Ytag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_60m_250m_Nspat_Ytag, dat_test_agi,
+                     n.trees = agi_0m_60m_250m_Nspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_60m_250m_Nspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_60m_250m_Nspat_Ytag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, yes spatial, yes tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_60m_250m_Yspat_Ytag <- readRDS(brt_outputs[3])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_60m_250m_Yspat_Ytag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_60m_250m_Yspat_Ytag) 
+
+#explore partial plots
+gbm.plot(agi_0m_60m_250m_Yspat_Ytag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_60m_250m_Yspat_Ytag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_60m_250m_Yspat_Ytag, dat_test_agi,
+                     n.trees = agi_0m_60m_250m_Yspat_Ytag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_60m_250m_Yspat_Ytag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_60m_250m_Yspat_Ytag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+:::
+
+# Summary table of results 
+```{r}
+#| warning: false
+#| message: false
+
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_bckg_output_summary.csv"))
+kableExtra::kable(output_sum)
+
+```
+
+# DO models w/o tag ID 
+Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that dissolved oxygen may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included. 
+
+:::panel-tabset
+
+## 0m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[12])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(do_0m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_Nspat_Ntag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_Nspat_Ntag, dat_test_do,
+                     n.trees = do_0m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(do_0m_Nspat_Ntag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, yes spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_Yspat_Ntag <- readRDS(brt_outputs_Ntag[13])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_Yspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_Yspat_Ntag) 
+
+#explore partial plots
+gbm.plot(do_0m_Yspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_Yspat_Ntag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_Yspat_Ntag, dat_test_do,
+                     n.trees = do_0m_Yspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_Yspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(do_0m_Yspat_Ntag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 60m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_60m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[11])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_60m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_60m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(do_0m_60m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_60m_Nspat_Ntag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_60m_Nspat_Ntag, dat_test_do,
+                     n.trees = do_0m_60m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_60m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(do_0m_60m_Nspat_Ntag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 250m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_250m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[8])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_250m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_250m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(do_0m_250m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_250m_Nspat_Ntag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_250m_Nspat_Ntag, dat_test_do,
+                     n.trees = do_0m_250m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_250m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(do_0m_250m_Nspat_Ntag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_60m_250m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[9])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_60m_250m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_60m_250m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(do_0m_60m_250m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_60m_250m_Nspat_Ntag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_60m_250m_Nspat_Ntag, dat_test_do,
+                     n.trees = do_0m_60m_250m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_60m_250m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(do_0m_60m_250m_Nspat_Ntag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, yes spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+do_0m_60m_250m_Yspat_Ntag <- readRDS(brt_outputs_Ntag[10])
+
+# model performance 
+ggBRT::ggPerformance(do_0m_60m_250m_Yspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(do_0m_60m_250m_Yspat_Ntag) 
+
+#explore partial plots
+gbm.plot(do_0m_60m_250m_Yspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+do_int <- gbm.interactions(do_0m_60m_250m_Yspat_Ntag)
+do_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(do_0m_60m_250m_Yspat_Ntag, dat_test_do,
+                     n.trees = do_0m_60m_250m_Yspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_do$PA, preds) #get % deviance
+
+dat_pred_do <- cbind(dat_test_do$PA, preds)
+pres_do <- dat_pred_do[dat_pred_do[,1] == 1, 2]
+abs_do <- dat_pred_do[dat_pred_do[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_do, a = abs_do)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(do_0m_60m_250m_Yspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(do_0m_60m_250m_Yspat_Ntag, 
+                 testInput = dat_test_do, 
+                 gbm.y = "PA")
+
+```
+:::
+
+# AGI models w/o tag ID
+Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that AGI may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included. 
+
+:::panel-tabset 
+
+## 0m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[5])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(agi_0m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_Nspat_Ntag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_Nspat_Ntag, dat_test_agi,
+                     n.trees = agi_0m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_Nspat_Ntag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, yes spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_Yspat_Ntag <- readRDS(brt_outputs_Ntag[6])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_Yspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_Yspat_Ntag) 
+
+#explore partial plots
+gbm.plot(agi_0m_Yspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_Yspat_Ntag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_Yspat_Ntag, dat_test_agi,
+                     n.trees = agi_0m_Yspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_Yspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_Yspat_Ntag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 60m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_60m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[4])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_60m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_60m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(agi_0m_60m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_60m_Nspat_Ntag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_60m_Nspat_Ntag, dat_test_agi,
+                     n.trees = agi_0m_60m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_60m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_60m_Nspat_Ntag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m & 250m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_250m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[1])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_250m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_250m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(agi_0m_250m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_250m_Nspat_Ntag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_250m_Nspat_Ntag, dat_test_agi,
+                     n.trees = agi_0m_250m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_250m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_250m_Nspat_Ntag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, no spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_60m_250m_Nspat_Ntag <- readRDS(brt_outputs_Ntag[2])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_60m_250m_Nspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_60m_250m_Nspat_Ntag) 
+
+#explore partial plots
+gbm.plot(agi_0m_60m_250m_Nspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_60m_250m_Nspat_Ntag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_60m_250m_Nspat_Ntag, dat_test_agi,
+                     n.trees = agi_0m_60m_250m_Nspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_60m_250m_Nspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_60m_250m_Nspat_Ntag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+
+## 0m, 60m, & 250m, yes spatial, no tag
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_0m_60m_250m_Yspat_Ntag <- readRDS(brt_outputs_Ntag[3])
+
+# model performance 
+ggBRT::ggPerformance(agi_0m_60m_250m_Yspat_Ntag)
+
+#relative influence of predictors
+ggBRT::ggInfluence(agi_0m_60m_250m_Yspat_Ntag) 
+
+#explore partial plots
+gbm.plot(agi_0m_60m_250m_Yspat_Ntag, nplots = 10, plot.layout = c(3,5), write.title = FALSE) 
+
+#find the 5 most important pairwise interactions 
+agi_int <- gbm.interactions(agi_0m_60m_250m_Yspat_Ntag)
+agi_int$rank.list
+
+#predictive performance using test dataset 
+preds <- predict.gbm(agi_0m_60m_250m_Yspat_Ntag, dat_test_agi,
+                     n.trees = agi_0m_60m_250m_Yspat_Ntag$gbm.call$best.trees,
+                     type = "response")
+
+calc.deviance(obs = dat_test_agi$PA, preds) #get % deviance
+
+dat_pred_agi <- cbind(dat_test_agi$PA, preds)
+pres_agi <- dat_pred_agi[dat_pred_agi[,1] == 1, 2]
+abs_agi <- dat_pred_agi[dat_pred_agi[,1] == 0, 2]
+
+#evaluate (AUC, TSS, TPR)
+e = evaluate(p = pres_agi, a = abs_agi)
+plot(e, 'TPR')
+plot(e, 'TNR')
+plot(e, 'ROC')
+boxplot(e)
+density(e)
+mean(e@TPR) #TPR
+max(e@TPR + e@TNR -1) #TSS
+
+#provides % deviance for model selection - unsure if this is different from above calc.deviance
+dev_eval_brt(agi_0m_60m_250m_Yspat_Ntag)
+
+#eval 75/25
+eval_7525_modified(agi_0m_60m_250m_Yspat_Ntag, 
+                 testInput = dat_test_agi, 
+                 gbm.y = "PA")
+
+```
+:::
+
+# Summary table of results
+```{r}
+#| warning: false
+#| message: false
+
+output_sum_Ntag <- read.csv(here("data/brt/mod_outputs/brt_bckg_output_summary_Ntag.csv"))
+kableExtra::kable(output_sum_Ntag)
+
+```

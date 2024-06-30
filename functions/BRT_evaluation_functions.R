@@ -109,6 +109,7 @@ eval_100_percent <- function(brtInput, testInput, gbm.y){
 
 #Number 2: 75/25% 
 eval_7525_modified <- function(brtInput, testInput, gbm.y){
+  set.seed(1004)
   BRTInput <- brtInput
   Evaluations_7525 <- as.data.frame(matrix(data=0,nrow=1,ncol=6))
   colnames(Evaluations_7525) <-  c("RMSE","Cor","C-index","PredRatio","DevianceExplained","PseudoR2")
@@ -145,6 +146,7 @@ eval_7525_modified <- function(brtInput, testInput, gbm.y){
   Evaluations_7525[1,6]<-Rsquared #Pseudo-Rsquared
 
   return(Evaluations_7525)}
+
 
 ##ALL ENVIRONMENTAL VARIABLES
 # eval_7525_sample1 <- eval_7525_modified(dataInput=sample1,

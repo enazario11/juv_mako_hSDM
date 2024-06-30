@@ -13,7 +13,7 @@ dat_base <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% mutate(tag 
 dat_do <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% mutate(tag = as.factor(tag))
 dat_agi <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% mutate(tag = as.factor(tag))
 
-### add random variable for predictor selection ####
+#### add random variable for predictor selection ####
 pred_var <- rnorm(31084, mean = 50, sd = 10)
 
 dat_base$pred_var <- pred_var
@@ -262,6 +262,188 @@ try(brt_agi_0m_60m_250m_Yspat_Ytag <- dismo::gbm.step(
 )
 saveRDS(brt_agi_0m_60m_250m_Yspat_Ytag, here("data/brt/mod_outputs/brt_agi_0m_60m_250m_Yspat_Ytag.rds"))
 
+### run above but without tag ID ####
+#### do ####
+#do w/ spatial predictors, and DO covar at the surface
+try(brt_do_0m_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(4, 8:20, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_Yspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_do_0m_Yspat_Ntag.rds"))
+
+#do w/o spatial predictors and DO covar at the surface
+try(brt_do_0m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(8:19, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_do_0m_Nspat_Ntag.rds"))
+
+#do w/o spatial predictors and DO covar at the surface and at 60m 
+try(brt_do_0m_60m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(8:19, 21, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_do_0m_60m_Nspat_Ntag.rds"))
+
+#do w/o spatial predictors and DO covar at the surface and at 250m 
+try(brt_do_0m_250m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(8:19, 22, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_250m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_do_0m_250m_Nspat_Ntag.rds"))
+
+#do w/o spatial predictors and DO covar at the surface and at 60m and 250m 
+try(brt_do_0m_60m_250m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(8:19, 21, 22, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_do_0m_60m_250m_Nspat_Ntag.rds"))
+
+#do w/ spatial predictors and DO covar at the surface and at 60m and 250m
+try(brt_do_0m_60m_250m_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(4, 8:22, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_Yspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_do_0m_60m_250m_Yspat_Ntag.rds"))
+
+#### agi ####
+#agi w/ spatial predictors and agi covar at the surface
+try(brt_agi_0m_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(4, 8:20, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_Yspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_agi_0m_Yspat_Ntag.rds"))
+
+#agi w/o spatial predictors and agi covar at the surface
+try(brt_agi_0m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(8:19, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_agi_0m_Nspat_Ntag.rds"))
+
+#agi w/o spatial predictors and agi covar at the surface and at 60m 
+try(brt_agi_0m_60m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(8:19, 21, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_agi_0m_60m_Nspat_Ntag.rds"))
+
+#agi w/o spatial predictors and agi covar at the surface and at 250m 
+try(brt_agi_0m_250m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(8:19, 22, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_250m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_agi_0m_250m_Nspat_Ntag.rds"))
+
+#agi w/o spatial predictors and agi covar at the surface and at 60m and 250m 
+try(brt_agi_0m_60m_250m_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(8:19, 21, 22, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_Nspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_agi_0m_60m_250m_Nspat_Ntag.rds"))
+
+#agi w/ spatial predictors and agi covar at the surface and at 60m and 250m
+try(brt_agi_0m_60m_250m_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(4, 8:22, 23), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_Yspat_Ntag, here("data/brt/mod_outputs/crw/no_tag/brt_agi_0m_60m_250m_Yspat_Ntag.rds"))
 
 ### explore outputs -- will more thoroughly do in quarto doc ####
 ggBRT::ggPerformance(test)
@@ -307,11 +489,11 @@ dev_eval_brt=function(model_object){ #provides % deviance for model selection --
   return(dev)
 }
 
-### glm and gam test ####
-m1 <- glm(PA ~ lat + thetao_mean + so_mean + mlotst_mean + lon + zos_mean + uo_mean + vo_mean + chl_mean + nppv_mean + o2_mean + bathy + bathy_sd + AGI_0m, data = dat)
-summary(m1)
 
-m2 <- gam(PA ~ s(lat) + s(thetao_mean) + s(so_mean) + s(mlotst_mean) + s(lon) + s(zos_mean) + s(uo_mean) + s(vo_mean) + s(chl_mean) + s(nppv_mean) + s(o2_mean) + s(bathy) + s(bathy_sd) + s(AGI_0m), random=~(1|tag),family=binomial, data=na.omit(dat), bs = "cs", method = "REML")
-test_m <- gam(PA ~ s(AGI_0m) + s(thetao_mean), random=~(1|tag),family=binomial, data=na.omit(dat), bs = "cs", method = "REML")
-test <- plot(test_m, residuals = TRUE)
+
+
+
+
+
+
 
