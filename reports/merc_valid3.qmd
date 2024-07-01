@@ -15,7 +15,7 @@ code-block-bg: true
 
 On this document I compare the mean Mercator BIORYS4 and GLORYS4 dissolved oxygen (DO) and temperature (temp) data to values from climatology products (DO: World Ocean Atlas and CSIRO; temp: OISST (at 0m), CSIRO, and WOA) and CalCOFI stations. DO and temp values will be compared to the climatology products as averages across the study area (lat: 1 to 49 and lon: -153 to -104) at 0m and at 200m depth which represent two of the depth layers I will use for the shark models.
 
-Temporal variability was compared by extracting the mean dissolved oxygen and temperature values at the nearest grid cell over the CalCOFI domain for each day a CalCOFI sample was performed throughout the study period (Jun 26th, 2003- Mar. 22nd, 2015). Clusters of coastal and offshore stations were selected (~5-10 stations for each zone) and the values were averaged across stations for each zone and month. Thus, the temporal variability plots capture the temperature and dissolved oxygen values on a monthly temporal resolution throughout the study's temporal range (2003-2015). This was repeated at 0m and 200m, and coastal vs. offshore data were plotted on separate panels. 
+Temporal variability was compared by extracting the mean dissolved oxygen and temperature values at the nearest grid cell over the CalCOFI domain for each day a CalCOFI sample was performed throughout the study period (Jun 26th, 2003- Mar. 22nd, 2015). Clusters of coastal and offshore stations were selected (\~5-10 stations for each zone) and the values were averaged across stations for each zone and month. Thus, the temporal variability plots capture the temperature and dissolved oxygen values on a monthly temporal resolution throughout the study's temporal range (2003-2015). This was repeated at 0m and 200m, and coastal vs. offshore data were plotted on separate panels.
 
 ```{r}
 #| echo: false
@@ -614,6 +614,8 @@ ggplot(merc_vari0_coast, aes(Date, mean_DO, color = data_source)) +
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
   labs(subtitle = "Coastal stations") + 
+  xlab("")+
+  ylab("Mean DO (mmol/L)") +
   theme_minimal()
 
 #filter for offshore cluster of stations 
@@ -627,7 +629,9 @@ ggplot(merc_vari0_off, aes(Date, mean_DO, color = data_source)) +
   geom_point(size = 2) + 
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
-  labs(subtitle = "Offshore stations") + 
+  labs(subtitle = "Offshore stations") +  
+  xlab("")+
+  ylab("Mean DO (mmol/L)") +
   theme_minimal()
 
 ```
@@ -804,7 +808,9 @@ ggplot(merc_vari200_coast, aes(Date, mean_DO, color = data_source)) +
   geom_point(size = 2) + 
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
-  labs(subtitle = "Coastal stations") + 
+  labs(subtitle = "Coastal stations") +  
+  xlab("")+
+  ylab("Mean DO (mmol/L)") +
   theme_minimal()
 
 #filter for offshore cluster of stations 
@@ -817,7 +823,9 @@ merc_vari200_off <- merc_vari200_off %>%
 ggplot(merc_vari200_off, aes(Date, mean_DO, color = data_source)) + 
   geom_point(size = 2) + 
   geom_line() +
-  scale_color_manual(values = c("steelblue4", "goldenrod"))+
+  scale_color_manual(values = c("steelblue4", "goldenrod"))+ 
+  xlab("")+
+  ylab("Mean DO (mmol/L)") +
   labs(subtitle = "Offshore stations") + 
   theme_minimal()
 ```
@@ -1024,7 +1032,9 @@ ggplot(merc_vari0_temp_coast, aes(Date, mean_temp, color = data_source)) +
   geom_point(size = 2) + 
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
-  labs(subtitle = "Coastal stations") + 
+  labs(subtitle = "Coastal stations") +  
+  xlab("")+
+  ylab("Mean Temperature (C)") +
   theme_minimal()
 
 #filter for offshore cluster of stations 
@@ -1038,7 +1048,9 @@ ggplot(merc_vari0_temp_off, aes(Date, mean_temp, color = data_source)) +
   geom_point(size = 2) + 
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
-  labs(subtitle = "Offshore stations") + 
+  labs(subtitle = "Offshore stations") +  
+  xlab("")+
+  ylab("Mean Temperature (C)") +
   theme_minimal()
 
 ```
@@ -1208,7 +1220,9 @@ ggplot(merc_vari200_temp_coast, aes(Date, mean_temp, color = data_source)) +
   geom_point(size = 2) + 
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
-  labs(subtitle = "Coastal stations") + 
+  labs(subtitle = "Coastal stations") +  
+  xlab("")+
+  ylab("Mean Temperature (C)") +
   theme_minimal()
 
 #filter for offshore cluster of stations 
@@ -1223,6 +1237,7 @@ ggplot(merc_vari200_temp_off, aes(Date, mean_temp, color = data_source)) +
   geom_line() +
   scale_color_manual(values = c("steelblue4", "goldenrod"))+
   labs(subtitle = "Offshore stations") + 
+  xlab("")+
+  ylab("Mean Temperature (C)") + 
   theme_minimal()
 ```
-
