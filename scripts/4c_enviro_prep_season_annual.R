@@ -21,6 +21,7 @@ template_rast <- rast(
   resolution = 0.25 #coarsest spatial resolution
 )
 
+
 ### average by year ####
 yr_avg_merge <- function(Phys_Input, BGC_Input, template_rast = template_rast, out_rast = NULL, all_names, longnames_input, units_input){
   for(i in 1:length(Phys_Input)){
@@ -29,7 +30,7 @@ yr_avg_merge <- function(Phys_Input, BGC_Input, template_rast = template_rast, o
     
     phys_rast_h <- resample(phys_rast, template_rast)
     phys_yr <- tapp(phys_rast_h, "years", mean)
-    time(phys_yr, tstep = "years") <- 2003 + 0:12
+    time(phys_yr) <- seq(as.Date("2003-01-01"), by = "year", length = 13)
       
     assign(phys_name, phys_yr)
     all_names <- c(all_names, phys_name)
@@ -42,7 +43,7 @@ yr_avg_merge <- function(Phys_Input, BGC_Input, template_rast = template_rast, o
     
     bgc_rast_h <- resample(bgc_rast, template_rast)
     bgc_yr <- tapp(bgc_rast_h, "years", mean)
-    time(phys_yr, tstep = "years") <- 2003 + 0:12
+    time(phys_yr) <- seq(as.Date("2003-01-01"), by = "year", length = 13)
     
     assign(bgc_name, bgc_yr)
     all_names <- c(all_names, bgc_name)
@@ -102,7 +103,7 @@ seas_avg_merge <- function(Phys_Input, BGC_Input, template_rast = template_rast,
     
     phys_seas <- c(phys_wn, phys_sp, phys_su, phys_fa)
     
-    time(phys_seas, tstep = "months") <- c(12, 3, 6, 9)
+    time(phys_seas) <- as.Date(c("2003-12-01", "2003-03-01", "2003-06-01", "2003-09-01"), format = "%Y-%m-%d")
     
     assign(phys_name, phys_seas)
     all_names <- c(all_names, phys_name)
@@ -123,7 +124,7 @@ seas_avg_merge <- function(Phys_Input, BGC_Input, template_rast = template_rast,
     
     bgc_seas <- c(bgc_wn, bgc_sp, bgc_su, bgc_fa)
     
-    time(bgc_seas, tstep = "months") <- c(12, 3, 6, 9)
+    time(bgc_seas) <- as.Date(c("2003-12-01", "2003-03-01", "2003-06-01", "2003-09-01"), format = "%Y-%m-%d")
     
     assign(bgc_name, bgc_seas)
     all_names <- c(all_names, bgc_name)
