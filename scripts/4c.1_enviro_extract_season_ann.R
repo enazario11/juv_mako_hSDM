@@ -21,6 +21,9 @@ dat_locs <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spo
 #CRW PA locs
 pa_locs <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spot_PAs.RDS")) %>% mutate(PA = 1)
 
+#Background PA locs and observed presences
+back_locs <- read.csv(here("data/PAs/background/psat_spot_domain/mako_pres_Abs.csv"))
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #join locs and CRW PAs together####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -46,6 +49,19 @@ input_file <- input_file[input_file$lat>=1 & input_file$lat<=49,]
 input_file <- input_file[input_file$lon>=-153 & input_file$lon<=-103,] 
 
 head(input_file)
+
+#set PA back for extraction
+input_file_back <- back_locs %>% subset(select = -c(X,unique, unique2)) %>% mutate(lon = lon - 360)
+names(input_file_back) <- c("tag", "lon", "lat", "date", "PA")
+
+input_file_back$date <- as.factor(as.Date(substr(input_file_back$date, 1,  10))) #Ensure date format is ok for getvarROMS. 
+input_file_back$dt <- as.POSIXct(strptime(input_file_back$date, format = "%Y-%m-%d"), tz = "UTC")
+
+# remove points outside of domain (num of obsv. shouldn't change: 367776)
+input_file_back <- input_file_back[input_file_back$lat>=1 & input_file_back$lat<=49,] 
+input_file_back <- input_file_back[input_file_back$lon>=-153 & input_file_back$lon<=-103,] 
+
+head(input_file_back)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # create annual and seasonal input file date/times
@@ -88,8 +104,11 @@ ann_dates <- function(InputData){
 
 input_file_ann <- ann_dates(input_file)
 input_file_ann <- input_file_ann %>% mutate(dt_ann = as.Date(dt_ann))
-
 #saveRDS(input_file_ann, here("data/locs_w_covar/psat_spot/annual/input_file_ann.rds"))
+
+input_back_ann <- ann_dates(input_file_back)
+input_back_ann <- input_back_ann %>% mutate(dt_ann = as.Date(dt_ann))
+#saveRDS(input_back_ann, here("data/locs_w_covar/psat_spot/annual/input_back_ann.rds"))
 
 seas_dates <- function(InputData){
   InputData[ , 'dt_seas'] = NA
@@ -112,14 +131,18 @@ seas_dates <- function(InputData){
 
 input_file_seas <- seas_dates(input_file)
 input_file_seas <- input_file_seas %>% mutate(dt_seas = as.Date(dt_seas))
-
 #saveRDS(input_file_seas, here("data/locs_w_covar/psat_spot/seasonal/input_file_seas.rds"))
+
+input_back_seas <- seas_dates(input_file_back)
+input_back_seas <- input_back_seas %>% mutate(dt_seas = as.Date(dt_seas))
+#saveRDS(input_back_seas, here("data/locs_w_covar/psat_spot/seasonal/input_back_seas.rds"))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # extract bathy and rugosity ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 bathy_file <- list.files(here("data/enviro/psat_spot_all/all_processed"), pattern = "bathy_0.25deg2", full.names = TRUE)
 
+#CRW
 all_dat_bathy_cmem <- getBathy(bathy_file, input_file, 'gebco_bathy_0.25deg2', 0.25) #update varid when I delete the other bathy file
 
 #explore outputs
@@ -135,11 +158,19 @@ all_dat_bathy_cmem %>%
   summarise(med_bathy = median(bathy, na.rm = TRUE), 
             med_rug = median(bathy_sd, na.rm = TRUE))
 
+#Back
+all_dat_bathy_back <- getBathy(bathy_file, input_file_back, 'gebco_bathy_0.25deg2', 0.25)
+
+#explore outputs
+head(all_dat_bathy_back)
+hist(all_dat_bathy_back$bathy, breaks = 30) #bathymetry
+hist(all_dat_bathy_back$bathy_sd, breaks = 30) #rugosity
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Annual CRW CMEMS covars ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-##### 0m all dat extract ####
-cmem_0m_ann <- nc_open(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_0m_annual3.nc"))
+##### 0m extract ####
+cmem_0m_ann <- nc_open(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_0m_annual.nc"))
 
 #surface extract
 xtracto_cmem = function(input_file, nc_file){
@@ -221,7 +252,7 @@ ggplot(cmem_250m_long, aes(x = value, fill = PA)) +
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Seasonal CRW CMEM Extract ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### 0m ####
+#### 0m extract ####
 cmem_0m_seas <- nc_open(here("data/enviro/psat_spot_all/all_processed/season_res/dat_0m_season.nc"))
 
 xtracto_cmem = function(input_file, nc_file){
@@ -303,6 +334,127 @@ ggplot(cmem_250m_long, aes(x = value, fill = PA)) +
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Annual Back CMEM Extract ####
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##### 0m extract ####
+cmem_0m_ann <- nc_open(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_0m_annual.nc"))
+
+all_dat_back_0m_ann <- xtracto_cmem(input_back_ann, cmem_0m_ann)
+
+#combine with bathy above
+all_back_covar_0m_ann <- cbind(all_dat_back_0m_ann, all_dat_bathy_back$bathy, all_dat_bathy_back$bathy_sd)
+all_back_covar_0m_ann <- all_back_covar_0m_ann %>% 
+  rename("bathy" = "all_dat_bathy_back$bathy", 
+         "bathy_sd" = "all_dat_bathy_back$bathy_sd")
+head(all_back_covar_0m_ann)
+
+#saveRDS(all_back_covar_0m_ann, here("data/locs_w_covar/psat_spot/annual/back_locs_covar_0m_ann.rds"))
+
+#explore
+cmem_0m_long <- gather(all_back_covar_0m_ann, covar, value, somxlavt_mean:bathy_sd) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_0m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+##### 60m extract ####
+# dat extract ###
+cmem_nc60 <- nc_open(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_60m_annual.nc"))
+
+all_dat_back_60m_ann <- xtracto_cmem_depth(input_back_ann, cmem_nc60)
+head(all_dat_back_60m_ann)
+
+#saveRDS(all_dat_back_60m_ann, here("data/locs_w_covar/psat_spot/annual/back_locs_covar_60m_ann.rds"))
+
+#explore
+cmem_60m_long <- gather(all_dat_back_60m_ann, covar, value, vosaline_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_60m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+##### 250m extract ####
+# dat extract ###
+cmem_nc250 <- nc_open(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_250m_annual.nc"))
+
+all_dat_back_250m_ann <- xtracto_cmem_depth(input_back_ann, cmem_nc250)
+head(all_dat_back_250m_ann)
+
+#saveRDS(all_dat_back_250m_ann, here("data/locs_w_covar/psat_spot/annual/back_locs_covar_250m_ann.rds"))
+
+#explore
+cmem_250m_long <- gather(all_dat_back_250m_ann, covar, value, vosaline_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_250m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Seasonal Back CMEM Extract ####
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##### 0m extract ####
+cmem_0m_seas <- nc_open(here("data/enviro/psat_spot_all/all_processed/season_res/dat_0m_season.nc"))
+
+all_dat_back_0m_seas <- xtracto_cmem(input_back_seas, cmem_0m_seas)
+
+#combine with bathy above
+all_back_covar_0m_seas <- cbind(all_dat_back_0m_seas, all_dat_bathy_back$bathy, all_dat_bathy_back$bathy_sd)
+all_back_covar_0m_seas <- all_back_covar_0m_seas %>% 
+  rename("bathy" = "all_dat_bathy_back$bathy", 
+         "bathy_sd" = "all_dat_bathy_back$bathy_sd")
+head(all_back_covar_0m_seas)
+
+#saveRDS(all_back_covar_0m_seas, here("data/locs_w_covar/psat_spot/seasonal/back_locs_covar_0m_seas.rds"))
+
+#explore
+cmem_0m_long <- gather(all_back_covar_0m_seas, covar, value, somxlavt_mean:bathy_sd) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_0m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+#### 60m extract ####
+# dat extract ###
+cmem_nc60_seas <- nc_open(here("data/enviro/psat_spot_all/all_processed/season_res/dat_60m_season.nc"))
+
+all_dat_back_60m_seas <- xtracto_cmem_depth(input_back_seas, cmem_nc60_seas)
+head(all_dat_back_60m_seas)
+
+#saveRDS(all_dat_back_60m_seas, here("data/locs_w_covar/psat_spot/seasonal/back_locs_covar_60m_seas.rds"))
+
+#explore
+cmem_60m_long <- gather(all_dat_back_60m_seas, covar, value, vosaline_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_60m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
+#### 250m extract ####
+# dat extract ###
+cmem_nc250_seas <- nc_open(here("data/enviro/psat_spot_all/all_processed/season_res/dat_250m_season.nc"))
+
+all_dat_back_250m_seas <- xtracto_cmem_depth(input_back_seas, cmem_nc250_seas)
+head(all_dat_back_250m_seas)
+
+#saveRDS(all_dat_back_250m_seas, here("data/locs_w_covar/psat_spot/seasonal/back_locs_covar_250m_seas.rds"))
+
+#explore
+cmem_250m_long <- gather(all_dat_back_250m_seas, covar, value, vosaline_mean:o2_mean) %>% mutate(PA = as.factor(PA))
+
+ggplot(cmem_250m_long, aes(x = value, fill = PA)) + 
+  geom_density(alpha = 0.5) + 
+  facet_wrap(~covar, scales = "free") + 
+  theme_bw()+
+  scale_fill_manual(values = c("dodgerblue4", "darkseagreen4"))
+
 
 
 
