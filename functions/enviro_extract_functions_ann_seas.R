@@ -43,25 +43,25 @@ getvarROMS <- function(nc,varname,inpts,desired.resolution,FUN,name){
 }
 
 
-getvarCMEM <- function(nc, varname, inpts, desired.resolution, FUN, name) {
+getvarCMEM_ann <- function(nc, varname, inpts, desired.resolution, FUN, name) {
   if ((desired.resolution*10) %% 2 ==0) stop("Desired Resolution must be an odd number (e.g. 0.3 not 0.2)")
-  inpts$dt <- as.POSIXct(inpts$dt, '%Y-%m-%d',tz='UTC')
+  inpts$dt_ann <- as.POSIXct(inpts$dt_ann, '%Y-%m-%d',tz='UTC')
   nc.data <- nc
   
   lat <- ncvar_get(nc.data,'latitude')
   lon <- ncvar_get(nc.data,'longitude')
   nrows <- length(lat); ncols <- length(lon)
-  time_nc <- ncvar_get(nc.data,'time')
+  time_nc <- ncvar_get(nc.data,'time')*60*60*24 #go from days since origin (unit in nc file) to seconds (expected by POSIxct)
   tim <- as.POSIXct(time_nc, origin ="1970-01-01", tz='UTC')
   
   desired.resolution = desired.resolution/2
   
   #for loop to go through each row/location
   for (i in 1:nrow(inpts)){
-    print(paste(varname,inpts$dt[i],sep=' '))
+    print(paste(varname,inpts$dt_ann[i],sep=' '))
     
-    if (inpts$dt[i] %in% tim){
-      xdate <- which(inpts$dt[i]==tim)
+    if (inpts$dt_ann[i] %in% tim){
+      xdate <- which(inpts$dt_ann[i]==tim)
       c <- which.min(abs(lon-inpts$lon[i])) #input file lat lon must have those names (e.g., NOT latitude, long, or longitude)
       c_low <- which.min(abs(lon-(inpts$lon[i]-desired.resolution))) 
       c_up <- which.min(abs(lon-(inpts$lon[i]+desired.resolution)))
@@ -81,6 +81,48 @@ getvarCMEM <- function(nc, varname, inpts, desired.resolution, FUN, name) {
       }
   }
   
+  }
+  return(inpts)
+}
+
+getvarCMEM_seas <- function(nc, varname, inpts, desired.resolution, FUN, name) {
+  if ((desired.resolution*10) %% 2 ==0) stop("Desired Resolution must be an odd number (e.g. 0.3 not 0.2)")
+  inpts$dt_seas <- as.POSIXct(inpts$dt_seas, '%Y-%m-%d',tz='UTC')
+  nc.data <- nc
+  
+  lat <- ncvar_get(nc.data,'latitude')
+  lon <- ncvar_get(nc.data,'longitude')
+  nrows <- length(lat); ncols <- length(lon)
+  time_nc <- ncvar_get(nc.data,'time')*60*60*24 #go from days since origin (unit in nc file) to seconds (expected by POSIxct)
+  tim <- as.POSIXct(time_nc, origin ="1970-01-01", tz='UTC')
+  
+  desired.resolution = desired.resolution/2
+  
+  #for loop to go through each row/location
+  for (i in 1:nrow(inpts)){
+    print(paste(varname,inpts$dt_seas[i],sep=' '))
+    
+    if (inpts$dt_seas[i] %in% tim){
+      xdate <- which(inpts$dt_seas[i]==tim)
+      c <- which.min(abs(lon-inpts$lon[i])) #input file lat lon must have those names (e.g., NOT latitude, long, or longitude)
+      c_low <- which.min(abs(lon-(inpts$lon[i]-desired.resolution))) 
+      c_up <- which.min(abs(lon-(inpts$lon[i]+desired.resolution)))
+      r <- which.min(abs(lat-inpts$lat[i]))
+      r_low <- which.min(abs(lat-(inpts$lat[i]-desired.resolution)))
+      r_up <- which.min(abs(lat-(inpts$lat[i]+desired.resolution)))
+      numcols=abs(c_up-c_low); numrows=abs(r_up-r_low)
+      
+      if (desired.resolution!=0.1){
+        data.var  <-  ncvar_get(nc.data,varname,start=c(c_low,r_low,xdate),
+                                count=c(numcols,numrows,1),verbose=FALSE)
+        inpts[i,paste(varname,'_',name,sep='')] <- FUN(data.var[!is.nan(data.var)])
+      } else{
+        data.var.point  <-  ncvar_get(nc.data,varname,start=c(c,r,xdate),
+                                      count=c(1,1,1),verbose=FALSE)
+        inpts[i,paste(varname,'_',name,sep='')] <- data.var.point
+      }
+    }
+    
   }
   return(inpts)
 }
