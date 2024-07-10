@@ -1,11 +1,11 @@
 ### libraries ####
-library(tidyverse)
+{library(tidyverse)
 library(gbm)
 library(dismo)
 library(here);here <- here::here
 library(ggBRT)
 library(caret)
-library(pROC)
+library(pROC)}
 
 set.seed(1004)
 
@@ -153,5 +153,131 @@ gbmFit_agi_back$bestTune$shrinkage # 0.1 and 0.05 are both very close -- within 
 gbmFit_agi_back$bestTune$interaction.depth #tree depths of 3 and 4 resulted in similar accuracy (within 0.01)
 
 # Based on above results, for the CRW PA models, I should use a lr of 0.05, tree complexity of 3, bag fraction of 0.75, and model that selects the optimal number of trees rather than a set number. 
+
+### optimize function ####
+#load data 
+#plot 75/25
+#run caret 
+#plot
+#save plots 
+
+# Set optimization options using caret
+fitControl <- trainControl(method = "cv", number = 5) # Can be very slow with high "number"
+
+# Set the range of options for each parameter: I'm varying interaction.depth (tree complexity) and shrinkage (learning rate). Range of values based on BRT paper from Elith et al (2008).
+gbmGrid <- expand.grid(interaction.depth = seq(2, 5, by = 1), 
+                       n.trees = 8000, #general number of trees models I ran for poster used
+                       shrinkage = c(0.001, 0.01, 0.05, 0.1), 
+                       n.minobsinnode = 10)
+
+hyperparam_tune <- function(fitControl, gbmGrid, base_input, do_input, agi_input, hp_file_dest, res = c("ann", "seas"), pa = c("back", "crw")){
+  
+  #load dat -- need to add subset part back in for crw files
+  base_dat <- readRDS(here(base_input)) #%>% subset(select = -c(rep))
+  do_dat <- readRDS(here(do_input)) #%>% subset(select = -c(rep))
+  agi_dat <- readRDS(here(agi_input)) #%>% subset(select = -c(rep))
+  
+  #split dat to train
+  base_7525 <- na.omit(base_dat) %>% sample_frac(0.75)
+  do_7525 <- na.omit(do_dat) %>% sample_frac(0.75)
+  agi_7525 <- na.omit(agi_dat) %>% sample_frac(0.75)
+  
+  #optimize base HPs
+  gbmFit_base <- caret::train(factor(PA) ~ chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
+                              data = base_7525, 
+                              method = "gbm", 
+                              trControl = fitControl, 
+                              verbose = FALSE, 
+                              tuneGrid = gbmGrid)
+  
+  #save and plot base file
+  saveRDS(gbmFit_base, here(paste0(hp_file_dest,"/gbmFit_base","_",res,"_", pa, ".rds")))
+  plot(gbmFit_base)
+  
+  #optimize do HPs
+  gbmFit_do <- caret::train(factor(PA) ~ o2_mean_0m + o2_mean_60m + o2_mean_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
+                              data = do_7525, 
+                              method = "gbm", 
+                              trControl = fitControl, 
+                              verbose = FALSE, 
+                              tuneGrid = gbmGrid)
+  
+  #save and plot do file
+  saveRDS(gbmFit_do, here(paste0(hp_file_dest,"/gbmFit_do","_",res,"_", pa, ".rds")))
+  plot(gbmFit_do)
+  
+  #optimize agi HPs
+  gbmFit_agi <- caret::train(factor(PA) ~ AGI_0m + AGI_60m + AGI_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
+                            data = agi_7525, 
+                            method = "gbm", 
+                            trControl = fitControl, 
+                            verbose = FALSE, 
+                            tuneGrid = gbmGrid)
+  
+  #save and plot agi file
+  saveRDS(gbmFit_agi, here(paste0(hp_file_dest,"/gbmFit_agi","_",res,"_", pa, ".rds")))
+  plot(gbmFit_agi)
+
+}
+
+#### crw annual ####
+hyperparam_tune(fitControl = fitControl, gbmGrid = gbmGrid, 
+                base_input = "data/locs_brts/crw_pas_ann/dat_base_ann.rds", 
+                do_input = "data/locs_brts/crw_pas_ann/dat_do_ann.rds",
+                agi_input = "data/locs_brts/crw_pas_ann/dat_agi_ann.rds",
+                hp_file_dest = "data/brt/hp_tuning/annual", 
+                res = "ann", pa = "crw")
+
+readRDS(here("data/brt/hp_tuning/annual/gbmFit_base_ann_crw.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/annual/gbmFit_do_ann_crw.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/annual/gbmFit_agi_ann_crw.rds")) %>% plot()
+
+#lr notes: 0.05 marginally better than 0.01
+#tc notees: 3 or 4
+
+#### crw seasonal ####
+hyperparam_tune(fitControl = fitControl, gbmGrid = gbmGrid, 
+                base_input = "data/locs_brts/crw_pas_seas/dat_base_seas.rds", 
+                do_input = "data/locs_brts/crw_pas_seas/dat_do_seas.rds",
+                agi_input = "data/locs_brts/crw_pas_seas/dat_agi_seas.rds",
+                hp_file_dest = "data/brt/hp_tuning/seasonal", 
+                res = "seas", pa = "crw")
+
+readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_base_seas_crw.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_do_seas_crw.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_agi_seas_crw.rds")) %>% plot()
+
+#lr notes: 0.01 marginally better than 0.05
+#tc notees: 3 
+
+#### back annual ####
+hyperparam_tune(fitControl = fitControl, gbmGrid = gbmGrid, 
+                base_input = "data/locs_brts/back_pas_ann/dat_base_ann.rds", 
+                do_input = "data/locs_brts/back_pas_ann/dat_do_ann.rds",
+                agi_input = "data/locs_brts/back_pas_ann/dat_agi_ann.rds",
+                hp_file_dest = "data/brt/hp_tuning/annual", 
+                res = "ann", pa = "back")
+
+readRDS(here("data/brt/hp_tuning/annual/gbmFit_base_ann_back.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/annual/gbmFit_do_ann_back.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/annual/gbmFit_agi_ann_back.rds")) %>% plot()
+
+#lr notes: 0.05 is top, marginally better than 0.1 and then 0.01
+#tc notees: 3-5 marginally different
+
+#### back seasonal ####
+hyperparam_tune(fitControl = fitControl, gbmGrid = gbmGrid, 
+                base_input = "data/locs_brts/back_pas_seas/dat_base_seas.rds", 
+                do_input = "data/locs_brts/back_pas_seas/dat_do_seas.rds",
+                agi_input = "data/locs_brts/back_pas_seas/dat_agi_seas.rds",
+                hp_file_dest = "data/brt/hp_tuning/seasonal", 
+                res = "seas", pa = "back")
+
+readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_base_seas_back.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_do_seas_back.rds")) %>% plot()
+readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_agi_seas_back.rds")) %>% plot()
+
+#lr notes: 0.05 is top, marginally better than 0,1 and then 0.01
+#tc notees: 3 is better, accuracy tends to drop for 4
 
 
