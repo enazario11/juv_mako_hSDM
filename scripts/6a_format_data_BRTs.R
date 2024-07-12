@@ -131,6 +131,8 @@ dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 2, 0) #change PA 
 # CRW Annual ####
 format_dat_crw_brts <- function(dat0_path, dat60_path, dat250_path, res = c("ann", "seas"), out_path){
   
+  set.seed(1004)
+  
   #combine all before PA selection and fix PA values before fitting BRTs
   dat0 <- readRDS(here(dat0_path))
   dat0$bathy <- replace(dat0$bathy, dat0$bathy == "NaN", NA)
@@ -149,23 +151,25 @@ format_dat_crw_brts <- function(dat0_path, dat60_path, dat250_path, res = c("ann
   dat_all_temp$PA <- replace(dat_all_temp$PA, dat_all_temp$PA == 0, 1) #change true positions to a 1
   dat_all_temp$PA <- replace(dat_all_temp$PA, dat_all_temp$PA == 2, 0) #change PA positions to a 0
   
-  ## randomly select one PA for each tag (CRW dataset only) 
-  #randomly select 1 PA rep for each tag 
+  
+  
+  # randomly select one PA for each tag (CRW dataset only)
+  #randomly select 1 PA rep for each tag
   dat_pos <- dat_all_temp %>% filter(PA == 1)
   dat_pa <- dat_all_temp %>% filter(PA == 0)
-  
+
   dat_temp <- NULL
   for(i in 1:length(unique(dat_pa$tag))){
     #select current id
     curr_ID <- unique(dat_pa$tag)[i]
     temp_df <- dat_pa[dat_pa$tag %in% curr_ID,]
-    
+
     #sample id's randomly
     temp_rep_ID <- sample(unique(temp_df$rep), 1, replace = FALSE)
-    
+
     #narrow your data set
     temp_df2 <- temp_df[temp_df$rep %in% temp_rep_ID, ]
-    
+
     #combine in a single df
     dat_temp <- rbind(dat_temp, temp_df2)
   }
@@ -222,6 +226,9 @@ format_dat_crw_brts(dat0_path = dat0_path, dat60_path = dat60_path, dat250_path 
 
 #Back Annual ####
 format_dat_back_brts <- function(dat0_path, dat60_path, dat250_path, res = c("ann", "seas"), out_path){
+  
+  set.seed(1004)
+  
   dat0_back <- readRDS(here(dat0_path))
   dat0_back$bathy <- replace(dat0_back$bathy, dat0_back$bathy == "NaN", NA)
   colnames(dat0_back) <- c("tag", "lon", "lat", "date", "PA", "dt", "dt_ann", "mld_mean", "sal_mean", "ssh_mean", "temp_mean",  "uo_mean", "uostr_mean", "vo_mean", "vostr_mean", "o2_mean_0m", "chl_mean",   "bathy_mean", "bathy_sd", "pO2_atm_0m", "o2_demand_0m", "AGI_0m", "dist_coast")

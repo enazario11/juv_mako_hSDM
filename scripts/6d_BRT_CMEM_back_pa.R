@@ -1,11 +1,11 @@
 ### libraries ####
-library(tidyverse)
+{library(tidyverse)
 library(gbm)
 library(dismo)
 library(here);here <- here::here
 library(ggBRT)
 
-set.seed(1004)
+set.seed(1004)}
 
 ### load data ####
 #CRW data

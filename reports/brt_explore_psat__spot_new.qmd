@@ -13,7 +13,11 @@ fontcolor: "#134f5c"
 code-block-bg: true
 ---
 
-On this document, I've included the results from the initial exploration into the different model outputs, ranking of covariate influence, performance metrics, and prediction maps. This first set of models only includes extracted covariate data at a daily temporal resolution, but I am also considering exploring models that include covariate data at a seasonal or annual temporal resolution. The pseudo absences used in these models were generated using correlated random walk approaches, but another quarto document includes models with background sampling pseudo absences. Lastly, hyperparameters were tuned using the caret package and across all models, a learning rate of 0.05 and tree complexity of 3 resulted in the highest accuracy. Lastly, the 'pred_var' predictor is a random set of numbers that will be used to identify which predictor variables should be included in the final model, and which are not informative.
+On this document, I've included the results from the initial exploration into the different model outputs, ranking of covariate influence, performance metrics, and prediction maps.
+
+The majority of the predictors included in the following models are at a daily temporal resolution. However, for the DO and AGI models, we also investigated the inclusion of these two predictors at seasonal and annual temporal resolutions. The remaining environmental predictors are also available at these resolutions, and can included in follow-up models.
+
+The pseudo absences used in these models were generated using correlated random walk approaches, but another quarto document includes models with background sampling pseudo absences. Lastly, hyperparameters were tuned using the caret package and across all models, a learning rate of 0.05 and tree complexity of 3 resulted in the highest accuracy. Lastly, the 'pred_var' predictor is a random set of numbers that will be used to identify which predictor variables should be included in the final model, and which are not informative.
 
 The hypotheses I would like to test with these models are as follows:
 
@@ -1569,5 +1573,29 @@ eval_7525_modified(agi_0m_60m_250m_Yspat_Ntag,
 
 output_sum_Ntag <- read.csv(here("data/brt/mod_outputs/brt_crw_output_summary_Ntag.csv"))
 kableExtra::kable(output_sum_Ntag)
+
+```
+
+# DO models w/o tag ID and w/ data at seasonal and annual resolutions
+
+```{r}
+
+```
+
+# Summary table of results
+
+```{r}
+
+```
+
+# AGI models w/o tag ID and w/ data at seasonal and annual resolutions
+
+```{r}
+
+```
+
+# Summary table of results
+
+```{r}
 
 ```
