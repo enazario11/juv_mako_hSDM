@@ -8,22 +8,61 @@ library(ggBRT)
 set.seed(1004)}
 
 ### load data ####
-#CRW data
-dat_base <- readRDS(here("data/locs_brts/bckg_pas/dat_base_back.rds")) %>% mutate(tag = as.factor(tag))
-dat_do <- readRDS(here("data/locs_brts/bckg_pas/dat_do_back.rds")) %>% mutate(tag = as.factor(tag))
-dat_agi <- readRDS(here("data/locs_brts/bckg_pas/dat_agi_back.rds")) %>% mutate(tag = as.factor(tag))
+#### Background daily data ####
+dat_base_d <- readRDS(here("data/locs_brts/bckg_pas/dat_base_back.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_d <- readRDS(here("data/locs_brts/bckg_pas/dat_do_back.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_d <- readRDS(here("data/locs_brts/bckg_pas/dat_agi_back.rds")) %>% mutate(tag = as.factor(tag))
 
-### add random variable for predictor selection ####
+#### Background seasonal data ####
+dat_base_s <- readRDS(here("data/locs_brts/back_pas_seas/dat_base_seas.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_s <- readRDS(here("data/locs_brts/back_pas_seas/dat_do_seas.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_s <- readRDS(here("data/locs_brts/back_pas_seas/dat_agi_seas.rds")) %>% mutate(tag = as.factor(tag))
+
+#### Background annual data ####
+dat_base_a <- readRDS(here("data/locs_brts/back_pas_ann/dat_base_ann.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_a <- readRDS(here("data/locs_brts/back_pas_ann/dat_do_ann.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_a <- readRDS(here("data/locs_brts/back_pas_ann/dat_agi_ann.rds")) %>% mutate(tag = as.factor(tag))
+
+#### Add random variable for predictor selection ####
 pred_var <- rnorm(31084, mean = 50, sd = 10)
 
-dat_base$pred_var <- pred_var
-dat_do$pred_var <- pred_var
-dat_agi$pred_var <- pred_var
+dat_base_d$pred_var <- pred_var
+dat_do_d$pred_var <- pred_var
+dat_agi_d$pred_var <- pred_var
 
-#split into test and train
+dat_base_a$pred_var <- pred_var
+dat_base_s$pred_var <- pred_var
+
+#### Add seasonal and annual data to daily data df ####
+dat_do <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
+dat_do <- dat_do %>%
+  rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
+         "o2_mean_60m_seas" = "dat_do_s$o2_mean_60m", 
+         "o2_mean_250m_seas" = "dat_do_s$o2_mean_250m", 
+         "o2_mean_0m_ann" = "dat_do_a$o2_mean_0m", 
+         "o2_mean_60m_ann" = "dat_do_a$o2_mean_60m", 
+         "o2_mean_250m_ann" = "dat_do_a$o2_mean_250m")
+
+dat_agi <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
+dat_agi <- dat_agi %>%
+  rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
+         "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
+         "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
+         "AGI_0m_ann" = "dat_agi_a$AGI_0m", 
+         "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
+         "AGI_250m_ann" = "dat_agi_a$AGI_250m")
+
+
+#### Split into test and train ####
 #base
-dat_train_base <- dat_base %>% sample_frac(0.75)
-dat_test_base <- dat_base %>% sample_frac(0.25)
+dat_train_base_d <- dat_base_d %>% sample_frac(0.75) #daily
+dat_test_base_d <- dat_base_d %>% sample_frac(0.25)
+
+dat_train_base_s <- dat_base_s %>% sample_frac(0.75) #seasonal
+dat_test_base_s <- dat_base_s %>% sample_frac(0.25)
+
+dat_train_base_a <- dat_base_a %>% sample_frac(0.75) #annual
+dat_test_base_a <- dat_base_a %>% sample_frac(0.25)
 
 #do
 dat_train_do <- dat_do %>% sample_frac(0.75)
@@ -445,6 +484,223 @@ try(brt_agi_0m_60m_250m_Yspat_Ntag <- dismo::gbm.step(
 )
 )
 saveRDS(brt_agi_0m_60m_250m_Yspat_Ntag, here("data/brt/mod_outputs/background/no_tag/brt_agi_0m_60m_250m_Yspat_Ntag.rds"))
+
+# Base seasonal and annual models ####
+try(brt_base_0m_seas_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_base_s, 
+  gbm.x = c(8:18, 20), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_base_0m_seas_Nspat_Ntag, here("data/brt/mod_outputs/background/seasonal/brt_base_0m_seas_Nspat_Ntag.rds"))
+
+try(brt_base_0m_ann_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_base_a, 
+  gbm.x = c(8:18, 20), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_base_0m_ann_Nspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_base_0m_ann_Nspat_Ntag.rds"))
+
+# DO seasonal and annual ####
+#### seasonal only all depths ####
+#do w/o spatial predictors and DO covar at the surface and at 60m and 250m 
+try(brt_do_0m_60m_250m_seas_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(8:18, 22:25), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_seas_Nspat_Ntag, here("data/brt/mod_outputs/background/seasonal/brt_do_0m_60m_250m_seas_Nspat_Ntag.rds"))
+
+#do w/ spatial predictors and DO covar at the surface and at 60m and 250m
+try(brt_do_0m_60m_250m_seas_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(3, 8:19, 22:25), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_seas_Yspat_Ntag, here("data/brt/mod_outputs/background/seasonal/brt_do_0m_60m_250m_seas_Yspat_Ntag.rds"))
+
+#### annual only all depths ####
+#do w/o spatial predictors and DO covar at the surface and at 60m and 250m 
+try(brt_do_0m_60m_250m_ann_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(8:18, 22, 26:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_ann_Nspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_ann_Nspat_Ntag.rds"))
+
+#do w/ spatial predictors and DO covar at the surface and at 60m and 250m
+try(brt_do_0m_60m_250m_ann_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(3, 8:19, 22, 26:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_ann_Yspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_ann_Yspat_Ntag.rds"))
+
+#### all temp res all depths ####
+#do w/o spatial predictors and DO covar at the surface and at 60m and 250m 
+try(brt_do_0m_60m_250m_dail_seas_ann_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(7:18, 20:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_dail_seas_ann_Nspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_dail_seas_ann_Nspat_Ntag.rds"))
+
+#do w/ spatial predictors and DO covar at the surface and at 60m and 250m
+try(brt_do_0m_60m_250m_dail_seas_ann_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_do, 
+  gbm.x = c(3, 7:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_60m_250m_dail_seas_ann_Yspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_dail_seas_ann_Yspat_Ntag.rds"))
+
+# AGI seasonal and annual ####
+#### seasonal only all depths ####
+#AGI w/o spatial predictors and AGI covar at the surface and at 60m and 250m 
+try(brt_agi_0m_60m_250m_seas_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(7:17, 22:25), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_seas_Nspat_Ntag, here("data/brt/mod_outputs/background/seasonal/brt_agi_0m_60m_250m_seas_Nspat_Ntag.rds"))
+
+#agi w/ spatial predictors and agi covar at the surface and at 60m and 250m
+try(brt_agi_0m_60m_250m_seas_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(3, 7:17, 19, 22:25), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_seas_Yspat_Ntag, here("data/brt/mod_outputs/background/seasonal/brt_agi_0m_60m_250m_seas_Yspat_Ntag.rds"))
+
+#### annual only all depths ####
+#agi w/o spatial predictors and agi covar at the surface and at 60m and 250m 
+try(brt_agi_0m_60m_250m_ann_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(7:17, 22, 26:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_ann_Nspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_ann_Nspat_Ntag.rds"))
+
+#agi w/ spatial predictors and agi covar at the surface and at 60m and 250m
+try(brt_agi_0m_60m_250m_ann_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(3, 7:17, 19, 22, 26:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_ann_Yspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_ann_Yspat_Ntag.rds"))
+
+#### all temp res all depths ####
+#agi w/o spatial predictors and agi covar at the surface and at 60m and 250m 
+try(brt_agi_0m_60m_250m_dail_seas_ann_Nspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(7:18, 20:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_dail_seas_ann_Nspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_dail_seas_ann_Nspat_Ntag.rds"))
+
+#agi w/ spatial predictors and agi covar at the surface and at 60m and 250m
+try(brt_agi_0m_60m_250m_dail_seas_ann_Yspat_Ntag <- dismo::gbm.step(
+  data = dat_train_agi, 
+  gbm.x = c(3, 7:28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_60m_250m_dail_seas_ann_Yspat_Ntag, here("data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_dail_seas_ann_Yspat_Ntag.rds"))
 
 ### explore outputs -- will more thoroughly do in quarto doc ####
 ggBRT::ggPerformance(test)

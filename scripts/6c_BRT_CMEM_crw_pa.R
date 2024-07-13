@@ -52,7 +52,7 @@ dat_agi <- dat_agi %>%
          "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
          "AGI_250m_ann" = "dat_agi_a$AGI_250m")
 
-#### split into test and train ####
+#### Split into test and train ####
 #base
 dat_train_base_d <- dat_base_d %>% sample_frac(0.75) #daily
 dat_test_base_d <- dat_base_d %>% sample_frac(0.25)
@@ -71,7 +71,7 @@ dat_test_do <- dat_do %>% sample_frac(0.25)
 dat_train_agi <- dat_agi %>% sample_frac(0.75)
 dat_test_agi <- dat_agi %>% sample_frac(0.25)
 
-### run BRT ####
+### Run BRT ####
 #### base ####
 #base w/o spatial predictors, w/ tag id predictor and covars only at the surface (no DO or AGI)
 try(brt_base_0m_Nspat_Ytag <- dismo::gbm.step(
@@ -300,7 +300,7 @@ try(brt_agi_0m_60m_250m_Yspat_Ytag <- dismo::gbm.step(
 )
 saveRDS(brt_agi_0m_60m_250m_Yspat_Ytag, here("data/brt/mod_outputs/brt_agi_0m_60m_250m_Yspat_Ytag.rds"))
 
-### run above but without tag ID ####
+### Run BRT w/o tag ID ####
 #### do ####
 #do w/ spatial predictors, and DO covar at the surface
 try(brt_do_0m_Yspat_Ntag <- dismo::gbm.step(
