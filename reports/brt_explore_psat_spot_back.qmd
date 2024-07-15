@@ -13,13 +13,13 @@ fontcolor: "#134f5c"
 code-block-bg: true
 ---
 
-On this document, I've included the results from the initial exploration into the different model outputs, ranking of covariate influence, performance metrics, and prediction maps. This first set of models only includes extracted covariate data at a daily temporal resolution, but I am also considering exploring models that include covariate data at a seasonal or annual temporal resolution. The pseudo absences used in these models were generated using background sampling approaches. Lastly, hyperparameters were tuned using the caret package and across all models, a learning rate of 0.05 and tree complexity of 3 resulted in the highest accuracy. Lastly, the 'pred_var' predictor is a random set of numbers that will be used to identify which predictor variables should be included in the final model, and which are not informative. 
+On this document, I've included the results from the initial exploration into the different model outputs, ranking of covariate influence, performance metrics, and prediction maps. This first set of models only includes extracted covariate data at a daily temporal resolution, but I am also considering exploring models that include covariate data at a seasonal or annual temporal resolution. The pseudo absences used in these models were generated using background sampling approaches. Lastly, hyperparameters were tuned using the caret package and across all models, a learning rate of 0.05 and tree complexity of 3 resulted in the highest accuracy. Lastly, the 'pred_var' predictor is a random set of numbers that will be used to identify which predictor variables should be included in the final model, and which are not informative.
 
 The hypotheses I would like to test with these models are as follows:
 
 **H1:** The AGI model will perform better than the dissolved oxygen and null model, and the dissolved oxygen model will perform better than the null model.
 
-*study objective being met:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)? 
+*study objective being met:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)?
 
 **H2:** The inclusion of dissolved oxygen at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the dissolved oxygen model considering surface values alone.
 
@@ -27,15 +27,15 @@ The hypotheses I would like to test with these models are as follows:
 
 **H3:** The inclusion of the AGI at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the AGI model considering surface values alone.
 
-*study objective being met:* How does the aerobic growth index (AGI; environmental oxygen supply:theoretical oxygen demand) at different depths influence habitat suitability predictions relative to the aerobic growth index at the surface? 
+*study objective being met:* How does the aerobic growth index (AGI; environmental oxygen supply:theoretical oxygen demand) at different depths influence habitat suitability predictions relative to the aerobic growth index at the surface?
 
 **H4:** There will be important relationships between dissolved oxygen/the AGI and latitude/distance to coast.
 
 *study objective being met:* Are there any important relationships between dissolved oxygen or AGI at the surface or at depth and latitude or distance to the coast?
 
-**H5:** The null model will predict higher habitat suitability in areas or during seasons or periods (upwelling or La Niña) with lower dissolved oxygen through the water column relative to the dissolved oxygen and AGI models. 
+**H5:** The null model will predict higher habitat suitability in areas or during seasons or periods (upwelling or La Niña) with lower dissolved oxygen through the water column relative to the dissolved oxygen and AGI models.
 
-*study objective being met:* How do the habitat suitability maps differ between the models? How do these variations compare for different points in time? 
+*study objective being met:* How do the habitat suitability maps differ between the models? How do these variations compare for different points in time?
 
 ```{r}
 #| echo: false
@@ -84,18 +84,82 @@ dat_train_agi <- dat_agi %>% sample_frac(0.75)
 dat_test_agi <- dat_agi %>% sample_frac(0.25)
 
 #load BRT outputs
-brt_outputs <- list.files(here("data/brt/mod_outputs/background"), full.names = TRUE)
+brt_outputs <- list.files(here("data/brt/mod_outputs/background"), full.names = TRUE, pattern = ".rds")
 brt_outputs_Ntag <- list.files(here("data/brt/mod_outputs/background/no_tag"), full.names = TRUE)
+
+#### Background daily data ####
+dat_base_d <- readRDS(here("data/locs_brts/bckg_pas/dat_base_back.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_d <- readRDS(here("data/locs_brts/bckg_pas/dat_do_back.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_d <- readRDS(here("data/locs_brts/bckg_pas/dat_agi_back.rds")) %>% mutate(tag = as.factor(tag))
+
+#### Background seasonal data ####
+dat_base_s <- readRDS(here("data/locs_brts/back_pas_seas/dat_base_seas.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_s <- readRDS(here("data/locs_brts/back_pas_seas/dat_do_seas.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_s <- readRDS(here("data/locs_brts/back_pas_seas/dat_agi_seas.rds")) %>% mutate(tag = as.factor(tag))
+
+#### Background annual data ####
+dat_base_a <- readRDS(here("data/locs_brts/back_pas_ann/dat_base_ann.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_a <- readRDS(here("data/locs_brts/back_pas_ann/dat_do_ann.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_a <- readRDS(here("data/locs_brts/back_pas_ann/dat_agi_ann.rds")) %>% mutate(tag = as.factor(tag))
+
+#### Add random variable for predictor selection ####
+pred_var <- rnorm(31084, mean = 50, sd = 10)
+
+dat_base_d$pred_var <- pred_var
+dat_do_d$pred_var <- pred_var
+dat_agi_d$pred_var <- pred_var
+
+dat_base_a$pred_var <- pred_var
+dat_base_s$pred_var <- pred_var
+
+#### Add seasonal and annual data to daily data df ####
+dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
+dat_do_all <- dat_do_all %>%
+  rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
+         "o2_mean_60m_seas" = "dat_do_s$o2_mean_60m", 
+         "o2_mean_250m_seas" = "dat_do_s$o2_mean_250m", 
+         "o2_mean_0m_ann" = "dat_do_a$o2_mean_0m", 
+         "o2_mean_60m_ann" = "dat_do_a$o2_mean_60m", 
+         "o2_mean_250m_ann" = "dat_do_a$o2_mean_250m")
+
+dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
+dat_agi_all <- dat_agi_all %>%
+  rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
+         "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
+         "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
+         "AGI_0m_ann" = "dat_agi_a$AGI_0m", 
+         "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
+         "AGI_250m_ann" = "dat_agi_a$AGI_250m")
+
+
+#### Split into test and train ####
+#base
+dat_train_base_d <- dat_base_d %>% sample_frac(0.75) #daily
+dat_test_base_d <- dat_base_d %>% sample_frac(0.25)
+
+dat_train_base_s <- dat_base_s %>% sample_frac(0.75) #seasonal
+dat_test_base_s <- dat_base_s %>% sample_frac(0.25)
+
+dat_train_base_a <- dat_base_a %>% sample_frac(0.75) #annual
+dat_test_base_a <- dat_base_a %>% sample_frac(0.25)
+
+#do
+dat_train_do <- dat_do_all %>% sample_frac(0.75)
+dat_test_do <- dat_do_all %>% sample_frac(0.25)
+
+#agi
+dat_train_agi <- dat_agi_all %>% sample_frac(0.75)
+dat_test_agi <- dat_agi_all %>% sample_frac(0.25)
 
 ```
 
 # Base models
 
-These three models represent three different options for the base model and either include spatial predictors, a tag ID predictor, both, or neither. These models were developed by splitting the data set into 75/25 train/test, and thus that is the model evaluation approach used here. However, once a model is selected, I can run additional evaluation metrics (i.e., LOO, k-fold). I can also complete these now depending on when that is typically performed. 
+These three models represent three different options for the base model and either include spatial predictors, a tag ID predictor, both, or neither. These models were developed by splitting the data set into 75/25 train/test, and thus that is the model evaluation approach used here. However, once a model is selected, I can run additional evaluation metrics (i.e., LOO, k-fold). I can also complete these now depending on when that is typically performed.
 
 ::: panel-tabset
+## 0m, no spatial predictors, no tag ID predictor
 
-## 0m, no spatial predictors, no tag ID predictor 
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -147,7 +211,8 @@ eval_7525_modified(base_Nspat_Ntag,
 
 ```
 
-## 0m, no spatial predictors, yes tag ID predictor 
+## 0m, no spatial predictors, yes tag ID predictor
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -199,8 +264,8 @@ eval_7525_modified(base_Nspat_Ytag,
 
 ```
 
+## 0m, yes spatial predictors, yes tag ID predictor
 
-## 0m, yes spatial predictors, yes tag ID predictor 
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -251,15 +316,15 @@ eval_7525_modified(base_Yspat_Ytag,
                  gbm.y = "PA")
 
 ```
-
-::: 
+:::
 
 # DO models
+
 I ran a suite of models that include various combinations of data at depth, spatial predictors, and tag ID predictors. Moving forward, I would also like to include DO and the other environmental predictor variables as longer time scales (seasonal/annual).
 
 ::: panel-tabset
-
 ## 0m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -312,6 +377,7 @@ eval_7525_modified(do_0m_Nspat_Ytag,
 ```
 
 ## 0m, yes spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -364,6 +430,7 @@ eval_7525_modified(do_0m_Yspat_Ytag,
 ```
 
 ## 0m & 60m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -416,6 +483,7 @@ eval_7525_modified(do_0m_60m_Nspat_Ytag,
 ```
 
 ## 0m & 250m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -468,6 +536,7 @@ eval_7525_modified(do_0m_250m_Nspat_Ytag,
 ```
 
 ## 0m, 60m, & 250m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -520,6 +589,7 @@ eval_7525_modified(do_0m_60m_250m_Nspat_Ytag,
 ```
 
 ## 0m, 60m, & 250m, yes spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -572,12 +642,13 @@ eval_7525_modified(do_0m_60m_250m_Yspat_Ytag,
 ```
 :::
 
-# AGI models 
+# AGI models
+
 I ran a suite of models that include various combinations of data at depth, spatial predictors, and tag ID predictors. Moving forward, I would also like to include AGI and the other environmental predictor variables as longer time scales (seasonal/annual).
 
-::: panel-tabset 
-
+::: panel-tabset
 ## 0m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -630,6 +701,7 @@ eval_7525_modified(agi_0m_Nspat_Ytag,
 ```
 
 ## 0m, yes spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -682,6 +754,7 @@ eval_7525_modified(agi_0m_Yspat_Ytag,
 ```
 
 ## 0m & 60m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -734,6 +807,7 @@ eval_7525_modified(agi_0m_60m_Nspat_Ytag,
 ```
 
 ## 0m & 250m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -786,6 +860,7 @@ eval_7525_modified(agi_0m_250m_Nspat_Ytag,
 ```
 
 ## 0m, 60m, & 250m, no spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -838,6 +913,7 @@ eval_7525_modified(agi_0m_60m_250m_Nspat_Ytag,
 ```
 
 ## 0m, 60m, & 250m, yes spatial, yes tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -890,7 +966,8 @@ eval_7525_modified(agi_0m_60m_250m_Yspat_Ytag,
 ```
 :::
 
-# Summary table of results 
+# Summary table of results
+
 ```{r}
 #| warning: false
 #| message: false
@@ -900,12 +977,13 @@ kableExtra::kable(output_sum)
 
 ```
 
-# DO models w/o tag ID 
-Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that dissolved oxygen may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included. 
+# DO models w/o tag ID
 
-:::panel-tabset
+Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that dissolved oxygen may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included.
 
+::: panel-tabset
 ## 0m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -958,6 +1036,7 @@ eval_7525_modified(do_0m_Nspat_Ntag,
 ```
 
 ## 0m, yes spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1010,6 +1089,7 @@ eval_7525_modified(do_0m_Yspat_Ntag,
 ```
 
 ## 0m & 60m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1062,6 +1142,7 @@ eval_7525_modified(do_0m_60m_Nspat_Ntag,
 ```
 
 ## 0m & 250m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1114,6 +1195,7 @@ eval_7525_modified(do_0m_250m_Nspat_Ntag,
 ```
 
 ## 0m, 60m, & 250m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1166,6 +1248,7 @@ eval_7525_modified(do_0m_60m_250m_Nspat_Ntag,
 ```
 
 ## 0m, 60m, & 250m, yes spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1219,11 +1302,12 @@ eval_7525_modified(do_0m_60m_250m_Yspat_Ntag,
 :::
 
 # AGI models w/o tag ID
-Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that AGI may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included. 
 
-:::panel-tabset 
+Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that AGI may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included.
 
+::: panel-tabset
 ## 0m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1276,6 +1360,7 @@ eval_7525_modified(agi_0m_Nspat_Ntag,
 ```
 
 ## 0m, yes spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1328,6 +1413,7 @@ eval_7525_modified(agi_0m_Yspat_Ntag,
 ```
 
 ## 0m & 60m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1380,6 +1466,7 @@ eval_7525_modified(agi_0m_60m_Nspat_Ntag,
 ```
 
 ## 0m & 250m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1432,6 +1519,7 @@ eval_7525_modified(agi_0m_250m_Nspat_Ntag,
 ```
 
 ## 0m, 60m, & 250m, no spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1484,6 +1572,7 @@ eval_7525_modified(agi_0m_60m_250m_Nspat_Ntag,
 ```
 
 ## 0m, 60m, & 250m, yes spatial, no tag
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1537,6 +1626,7 @@ eval_7525_modified(agi_0m_60m_250m_Yspat_Ntag,
 :::
 
 # Summary table of results
+
 ```{r}
 #| warning: false
 #| message: false
@@ -1544,4 +1634,210 @@ eval_7525_modified(agi_0m_60m_250m_Yspat_Ntag,
 output_sum_Ntag <- read.csv(here("data/brt/mod_outputs/brt_bckg_output_summary_Ntag.csv"))
 kableExtra::kable(output_sum_Ntag)
 
+```
+
+# Base models w/o tag ID and w/ data at seasonal and annual resolutions 
+
+For these models, the environmental raster data was averaged according to season and year. Observed and pseudo absence locations were then used for environmental data extraction along these raster files and were matched to each file according to either the season or year.
+
+::: panel-tabset 
+
+## Seasonal resolution
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/seasonal/brt_base_0m_seas_Nspat_Ntag.rds",
+            test_data = dat_test_base_s)
+
+```
+
+## Annual resolution 
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_base_0m_ann_Nspat_Ntag.rds",
+            test_data = dat_test_base_a)
+```
+
+:::
+
+# DO models w/o tag ID and w/ data at seasonal and annual resolutions
+
+::: panel-tabset
+
+## Seasonal, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/seasonal/brt_do_0m_60m_250m_seas_Nspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Seasonal, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/seasonal/brt_do_0m_60m_250m_seas_Yspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_ann_Nspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_ann_Yspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Daily, seasonal, and Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_dail_seas_ann_Nspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Daily, Seasonal, and Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_do_0m_60m_250m_dail_seas_ann_Yspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+:::
+
+# Summary table of results
+
+```{r}
+#| warning: false
+#| message: false
+
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_background_do_seas_ann_output_summary.csv"))
+kableExtra::kable(output_sum)
+```
+
+# AGI models w/o tag ID and w/ data at seasonal and annual resolutions
+
+::: panel-tabset
+
+## Seasonal, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/seasonal/brt_agi_0m_60m_250m_seas_Nspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Seasonal, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/seasonal/brt_agi_0m_60m_250m_seas_Yspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_ann_Nspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_ann_Yspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Daily, seasonal, and Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_dail_seas_ann_Nspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Daily, Seasonal, and Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/annual/brt_agi_0m_60m_250m_dail_seas_ann_Yspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+:::
+
+# Summary table of results
+
+```{r}
+#| warning: false
+#| message: false
+
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_background_agi_seas_ann_output_summary.csv"))
+kableExtra::kable(output_sum)
 ```

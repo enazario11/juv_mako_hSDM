@@ -60,6 +60,7 @@ library(here);here <- here::here #plyr's here function masks here::here
 set.seed(1004)
 
 source(here("functions/BRT_evaluation_functions.R"))
+source(here("functions/brt_explore_quarto_function.R"))
 
 #get test and train data sets 
 #CRW data
@@ -88,8 +89,72 @@ dat_train_agi <- dat_agi %>% sample_frac(0.75)
 dat_test_agi <- dat_agi %>% sample_frac(0.25)
 
 #load BRT outputs
-brt_outputs <- list.files(here("data/brt/mod_outputs/crw"), full.names = TRUE)
+brt_outputs <- list.files(here("data/brt/mod_outputs/crw"), full.names = TRUE, pattern = ".rds")
 brt_outputs_Ntag <- list.files(here("data/brt/mod_outputs/crw/no_tag"), full.names = TRUE)
+
+# get test and train data sets for seasonal and annual data 
+# CRW daily data
+dat_base_d <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_d <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_d <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% mutate(tag = as.factor(tag))
+
+# CRW seasonal data 
+dat_base_s <- readRDS(here("data/locs_brts/crw_pas_seas/dat_base_seas.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_s <- readRDS(here("data/locs_brts/crw_pas_seas/dat_do_seas.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_s <- readRDS(here("data/locs_brts/crw_pas_seas/dat_agi_seas.rds")) %>% mutate(tag = as.factor(tag))
+
+# CRW annual data
+dat_base_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_base_ann.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_do_ann.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_agi_ann.rds")) %>% mutate(tag = as.factor(tag))
+
+# Add random variable for predictor selection
+pred_var <- rnorm(31084, mean = 50, sd = 10)
+
+dat_base_d$pred_var <- pred_var
+dat_do_d$pred_var <- pred_var
+dat_agi_d$pred_var <- pred_var
+
+dat_base_a$pred_var <- pred_var
+dat_base_s$pred_var <- pred_var
+
+# Add seasonal and annual data to daily data df
+dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
+dat_do_all <- dat_do_all %>%
+  rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
+         "o2_mean_60m_seas" = "dat_do_s$o2_mean_60m", 
+         "o2_mean_250m_seas" = "dat_do_s$o2_mean_250m", 
+         "o2_mean_0m_ann" = "dat_do_a$o2_mean_0m", 
+         "o2_mean_60m_ann" = "dat_do_a$o2_mean_60m", 
+        "o2_mean_250m_ann" = "dat_do_a$o2_mean_250m")
+
+dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
+dat_agi_all <- dat_agi_all %>%
+  rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
+         "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
+         "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
+         "AGI_0m_ann" = "dat_agi_a$AGI_0m", 
+         "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
+         "AGI_250m_ann" = "dat_agi_a$AGI_250m")
+
+#### Split into test and train ####
+#base
+dat_train_base_d <- dat_base_d %>% sample_frac(0.75) #daily
+dat_test_base_d <- dat_base_d %>% sample_frac(0.25)
+
+dat_train_base_s <- dat_base_s %>% sample_frac(0.75) #seasonal
+dat_test_base_s <- dat_base_s %>% sample_frac(0.25)
+
+dat_train_base_a <- dat_base_a %>% sample_frac(0.75) #annual
+dat_test_base_a <- dat_base_a %>% sample_frac(0.25)
+
+#do
+dat_train_do_all <- dat_do_all %>% sample_frac(0.75)
+dat_test_do_all <- dat_do_all %>% sample_frac(0.25)
+
+#agi
+dat_train_agi_all <- dat_agi_all %>% sample_frac(0.75)
+dat_test_agi_all <- dat_agi_all %>% sample_frac(0.25)
 
 ```
 
@@ -1576,26 +1641,208 @@ kableExtra::kable(output_sum_Ntag)
 
 ```
 
-# DO models w/o tag ID and w/ data at seasonal and annual resolutions
+# Base models w/o tag ID and w/ data at seasonal and annual resolutions 
 
+For these models, the environmental raster data was averaged according to season and year. Observed and pseudo absence locations were then used for environmental data extraction along these raster files and were matched to each file according to either the season or year.
+
+::: panel-tabset 
+
+## Seasonal resolution
 ```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_base_0m_seas_Nspat_Ntag.rds",
+            test_data = dat_test_base_s)
 
 ```
+
+## Annual resolution 
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_base_0m_ann_Nspat_Ntag.rds",
+            test_data = dat_test_base_a)
+```
+
+:::
+
+# DO models w/o tag ID and w/ data at seasonal and annual resolutions
+
+::: panel-tabset
+
+## Seasonal, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_do_0m_60m_250m_seas_Nspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Seasonal, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_do_0m_60m_250m_seas_Yspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_do_0m_60m_250m_ann_Nspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_do_0m_60m_250m_ann_Yspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Daily, seasonal, and Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_do_0m_60m_250m_dail_seas_ann_Nspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+## Daily, Seasonal, and Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_do_0m_60m_250m_dail_seas_ann_Yspat_Ntag.rds",
+            test_data = dat_test_do_all)
+
+```
+
+:::
 
 # Summary table of results
 
 ```{r}
+#| warning: false
+#| message: false
 
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_crw_do_seas_ann_output_summary.csv"))
+kableExtra::kable(output_sum)
 ```
 
 # AGI models w/o tag ID and w/ data at seasonal and annual resolutions
 
+::: panel-tabset
+
+## Seasonal, Nspat, Ntag
+
 ```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_agi_0m_60m_250m_seas_Nspat_Ntag.rds",
+            test_data = dat_test_agi_all)
 
 ```
+
+## Seasonal, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_agi_0m_60m_250m_seas_Yspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_agi_0m_60m_250m_ann_Nspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_agi_0m_60m_250m_ann_Yspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Daily, seasonal, and Annual, Nspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_agi_0m_60m_250m_dail_seas_ann_Nspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+## Daily, Seasonal, and Annual, Yspat, Ntag
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_agi_0m_60m_250m_dail_seas_ann_Yspat_Ntag.rds",
+            test_data = dat_test_agi_all)
+
+```
+
+:::
 
 # Summary table of results
 
 ```{r}
+#| warning: false
+#| message: false
 
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_crw_agi_seas_ann_output_summary.csv"))
+kableExtra::kable(output_sum)
 ```
