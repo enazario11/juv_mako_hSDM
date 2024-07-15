@@ -56,6 +56,7 @@ library(here);here <- here::here #plyr's here function masks here::here
 set.seed(1004)
 
 source(here("functions/BRT_evaluation_functions.R"))
+source(here("functions/brt_explore_quarto_function.R"))
 
 #get test and train data sets 
 #CRW data
@@ -144,12 +145,12 @@ dat_train_base_a <- dat_base_a %>% sample_frac(0.75) #annual
 dat_test_base_a <- dat_base_a %>% sample_frac(0.25)
 
 #do
-dat_train_do <- dat_do_all %>% sample_frac(0.75)
-dat_test_do <- dat_do_all %>% sample_frac(0.25)
+dat_train_do_all <- dat_do_all %>% sample_frac(0.75)
+dat_test_do_all <- dat_do_all %>% sample_frac(0.25)
 
 #agi
-dat_train_agi <- dat_agi_all %>% sample_frac(0.75)
-dat_test_agi <- dat_agi_all %>% sample_frac(0.25)
+dat_train_agi_all <- dat_agi_all %>% sample_frac(0.75)
+dat_test_agi_all <- dat_agi_all %>% sample_frac(0.25)
 
 ```
 

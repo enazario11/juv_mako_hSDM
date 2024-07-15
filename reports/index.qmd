@@ -15,6 +15,6 @@ Below are links to the pages containing different exploratory analyses for the j
 
 [See here](covar_explore_psat_spot_back.html) for the figures depicting the covariate exploration (Background PA) across depth layers (0m, 60m, 250m)
 
-[See here](brt_explore_psat__spot_new.html) for the initial BRT output exploration. This includes pseudo absences generated with correlated random walks and environmental data at a daily resolution.
+[See here](brt_explore_psat__spot_new.html) for the initial BRT output exploration. This includes pseudo absences generated with correlated random walks and environmental data at a daily, seasonal, and annual resolution.
 
-[See here](brt_explore_psat_spot_back.html) for the initial BRT output exploration. This includes pseudo absences generated with background sampling and environmental data at a daily resolution.
+[See here](brt_explore_psat_spot_back.html) for the initial BRT output exploration. This includes pseudo absences generated with background sampling and environmental data at a daily, seasonal, and annual resolution.
