@@ -34,8 +34,8 @@ dat_base_a$pred_var <- pred_var
 dat_base_s$pred_var <- pred_var
 
 #### Add seasonal and annual data to daily data df ####
-dat_do <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
-dat_do <- dat_do %>%
+dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
+dat_do_all <- dat_do_all %>%
   rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
          "o2_mean_60m_seas" = "dat_do_s$o2_mean_60m", 
          "o2_mean_250m_seas" = "dat_do_s$o2_mean_250m", 
@@ -43,8 +43,8 @@ dat_do <- dat_do %>%
          "o2_mean_60m_ann" = "dat_do_a$o2_mean_60m", 
         "o2_mean_250m_ann" = "dat_do_a$o2_mean_250m")
 
-dat_agi <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
-dat_agi <- dat_agi %>%
+dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
+dat_agi_all <- dat_agi_all %>%
   rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
          "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
          "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
@@ -52,11 +52,20 @@ dat_agi <- dat_agi %>%
          "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
          "AGI_250m_ann" = "dat_agi_a$AGI_250m")
 
-#### Split into test and train ####
+##### Split into test and train daily data #####
 #base
-dat_train_base_d <- dat_base_d %>% sample_frac(0.75) #daily
+dat_train_base_d <- dat_base_d %>% sample_frac(0.75) #base (also used for below)
 dat_test_base_d <- dat_base_d %>% sample_frac(0.25)
 
+#do
+dat_train_do_d <- dat_do_d %>% sample_frac(0.75)
+dat_test_do_d <- dat_do_d %>% sample_frac(0.25)
+
+#agi
+dat_train_agi_d <- dat_agi_d %>% sample_frac(0.75)
+dat_test_agi_d <- dat_agi_d %>% sample_frac(0.25)
+
+#### Split into test and train seasonal/annual data####
 dat_train_base_s <- dat_base_s %>% sample_frac(0.75) #seasonal
 dat_test_base_s <- dat_base_s %>% sample_frac(0.25)
 
@@ -64,12 +73,12 @@ dat_train_base_a <- dat_base_a %>% sample_frac(0.75) #annual
 dat_test_base_a <- dat_base_a %>% sample_frac(0.25)
 
 #do
-dat_train_do <- dat_do %>% sample_frac(0.75)
-dat_test_do <- dat_do %>% sample_frac(0.25)
+dat_train_do <- dat_do_all %>% sample_frac(0.75) #all temp res do
+dat_test_do <- dat_do_all %>% sample_frac(0.25)
 
 #agi
-dat_train_agi <- dat_agi %>% sample_frac(0.75)
-dat_test_agi <- dat_agi %>% sample_frac(0.25)
+dat_train_agi <- dat_agi_all %>% sample_frac(0.75) #all temp res agi
+dat_test_agi <- dat_agi_all %>% sample_frac(0.25)
 
 ### Run BRT ####
 #### base ####
@@ -121,7 +130,7 @@ saveRDS(brt_base_0m_Yspat_Ytag, here("data/brt/mod_outputs/brt_base_0m_Yspat_Yta
 #### do ####
 #do w/ spatial predictors, w/ tag id predictors, and DO covar at the surface
 try(brt_do_0m_Yspat_Ytag <- dismo::gbm.step(
-  data = dat_train_do, 
+  data = dat_train_do_d, 
   gbm.x = c(1, 4, 8:20, 23), 
   gbm.y = 5,
   family = "bernoulli", 

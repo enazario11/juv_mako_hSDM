@@ -982,6 +982,21 @@ kableExtra::kable(output_sum)
 
 ```
 
+```{r}
+#| warning: false
+#| message: false
+
+ggplot(output_sum, aes(AUC, TSS, color = percent_explained, label = model)) + 
+  geom_point(size = 3) +
+  xlab('AUC') +
+  ylab('TSS') +
+  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+  ggrepel::geom_label_repel(aes(label = model),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5,
+                  segment.color = 'grey50')
+```
+
 # DO models w/o tag ID
 
 Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that dissolved oxygen may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included.
@@ -1641,13 +1656,28 @@ kableExtra::kable(output_sum_Ntag)
 
 ```
 
-# Base models w/o tag ID and w/ data at seasonal and annual resolutions 
+```{r}
+#| warning: false
+#| message: false
+
+ggplot(output_sum_Ntag, aes(AUC, TSS, color = percent_explained, label = model)) + 
+  geom_point(size = 3) +
+  xlab('AUC') +
+  ylab('TSS') +
+  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+  ggrepel::geom_label_repel(aes(label = model),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5,
+                  segment.color = 'grey50')
+```
+
+# Base models w/o tag ID and w/ data at seasonal and annual resolutions
 
 For these models, the environmental raster data was averaged according to season and year. Observed and pseudo absence locations were then used for environmental data extraction along these raster files and were matched to each file according to either the season or year.
 
-::: panel-tabset 
-
+::: panel-tabset
 ## Seasonal resolution
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -1658,7 +1688,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_base_0m_seas_
 
 ```
 
-## Annual resolution 
+## Annual resolution
 
 ```{r}
 #| warning: false
@@ -1668,13 +1698,11 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/seasonal/brt_base_0m_seas_
 explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_base_0m_ann_Nspat_Ntag.rds",
             test_data = dat_test_base_a)
 ```
-
 :::
 
 # DO models w/o tag ID and w/ data at seasonal and annual resolutions
 
 ::: panel-tabset
-
 ## Seasonal, Nspat, Ntag
 
 ```{r}
@@ -1746,23 +1774,11 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_do_0m_60m_250m_
             test_data = dat_test_do_all)
 
 ```
-
 :::
-
-# Summary table of results
-
-```{r}
-#| warning: false
-#| message: false
-
-output_sum <- read.csv(here("data/brt/mod_outputs/brt_crw_do_seas_ann_output_summary.csv"))
-kableExtra::kable(output_sum)
-```
 
 # AGI models w/o tag ID and w/ data at seasonal and annual resolutions
 
 ::: panel-tabset
-
 ## Seasonal, Nspat, Ntag
 
 ```{r}
@@ -1834,7 +1850,6 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_agi_0m_60m_250m
             test_data = dat_test_agi_all)
 
 ```
-
 :::
 
 # Summary table of results
@@ -1843,6 +1858,21 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/annual/brt_agi_0m_60m_250m
 #| warning: false
 #| message: false
 
-output_sum <- read.csv(here("data/brt/mod_outputs/brt_crw_agi_seas_ann_output_summary.csv"))
-kableExtra::kable(output_sum)
+output_sum_seas_ann <- read.csv(here("data/brt/mod_outputs/brt_crw_seas_ann_output_summary.csv"))
+kableExtra::kable(output_sum_seas_ann)
+```
+
+```{r}
+#| warning: false
+#| message: false
+
+ggplot(output_sum_seas_ann, aes(AUC, TSS, color = percent_explained, label = model)) + 
+  geom_point(size = 3) +
+  xlab('AUC') +
+  ylab('TSS') +
+  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+  ggrepel::geom_label_repel(aes(label = model),
+                  box.padding   = 0.35, 
+                  point.padding = 0.5,
+                  segment.color = 'grey50')
 ```
