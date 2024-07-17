@@ -75,7 +75,7 @@ do_test_daily <- readRDS(here("data/brt/mod_eval/do_test_daily.rds"))
 agi_test_daily <- readRDS(here("data/brt/mod_eval/agi_test_daily.rds"))
 
 do_test_daily_seasonal_annual <- readRDS(here("data/brt/mod_eval/do_test_daily_seasonal_annual.rds"))
-agi_test_daily_seasonal_annual <- readRDS(here("data/brt/mod_eval_agi_test_daily_seasonal_annual.rds"))
+agi_test_daily_seasonal_annual <- readRDS(here("data/brt/mod_eval/agi_test_daily_seasonal_annual.rds"))
 
 ```
 
@@ -291,15 +291,15 @@ kableExtra::kable(output_sum)
 #| warning: false
 #| message: false
 
-ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) + 
-  geom_point(size = 3) +
-  xlab('AUC') +
-  ylab('TSS') +
-  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
-  ggrepel::geom_label_repel(aes(label = model),
-                  box.padding   = 0.35, 
-                  point.padding = 0.5,
-                  segment.color = 'grey50')
+# ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) + 
+#   geom_point(size = 3) +
+#   xlab('AUC') +
+#   ylab('TSS') +
+#   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+#   ggrepel::geom_label_repel(aes(label = model),
+#                   box.padding   = 0.35, 
+#                   point.padding = 0.5,
+#                   segment.color = 'grey50')
 ```
 
 # DO models w/o tag ID
@@ -473,15 +473,15 @@ kableExtra::kable(output_sum_Ntag)
 #| warning: false
 #| message: false
 
-ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) + 
-  geom_point(size = 3) +
-  xlab('AUC') +
-  ylab('TSS') +
-  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
-  ggrepel::geom_label_repel(aes(label = model),
-                  box.padding   = 0.35, 
-                  point.padding = 0.5,
-                  segment.color = 'grey50')
+# ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) + 
+#   geom_point(size = 3) +
+#   xlab('AUC') +
+#   ylab('TSS') +
+#   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+#   ggrepel::geom_label_repel(aes(label = model),
+#                   box.padding   = 0.35, 
+#                   point.padding = 0.5,
+#                   segment.color = 'grey50')
 ```
 
 # Base models w/o tag ID and w/ data at seasonal and annual resolutions
@@ -679,13 +679,13 @@ kableExtra::kable(output_sum_seas_ann)
 #| warning: false
 #| message: false
 
-ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) + 
-  geom_point(size = 3) +
-  xlab('AUC') +
-  ylab('TSS') +
-  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
-  ggrepel::geom_label_repel(aes(label = model),
-                  box.padding   = 0.35, 
-                  point.padding = 0.5,
-                  segment.color = 'grey50')
+# ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) + 
+#   geom_point(size = 3) +
+#   xlab('AUC') +
+#   ylab('TSS') +
+#   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+#   ggrepel::geom_label_repel(aes(label = model),
+#                   box.padding   = 0.35, 
+#                   point.padding = 0.5,
+#                   segment.color = 'grey50')
 ```

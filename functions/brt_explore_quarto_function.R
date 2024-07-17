@@ -12,8 +12,6 @@
 
 source(here("functions/BRT_evaluation_functions.R"))
 
-
-
 explore_brt <- function(mod_file_path, test_data){
   
   mod_file <- readRDS(here(mod_file_path))
@@ -42,6 +40,7 @@ explore_brt <- function(mod_file_path, test_data){
   preds <- predict.gbm(mod_file, test_data,
                        n.trees = mod_file$gbm.call$best.trees,
                        type = "response")
+  observed <- test_data$PA
   
   ext.residual.deviance <- calc.deviance(obs = test_data$PA, pred=preds, family="bernoulli", calc.mean=TRUE) #get % deviance
   null.dev =  calc.deviance(test_data$PA ,rep(mean(test_data$PA),length(test_data$PA)), family="bernoulli", calc.mean=T)
@@ -67,9 +66,9 @@ explore_brt <- function(mod_file_path, test_data){
   print(max(e@TPR + e@TNR -1)) #TSS
 
   #provides % deviance for model selection - unsure if this is different from above calc.deviance
-  perc_dev <- dev_eval_brt(mod_file)
-  print("Percent deviance calculated by in house functions")
-  print(perc_dev)
+  # perc_dev <- dev_eval_brt(mod_file, observed = observed, pred = preds)
+  # print("Percent deviance calculated by in house functions")
+  # print(perc_dev)
   
   #eval 75/25
   print("Model evaluation using a 75/25 train/test data split")
