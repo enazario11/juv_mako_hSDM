@@ -111,7 +111,7 @@ eval_7525_modified <- function(dataInput, gbm.x, gbm.y, lr, tc=tc, family){
   DataInput <- dataInput
   Evaluations_7525 <- as.data.frame(matrix(data=0,nrow=1,ncol=6))
   colnames(Evaluations_7525) <-  c("RMSE","Cor","C-index","PredRatio","DevianceExplained","PseudoR2")
-  DataInput_bound <- floor((nrow(DataInput)/4)*3)            #define % of training and test set
+  DataInput_bound <- floor((nrow(DataInput)/4)*3) #define % of training and test set
   DataInput_train<- DataInput[sample(nrow(DataInput),DataInput_bound),]
   DataInput_test<- DataInput[sample(nrow(DataInput),nrow(DataInput)-DataInput_bound),]
   DataInput.kfolds <- gbm.step(data=DataInput_train, gbm.x= gbm.x, gbm.y = gbm.y, 

@@ -43,9 +43,12 @@ explore_brt <- function(mod_file_path, test_data){
                        n.trees = mod_file$gbm.call$best.trees,
                        type = "response")
   
-  calc_dev <- calc.deviance(obs = test_data$PA, preds) #get % deviance
-  print("Calculated percent deviance")
-  print(calc_dev)
+  ext.residual.deviance <- calc.deviance(obs = test_data$PA, pred=preds, family="bernoulli", calc.mean=TRUE) #get % deviance
+  null.dev =  calc.deviance(test_data$PA ,rep(mean(test_data$PA),length(test_data$PA)), family="bernoulli", calc.mean=T)
+  dev=(null.dev - ext.residual.deviance)/null.dev 
+  print("External percent deviance explained")
+  print(dev)
+  
   
   dat_pred <- cbind(test_data$PA, preds)
   pres <- dat_pred[dat_pred[,1] == 1, 2]

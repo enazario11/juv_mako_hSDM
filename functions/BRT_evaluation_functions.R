@@ -43,12 +43,14 @@ pseudoR2.BRT <- function(x){
 
 #MODEL EVALUATION FOR PRES/ABS DATA (bernoulli)
 #provides % deviance for model selection
-dev_eval_brt=function(model_object){ 
-  null <- model_object$self.statistics$null
-  res <- model_object$self.statistics$resid
-  dev=((null - res)/null)*100
-  return(dev)
-}
+# dev_eval_brt=function(model_object){ 
+#   
+#   ext.residual.deviance <- calc.deviance(obs=observed, pred=preds, family="bernoulli", calc.mean=TRUE)
+#   null.dev =  calc.deviance(observed,rep(mean(observed),length(observed)), family="bernoulli", calc.mean=T)
+#   dev=(null.dev - ext.residual.deviance)/null.dev
+#   return(dev)
+#   
+# }
 
 #Make function to 100/100  AUC test
 eval_100_percent <- function(brtInput, testInput, gbm.y){
