@@ -287,18 +287,21 @@ kableExtra::kable(output_sum)
 ```{r}
 #| warning: false
 #| message: false
+#| fig-width: 12
+#| fig-height: 10
 
-sum_scatter <- ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) + 
-  geom_point(size = 3) +
+ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
+  geom_point(size = 5) +
   xlab('AUC') +
   ylab('TSS') +
   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
   ggrepel::geom_label_repel(aes(label = model),
-                  box.padding   = 0.35, 
+                  box.padding   = 0.35,
                   point.padding = 0.5,
-                  segment.color = 'grey50')
+                  segment.color = 'grey50',
+                  max.overlaps = 20,
+                  label.size = 0.5)
 
-plotly::ggplotly(sum_scatter, tooltip = "label")
 ```
 
 # DO models w/o tag ID
@@ -313,7 +316,7 @@ Here, I have run the same models as above, but without tag ID as a predictor var
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[12], 
+explore_brt(mod_file_path = brt_outputs_Ntag[12], 
             test_data = do_test_daily)
 
 ```
@@ -325,7 +328,7 @@ explore_brt(mod_file_path = brt_outputs[12],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[13], 
+explore_brt(mod_file_path = brt_outputs_Ntag[13], 
             test_data = do_test_daily)
 
 ```
@@ -337,7 +340,7 @@ explore_brt(mod_file_path = brt_outputs[13],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[11], 
+explore_brt(mod_file_path = brt_outputs_Ntag[11], 
             test_data = do_test_daily)
 
 ```
@@ -349,7 +352,7 @@ explore_brt(mod_file_path = brt_outputs[11],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[8], 
+explore_brt(mod_file_path = brt_outputs_Ntag[8], 
             test_data = do_test_daily)
 
 ```
@@ -361,7 +364,7 @@ explore_brt(mod_file_path = brt_outputs[8],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[9], 
+explore_brt(mod_file_path = brt_outputs_Ntag[9], 
             test_data = do_test_daily)
 
 ```
@@ -373,7 +376,7 @@ explore_brt(mod_file_path = brt_outputs[9],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[10], 
+explore_brt(mod_file_path = brt_outputs_Ntag[10], 
             test_data = do_test_daily)
 
 ```
@@ -391,7 +394,7 @@ Here, I have run the same models as above, but without tag ID as a predictor var
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[5], 
+explore_brt(mod_file_path = brt_outputs_Ntag[5], 
             test_data = agi_test_daily)
 
 ```
@@ -403,7 +406,7 @@ explore_brt(mod_file_path = brt_outputs[5],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[6], 
+explore_brt(mod_file_path = brt_outputs_Ntag[6], 
             test_data = agi_test_daily)
 
 ```
@@ -415,7 +418,7 @@ explore_brt(mod_file_path = brt_outputs[6],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[4], 
+explore_brt(mod_file_path = brt_outputs_Ntag[4], 
             test_data = agi_test_daily)
 
 ```
@@ -427,7 +430,7 @@ explore_brt(mod_file_path = brt_outputs[4],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[1], 
+explore_brt(mod_file_path = brt_outputs_Ntag[1], 
             test_data = agi_test_daily)
 ```
 
@@ -438,7 +441,7 @@ explore_brt(mod_file_path = brt_outputs[1],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[2], 
+explore_brt(mod_file_path = brt_outputs_Ntag[2], 
             test_data = agi_test_daily)
 
 ```
@@ -450,7 +453,7 @@ explore_brt(mod_file_path = brt_outputs[2],
 #| fig-width: 12
 #| fig-height: 10
 
-explore_brt(mod_file_path = brt_outputs[3], 
+explore_brt(mod_file_path = brt_outputs_Ntag[3], 
             test_data = agi_test_daily)
 
 ```
@@ -470,18 +473,21 @@ kableExtra::kable(output_sum_Ntag)
 ```{r}
 #| warning: false
 #| message: false
+#| fig-width: 12
+#| fig-height: 10
 
-sum_scatter_Ntag <- ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) + 
-  geom_point(size = 3) +
+ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) +
+  geom_point(size = 5) +
   xlab('AUC') +
   ylab('TSS') +
   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
   ggrepel::geom_label_repel(aes(label = model),
-                  box.padding   = 0.35, 
+                  box.padding   = 0.35,
                   point.padding = 0.5,
-                  segment.color = 'grey50')
+                  segment.color = 'grey50',
+                  max.overlaps = 20,
+                  label.size = 0.5)
 
-plotly::ggplotly(sum_scatter_Ntag, tooltip = "label")
 ```
 
 # Base models w/o tag ID and w/ data at seasonal and annual resolutions
@@ -678,16 +684,19 @@ kableExtra::kable(output_sum)
 ```{r}
 #| warning: false
 #| message: false
+#| fig-width: 12
+#| fig-height: 10
 
-sum_scatter_seas_ann <- ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) + 
-  geom_point(size = 3) +
+ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) +
+  geom_point(size = 5) +
   xlab('AUC') +
   ylab('TSS') +
   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
   ggrepel::geom_label_repel(aes(label = model),
-                  box.padding   = 0.35, 
+                  box.padding   = 0.35,
                   point.padding = 0.5,
-                  segment.color = 'grey50')
+                  segment.color = 'grey50',
+                  max.overlaps = 20,
+                  label.size = 0.5)
 
-plotly::ggplotly(sum_scatter_seas_ann, tooltip = "label")
 ```
