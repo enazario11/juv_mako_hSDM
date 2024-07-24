@@ -307,6 +307,16 @@ ggplot(output_sum, aes(x = AUC, y = TSS, color = deviance_exp, text = model)) +
                   label.size = 0.5)
 ```
 
+## Conclusions from initial models w/ tag ID
+
+-   **Base models:**Bathymetry was consistently one of the top predictor variables across all base models, and percent explained greatly increased after including spatial and tag ID as additional predictors. After running these initial models, we decided to instead run the spatial analysis separately (GLMs, GAMs), rather than including them as predictors in the hSDMs, to specifically investigate the relationships between latitude, distance to coast, and the AGI or DO at different depth layers. Additionally, we will not include tag ID as a predictor variable as it would not be included in any projection work and is not critical for the main objectives of this study.
+
+-   **DO models:** Performance metrics generally increased, though only subtly, after including the additional depth layers relative to the DO_0m model. However, relative to the base models, including DO considerably improved model performance. Across depth layers, DO at 0m and 250m were consistently in the top 5 predictors with most relative influence and had comparable contributions. From the partial plots, we generally see a sweet spot for DO values at 0m and a negative relationship for DO at 250m.
+
+-   **AGI models:** Performance metrics were comparable among the DO and AGI models, and the patterns observed for the DO models also generally held for the AGI models. We see model performance greatly improve for the AGI models relative to the base models, and performance also subtly increased after including the additional depth layers. A primary difference for the AGI models is the relative influence of the AGI at 250m. For these models, the AGI at this depth layer is the only one appearing in the top variables with the highest relative influence, and the AGI at 0m and 60m is typically lower in the list. The AGI partial plots show similar patterns as the DO plots, with less of a dramatic negative relationship for the AGI at 250m.
+
+-   The random predictor variable was typically the lowest performing metric, but across some models, had a higher relative influence than the predictors related to wind stress and wind stress curl.
+
 # DO models w/o tag ID
 
 Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that dissolved oxygen may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included.
@@ -493,6 +503,16 @@ ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) +
                   label.size = 0.5)
 
 ```
+
+## Conclusions from initial models w/o tag ID
+
+-   These models were all developed using predictor data at a daily resolution, and if we only consider models with no spatial predictors, the DO model with DO data at 0m, 60m, and 250m performed the best, with the comparable AGI model having lower TSS and AUC scores.
+
+-   The DO and AGI models both performed better relative to the base model.
+
+-   DO at 0m and DO at 250m were the two predictors with the highest relative influence, while DO at 60m was considerably lower in the list. This pattern held whether or not spatial predictor variables were included. Still, performance metrics improved for the DO_0m_60m_250m model relative to the DO_0m_250m model. Partial plot patters for DO at 0m and 250m were the same as the original models that included tag ID as a predictor (sweet spot for 0m, negative relationship for 250m).
+
+-   AGI at 250m was the most important predictor variable, followed by temperature and AGI at 0m (the two had nearly identical relative influence values). However, AGI at 0m became more influential if spatial predictors were included. Model performance had smaller differences between the AGI_0m_250m and AGI_0m_60m_250m as the DO models did. Partial plot patters for the AGI at 0m and 250m remained the same as described above.
 
 # Base models w/o tag ID and w/ data at seasonal and annual resolutions
 
@@ -704,3 +724,15 @@ ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) 
                   label.size = 0.5)
 
 ```
+
+## Conclusions from initial seasonal/annual models
+
+-   Seasonal and annual base models were comparable in performance to the daily resolution base model, with seasonal performing slightly worse, and annual performing slightly better.
+
+-   The AGI model with all depth layers and resolutions performed the best if only looking at models with no spatial predictor variables, but the comparable DO model performed similarly.
+
+-   Annual models generally performed better than seasonal ones, but the models with data at a daily, seasonal, and annual data performed considerably better.
+
+-   For the DO model with all depths and temporal resolutions, the two predictors with the highest relative influence (and whose values were quite comparable) were DO_250m_annual and DO_0m_daily. The remaining seasonal DO values were also highly ranked. Partial plots either show a negative correlation or a sweet spot range of DO values at each of the depth layers and resolutions.
+
+-   For the AGI model with all depths and temporal resolutions, the top predictor variable is AGI_250m_annual, which is closely followed by daily temperature at 0m. Lower down the list is AGI_0m_daily, bathymetry, and AGI_0m_seasonal. Partial plot relationships show similar trends as described previously.

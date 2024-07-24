@@ -304,6 +304,14 @@ ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
 
 ```
 
+## Conclusions from initial models w/ tag ID
+
+-   **Base models:** Relative to the CRW PA base models, these had drastically higher AUC scores and deviance explained values. The base model with no spatial or tag ID predictors was the lowest scoring model.
+
+-   DO and AGIModel performance generally increased with the added depth layers, but were all fairly comparable to each other. Models with spatial and tag ID predictors performed the best, but as described on the CRW PA document, we will likely not include them for these models as they would not be included in the projection work and are not essential for addressing this study's objectives.
+
+-   The performance metrics across comparable DO and AGI models were much more similar relative to the models with the CRW PA data.
+
 # DO models w/o tag ID
 
 Here, I have run the same models as above, but without tag ID as a predictor variable. For this chunk of models, I am interested in identifying the role that dissolved oxygen may play in habitat suitability predictions, and how its relative importance compares to other covariates that are typically included in SDMs. Additionally, as BRTs are nonparametric, it is not critical or necessary for tag ID to be included.
@@ -489,6 +497,16 @@ ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) +
                   label.size = 0.5)
 
 ```
+
+## Conclusions from initial models w/o tag ID
+
+-   If only considering models that did not include spatial data as model predictors, the AGI models performed much better than the DO models across the board.
+
+-   The AGI model will all depth layers performed the best and considerably better than the comparable DO model.
+
+-   For the DO model with all depth layers, DO_0m was the predictor variable with the highest relative influence, but was closely followed by bathymetry. DO_250m was the third most influential predictor, but is considerably lower than DO_0m and bathymetry. Partial plots show drastically different relationships that the CRW PA models, with DO_250m having a positive correlation and DO_0m having an inverse sweet spot.
+
+-   For the AGI model with all depth layers, bathymetry and temperature were the two predictors with the highest relative influence, and AGI 250m was listed third, somewhat closely followed by AGI 0m. The partial plots for these two variables are similar to the DO models, but less extreme.
 
 # Base models w/o tag ID and w/ data at seasonal and annual resolutions
 
@@ -700,3 +718,13 @@ ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) 
                   label.size = 0.5)
 
 ```
+
+## Conclusions from initial seasonal/annual models 
+
+-   Seasonal and annual base models performed better than the daily resolution base models, with the annual base model performing better than the seasonal one.
+
+-   The DO and AGI models with all depth layers and temporal resolutions were by far the best performing and had nearly identical scores across evaluation metrics. The models that also included spatial predictors also performed slightly better than those without, but were still fairly comparable.
+
+-   For the DO model with all temporal resolutions, the top predictor variables with the highest relative importance were bathymetry and DO_0m_daily. The next variables that have considerably lower values are DO_250m_seasonal and DO_0m_seasonal. Partial plots follow similar trends as previously described.
+
+-   For the AGI model with all temporal resolutions, bathymetry and temperature were the two predictors with the highest relative influence. The next variables that have considerably lower values are AGI_250m_seasonal and AGI_0m_seasonal.
