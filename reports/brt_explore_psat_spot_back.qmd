@@ -484,7 +484,10 @@ kableExtra::kable(output_sum_Ntag)
 #| fig-width: 12
 #| fig-height: 10
 
-ggplot(output_sum_Ntag, aes(AUC, TSS, color = deviance_exp, label = model)) +
+output_sum_Ntag_Nspat <- output_sum_Ntag %>% 
+  filter(!grepl("Yspat", model))
+
+ggplot(output_sum_Ntag_Nspat, aes(AUC, TSS, color = deviance_exp, label = model)) +
   geom_point(size = 5) +
   xlab('AUC') +
   ylab('TSS') +
@@ -705,7 +708,10 @@ kableExtra::kable(output_sum)
 #| fig-width: 12
 #| fig-height: 10
 
-ggplot(output_sum_seas_ann, aes(AUC, TSS, color = deviance_exp, label = model)) +
+output_sum_seas_ann_Nspat <- output_sum_seas_ann %>% 
+  filter(!grepl("Yspat", model))
+
+ggplot(output_sum_seas_ann_Nspat, aes(AUC, TSS, color = deviance_exp, label = model)) +
   geom_point(size = 5) +
   xlab('AUC') +
   ylab('TSS') +
