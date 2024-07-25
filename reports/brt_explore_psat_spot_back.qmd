@@ -725,7 +725,7 @@ ggplot(output_sum_seas_ann_Nspat, aes(AUC, TSS, color = deviance_exp, label = mo
 
 ```
 
-## Conclusions from initial seasonal/annual models 
+## Conclusions from initial seasonal/annual models
 
 -   Seasonal and annual base models performed better than the daily resolution base models, with the annual base model performing better than the seasonal one.
 
