@@ -734,3 +734,158 @@ ggplot(output_sum_seas_ann_Nspat, aes(AUC, TSS, color = deviance_exp, label = mo
 -   For the DO model with all temporal resolutions, the top predictor variables with the highest relative importance were bathymetry and DO_0m_daily. The next variables that have considerably lower values are DO_250m_seasonal and DO_0m_seasonal. Partial plots follow similar trends as previously described.
 
 -   For the AGI model with all temporal resolutions, bathymetry and temperature were the two predictors with the highest relative influence. The next variables that have considerably lower values are AGI_250m_seasonal and AGI_0m_seasonal.
+
+# Model fine-tuning and selection
+
+Here, I take the two best performing models from the above sections (agi and do with all depths and temporal resolutions without tag ID or spatial variables as predictors) to be used as overfit reference models. The following model options excluded the wind predictors as these consistently had lower relative importance than the random predictor variable we included. I also included a combo model that uses information about AGI at 250 m and DO at 0m across temporal resolutions. Lastly, the final models also remove do/agi at 60m and at a seasonal resolution, as these were typically the vars with the lowest predictive performance relative to the other depth layers and resolutions.
+
+::: panel-tabset
+
+## Base no wind
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_base_0m_dail_no_wind.rds",
+            test_data = base_test_daily)
+
+```
+
+## DO no wind
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = do_test_daily_seasonal_annual)
+
+```
+
+## AGI no wind
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = agi_test_daily_seasonal_annual)
+
+```
+
+## DO 0m, AGI 250m
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_250_DO_0_dail_seas_ann.rds",
+            test_data = readRDS(here("data/brt/mod_eval/back/agi_do_test_daily_seasonal_annual.rds")))
+
+```
+
+## DO w/o 60m 
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_250m_dail_seas_ann.rds",
+            test_data = do_test_daily_seasonal_annual)
+
+```
+
+## DO w/o seasonal
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_60m_250m_dail_ann.rds",
+            test_data = do_test_daily_seasonal_annual)
+
+```
+
+## DO w/o daily
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_60m_250m_seas_ann.rds",
+            test_data = do_test_daily_seasonal_annual)
+
+```
+
+## AGI w/o 60m 
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_250m_dail_seas_ann.rds",
+            test_data = agi_test_daily_seasonal_annual)
+
+```
+
+## AGI w/o seasonal
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_60m_250m_dail_ann.rds",
+            test_data = agi_test_daily_seasonal_annual)
+
+```
+
+## AGI w/o daily
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_60m_250m_seas_ann.rds",
+            test_data = agi_test_daily_seasonal_annual)
+
+```
+
+:::
+
+# Summary table of results
+
+```{r}
+#| warning: false
+#| message: false
+
+output_sum_refined <- read.csv(here("data/brt/mod_outputs/brt_bckg_refined_output_summary.csv"))
+kableExtra::kable(output_sum_Ntag)
+
+```
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 10
+
+ggplot(output_sum_refined, aes(AUC, TSS, color = deviance_exp, label = model)) +
+  geom_point(size = 5) +
+  xlab('AUC') +
+  ylab('TSS') +
+  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+  ggrepel::geom_label_repel(aes(label = model),
+                  box.padding   = 0.35,
+                  point.padding = 0.5,
+                  segment.color = 'grey50',
+                  max.overlaps = 20,
+                  label.size = 0.5)
+
+```
+
+## Conclusions from refined mdoels ####
+
+-   
+
+
