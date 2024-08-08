@@ -249,7 +249,7 @@ saveRDS(brt_do_0m_250m_daily_ann_refined, here("data/brt/mod_outputs/crw/refined
 #agi removed 60m from reference model w/ all info
 try(brt_agi_0m_250m_dail_seas_ann <- dismo::gbm.step(
   data = dat_train_agi_all, 
-  gbm.x = c(8:11, 16:19, 22:24, 26, 27, 29), 
+  gbm.x = c(8:10, 16:19, 22:24, 26, 27, 29), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,

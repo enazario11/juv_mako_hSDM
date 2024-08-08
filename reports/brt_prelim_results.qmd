@@ -1,0 +1,247 @@
+---
+title: "Mako hSDM BRT preliminary results"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+---
+
+# Study hypotheses and objectives
+
+**H1:** The AGI model will perform better than the dissolved oxygen and null model, and the dissolved oxygen model will perform better than the null model.
+
+*study objective being met:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)?
+
+**H2:** The inclusion of dissolved oxygen at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the dissolved oxygen model considering surface values alone.
+
+*study objective being met:* How does dissolved oxygen at different depths influence habitat suitability predictions relative to oxygen at the surface?
+
+**H3:** The inclusion of the AGI at deeper depths will result in better/more ecologically realistic habitat suitability predictions relative to the AGI model considering surface values alone.
+
+*study objective being met:* How does the aerobic growth index (AGI; environmental oxygen supply:theoretical oxygen demand) at different depths influence habitat suitability predictions relative to the aerobic growth index at the surface?
+
+**H4:** There will be important relationships between dissolved oxygen/the AGI and latitude/distance to coast.
+
+*study objective being met:* Are there any important relationships between dissolved oxygen or AGI at the surface or at depth and latitude or distance to the coast?
+
+**H5:** The null model will predict higher habitat suitability in areas or during seasons or periods (upwelling or La Niña) with lower dissolved oxygen through the water column relative to the dissolved oxygen and AGI models.
+
+*study objective being met:* How do the habitat suitability maps differ between the models? How do these variations compare for different points in time?
+
+```{r}
+#| label: libraries and data
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+
+#libraries
+library(tidyverse)
+library(gbm)
+library(dismo)
+library(here)
+library(terra)
+library(sf)
+library(tidyterra)
+library(here);here <- here::here #plyr's here function masks here::here
+library(tidyquant)
+
+set.seed(1004)
+
+source(here("functions/BRT_evaluation_functions.R"))
+source(here("functions/brt_explore_quarto_function.R"))
+
+# CRW outputs and data -------------------------------------------------------
+brt_outputs_crw <- list.files(here("data/brt/mod_outputs/crw"), full.names = TRUE, pattern = ".rds")
+
+#load test datasets
+base_test_daily_crw <- readRDS(here("data/brt/mod_eval/base_test_daily.rds"))
+base_test_seasonal_crw <- readRDS(here("data/brt/mod_eval/base_test_seasonal.rds"))
+base_test_annual_crw <- readRDS(here("data/brt/mod_eval/base_test_annual.rds"))
+
+do_test_daily_crw <- readRDS(here("data/brt/mod_eval/do_test_daily.rds"))
+agi_test_daily_crw <- readRDS(here("data/brt/mod_eval/agi_test_daily.rds"))
+
+do_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/do_test_daily_seasonal_annual.rds"))
+agi_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/agi_test_daily_seasonal_annual.rds"))
+
+# Background outputs and data ----------------------------------------------
+brt_outputs_back <- list.files(here("data/brt/mod_outputs/background"), full.names = TRUE, pattern = ".rds")
+
+#load test datasets
+base_test_daily_back <- readRDS(here("data/brt/mod_eval/back/base_test_daily.rds"))
+base_test_seasonal_back <- readRDS(here("data/brt/mod_eval/back/base_test_seasonal.rds"))
+base_test_annual_back <- readRDS(here("data/brt/mod_eval/back/base_test_annual.rds"))
+
+do_test_daily_back <- readRDS(here("data/brt/mod_eval/back/do_test_daily.rds"))
+agi_test_daily_back <- readRDS(here("data/brt/mod_eval/back/agi_test_daily.rds"))
+
+do_test_daily_seasonal_annual_back <- readRDS(here("data/brt/mod_eval/back/do_test_daily_seasonal_annual.rds"))
+agi_test_daily_seasonal_annual_back <- readRDS(here("data/brt/mod_eval/back/agi_test_daily_seasonal_annual.rds"))
+
+```
+
+# Model summaries
+
+::: panel-tabset{}
+## Base model - crw
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = brt_outputs_crw[7], 
+            test_data = base_test_daily_crw)
+```
+
+## Base model - back
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = brt_outputs_back[7], 
+            test_data = base_test_daily_back)
+```
+
+## AGI overfit - crw
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = agi_test_daily_seasonal_annual_crw)
+
+```
+
+## DO overfit - crw
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = do_test_daily_seasonal_annual_crw)
+
+```
+
+## AGI overfit - back
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = agi_test_daily_seasonal_annual_back)
+
+```
+
+## DO overfit - back
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = do_test_daily_seasonal_annual_back)
+
+```
+
+## AGI final - crw
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_250m_dail_seas_ann.rds",
+            test_data = agi_test_daily_seasonal_annual_crw)
+
+```
+
+## DO final - crw
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_do_0m_250m_dail_seas_ann.rds",
+            test_data = do_test_daily_seasonal_annual_crw)
+
+```
+
+## AGI final - back
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_250m_dail_seas_ann.rds",
+            test_data = agi_test_daily_seasonal_annual_back)
+
+```
+
+## DO final - back
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_250m_dail_seas_ann.rds",
+            test_data = do_test_daily_seasonal_annual_back)
+
+```
+:::
+
+# Summary table of model performance metrics
+
+```{r}
+#| echo: false
+
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_prelim_results.csv"))
+kableExtra::kable(output_sum)
+```
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 10
+#| echo: false
+
+ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
+  geom_point(size = 5) +
+  xlab('AUC') +
+  ylab('TSS') +
+  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+  ggrepel::geom_label_repel(aes(label = model),
+                  box.padding   = 0.35,
+                  point.padding = 0.5,
+                  segment.color = 'grey50',
+                  max.overlaps = 20,
+                  label.size = 0.5)+
+  tidyquant::theme_tq()+
+  theme(legend.position = "right")
+
+```
+
+## Conclusions
+
+-   Based on the above comparisons between models using PAs from CRW and background sampling approaches, I have decided to move forward using the CRW PA models. The background sampling models consistently indicated that they were overfit, and thus the CRW models are the preferred choice.

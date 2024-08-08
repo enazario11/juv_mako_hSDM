@@ -912,7 +912,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_250m_da
 #| message: false
 
 output_sum_refined <- read.csv(here("data/brt/mod_outputs/brt_crw_refined_output_summary.csv"))
-kableExtra::kable(output_sum_seas_ann)
+kableExtra::kable(output_sum_refined)
 ```
 
 ```{r}

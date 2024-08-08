@@ -903,7 +903,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_
 #| message: false
 
 output_sum_refined <- read.csv(here("data/brt/mod_outputs/brt_bckg_refined_output_summary.csv"))
-kableExtra::kable(output_sum_Ntag)
+kableExtra::kable(output_sum_refined)
 
 ```
 
