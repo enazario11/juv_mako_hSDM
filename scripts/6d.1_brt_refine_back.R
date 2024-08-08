@@ -218,6 +218,36 @@ try(brt_do_0m_60m_250m_seas_ann <- dismo::gbm.step(
 )
 saveRDS(brt_do_0m_60m_250m_seas_ann, here("data/brt/mod_outputs/background/refined/brt_do_0m_60m_250m_seas_ann.rds"))
 
+#DO removed seasonal res and 60m from reference model w/ all other info 
+try(brt_do_0m_250m_dail_ann <- dismo::gbm.step(
+  data = dat_train_do_all, 
+  gbm.x = c(7:10, 15:18, 21, 22, 26, 28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_250m_dail_ann, here("data/brt/mod_outputs/background/refined/brt_do_0m_250m_dail_ann.rds"))
+
+#DO removed seasonal res and 60m from reference model, and removed 250m daily and 0m annual, w/ all other info 
+try(brt_do_0m_250m_dail_ann_refined <- dismo::gbm.step(
+  data = dat_train_do_all, 
+  gbm.x = c(7:10, 15:18, 22, 28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_0m_250m_dail_ann_refined, here("data/brt/mod_outputs/background/refined/brt_do_0m_250m_dail_ann_refined.rds"))
+
 #agi removed 60m from reference model w/ all info
 try(brt_agi_0m_250m_dail_seas_ann <- dismo::gbm.step(
   data = dat_train_agi_all, 
@@ -263,3 +293,32 @@ try(brt_agi_0m_60m_250m_seas_ann <- dismo::gbm.step(
 )
 saveRDS(brt_agi_0m_60m_250m_seas_ann, here("data/brt/mod_outputs/background/refined/brt_agi_0m_60m_250m_seas_ann.rds"))
 
+#agi remove seasonal res and 60m from reference model w/ all info 
+try(brt_agi_0m_250m_dail_ann <- dismo::gbm.step(
+  data = dat_train_agi_all, 
+  gbm.x = c(7:9, 14:18, 21, 22, 26, 28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_250m_dail_ann, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_ann.rds"))
+
+#agi remove seasonal res and 60m from reference model, also removed 250m daily and 0m annual, kept all other reference model info 
+try(brt_agi_0m_250m_dail_ann_refined <- dismo::gbm.step(
+  data = dat_train_agi_all, 
+  gbm.x = c(7:9, 14:18, 22, 28), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_agi_0m_250m_dail_ann_refined, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_ann_refined.rds"))

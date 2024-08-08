@@ -826,6 +826,28 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_do_0m_60m_250m
 
 ```
 
+## DO w/o seasonal and 60m
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_do_0m_250m_daily_ann.rds",
+            test_data = do_test_daily_seasonal_annual)
+
+```
+
+## DO w/ 0m daily and 250m annual
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_do_0m_250m_daily_ann_refined.rds",
+            test_data = do_test_daily_seasonal_annual)
+
+```
+
 ## AGI w/o 60m 
 ```{r}
 #| warning: false
@@ -855,6 +877,28 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_60m_250
 #| fig-height: 10
 
 explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_60m_250m_seas_ann.rds",
+            test_data = agi_test_daily_seasonal_annual)
+
+```
+
+## AGI w/o seasonal and 60m
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_250m_daily_ann.rds",
+            test_data = agi_test_daily_seasonal_annual)
+
+```
+
+## AGI w/ just 0m daily and 250m annual
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_0m_250m_daily_ann_refined.rds",
             test_data = agi_test_daily_seasonal_annual)
 
 ```
