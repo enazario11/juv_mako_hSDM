@@ -233,11 +233,11 @@ ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
   scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
   ggrepel::geom_label_repel(aes(label = model),
                   box.padding   = 0.35,
-                  point.padding = 0.5,
+                  point.padding = 1,
                   segment.color = 'grey50',
-                  max.overlaps = 20,
+                  max.overlaps = 40,
                   label.size = 0.5)+
-  tidyquant::theme_tq()+
+  theme_minimal()+
   theme(legend.position = "right")
 
 ```
@@ -245,3 +245,55 @@ ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
 ## Conclusions
 
 -   Based on the above comparisons between models using PAs from CRW and background sampling approaches, I have decided to move forward using the CRW PA models. The background sampling models consistently indicated that they were overfit, and thus the CRW models are the preferred choice.
+
+-   Given the similar values among performance metrics between the overfit models (those with all depth levels and temporal resolutions) and the models without data at 60m, we have selected the latter to be the final study models. We explored similar models without data at 60m and at a seasonal temporal resolution, but these models performed considerably worse. Additionally, DO and AGI at 0m and 250m at a seasonal resolution were often a predictor variable with a top 5 highest relative importance, thus, keeping data at a seasonal resolution seemed valuable.
+
+# HSI maps
+
+::: panel-tabset
+## Average across study period
+
+```{r}
+agi_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_covar2007_spatrast.nc"))
+names(agi_rast_2007) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+
+map_pred = predict(agi_rast_2007, agi_tc5_lr01, type = "response", n.trees = agi_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
+map_pred = crop(map_pred,extent1)
+
+df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
+colnames(df_map) = c("value", "geometry") 
+
+map.world = map_data(map="world")
+testt=map.world %>% filter(long<=180)
+
+ggplot() + 
+  geom_spatraster(data = map_pred) + 
+  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="grey75",color="black")+
+  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
+  scale_y_continuous(expand=c(0,0),limits = c(10,50))+
+  scale_fill_whitebox_c(palette = "deep", direction = -1)+
+  ggtitle("AGI") +
+  theme_bls_() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Average by ENSO phase
+
+```{r}
+
+```
+
+## Random day (September 24, 2007)
+
+```{r}
+
+```
+:::
+
+# HSI difference maps
+
+# AGI maps
+
+# Predictor variable relative importance
+
+# Performance metric comparisons

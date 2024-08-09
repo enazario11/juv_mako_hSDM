@@ -325,4 +325,3 @@ writeCDF(agi_250m_rast_2005, filename = here("data/enviro/CMEMS/hsi_map/agi_250m
 do_rast_2005 <- c(sst0_2005, sal0_2005, chl0_2005, o20_2005, sst250_2005, sal250_2005, chl250_2005, o2250_2005, bathy2005, dist2005, lat_rast2005, jday_2005)
 names(do_rast_2005) <- c("thetao0", "so0", "chl0", "o20", "thetao250", "so250", "chl250", "o2250", "bathy", "dist_coast", "lat", "j_day")
 writeCDF(do_rast_2005, filename = here("data/enviro/CMEMS/hsi_map/do_covar2005_spatrast.nc"))
-
