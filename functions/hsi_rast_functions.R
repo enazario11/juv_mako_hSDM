@@ -4,12 +4,15 @@ library(terra)
 library(sf)
 library(here)
 
-
 hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF"){
   
   #load rast files -------------------------------------------------------------------------------------
   rast_file_daily_0m <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
   rast_file_daily_250m <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
+  daily_rast_varnames_0m <- c(replicate(4748, "o2"), replicate(4748, "chl"),replicate(4748, "votemper"),replicate(4748, "vosaline"),replicate(4748, "vozocrtx"),replicate(4748, "sozotaux"),replicate(4748, "vomecrty"),replicate(4748, "sometauy"),replicate(4748, "sossheig"),replicate(4748, "somxlavt"))
+  daily_rast_varnames_250m <- c(replicate(4748, "o2"), replicate(4748, "votemper"), replicate(4748, "vosaline"))
+  names(rast_file_daily_0m) <- daily_rast_varnames_0m
+  names(rast_file_daily_250m) <- daily_rast_varnames_250m
   
   rast_file_seas_0m <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_0m_season.nc"))
   rast_file_seas_250m <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_250m_season.nc"))
@@ -25,9 +28,9 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   rast_daily_0m_sub <- subset(rast_file_daily_0m, time(rast_file_daily_0m) >= date_start & time(rast_file_daily_0m) <= date_end)
   rast_daily_250m_sub <- subset(rast_file_daily_250m, time(rast_file_daily_250m) >= date_start & time(rast_file_daily_250m) <= date_end)
   
-  if(length(time(rast_daily_0m_sub)) > 1){
-    rast_daily_0m_sub <- tapp(rast_daily_0m_sub, varnames(rast_daily_0m_sub), mean)
-    rast_daily_250m_sub <- tapp(rast_daily_250m_sub, varnames(rast_daily_250m_sub), mean)
+  if(length(time(rast_daily_0m_sub1)) > 1){
+    rast_daily_0m_sub <- tapp(rast_daily_0m_sub, names(rast_daily_0m_sub), mean)
+    rast_daily_250m_sub <- tapp(rast_daily_250m_sub, names(rast_daily_250m_sub), mean)
   }
  
   #subset seasonal raster files ----------------------------------------------------------------------------
