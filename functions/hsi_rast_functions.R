@@ -4,7 +4,7 @@ library(terra)
 library(sf)
 library(here)
 
-hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF"){
+hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name){
   
   #load rast files -------------------------------------------------------------------------------------
   rast_file_daily_0m <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
@@ -98,6 +98,14 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   #get bathy rasters ------------------------------------------------------------------------------------------
   bathy <- rast(here("data/enviro/psat_spot_all/bathy_gebco/processed/gebco_bathy_0.25deg2.nc"))
   
+    #generate rugosity raster
+  #rug <- rast(here("data/enviro/psat_spot_all/bathy_gebco/gebco_2023_n49.0_s1.0_w-153.0_e-103.0.nc"))
+  #bathy_sd <- focal(rug, w = 59, fun = "sd", na.rm = TRUE)
+  #bathy_sd1 <- aggregate(bathy_sd, fact = 60)
+  #bathy_sd2 <- writeCDF(bathy_sd1, filename = "data/enviro/psat_spot_all/bathy_gebco/processed/bathy_sd_0.25.nc")
+  
+  bathy_sd <- rast(here("data/enviro/psat_spot_all/bathy_gebco/processed/bathy_sd_0.25.nc"))
+  
   #generate AGI rasters ---------------------------------------------------------------------------------------
   source(here("functions/oxy_demand_functions.R"))
   OxyThresh_0m = 0.04928389
@@ -132,8 +140,29 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   AGI_ann_250m <- atm_ann_250m/demand_ann_250m
   
   #combine rasters --------------------------------------------------------------------------------------------
+    #base model
+  base_rast <- c(bathy, rast_daily_0m_sub$votemper, rast_daily_0m_sub$vosaline,  rast_daily_0m_sub$chl, rast_daily_0m_sub$sossheig, bathy_sd, rast_daily_0m_sub$somxlavt)
+  names(base_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+    
+    #DO model
+  do_rast <- c(rast_daily_0m_sub$o2, rast_ann_250m_sub$o2, rast_seas_0m_sub$o2, rast_daily_0m_sub$votemper, rast_seas_250m_sub$o2, bathy, rast_daily_0m_sub$vosaline, rast_daily_0m_sub$chl, rast_ann_0m_sub$o2, rast_daily_250m_sub$o2, rast_daily_0m_sub$sossheig, rast_daily_0m_sub$somxlavt, bathy_sd)
+  names(base_rast) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+    
+    #AGI model 
+  agi_rast <- c()
+  names(agi_rast) <- c()
   
   #save HSI raster input file ---------------------------------------------------------------------------------
+    #base model
+  writeCDF(base_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"_base_rast.nc")))
+  
+    #DO model
+  writeCDF(do_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"_do_rast.nc")))
+  
+    #AGI model
+  writeCDF(agi_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"_agi_rast.nc")))
   
 # end function  
 }
+
+
