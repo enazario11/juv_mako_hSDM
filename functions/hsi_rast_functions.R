@@ -130,14 +130,18 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   OxyThresh_250m = 0.03816138 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 250m
   Tpref = 16.45201 #mean temp experienced by sharks at mean dive depth (50m)
   
+  dir.create(here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name)), showWarnings = FALSE) 
+  
     #daily rast AGI
   demand_daily_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_daily_0m_sub$votemper)
   atm_daily_0m <- rast_to_atm(do = rast_daily_0m_sub$o2, so = rast_daily_0m_sub$vosaline, temp = rast_daily_0m_sub$votemper, depth = 0)
   AGI_daily_0m <- atm_daily_0m/demand_daily_0m
+  writeCDF(AGI_daily_0m, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name, "/", output_name, "_daily_agi_0m.nc")))
   
   demand_daily_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_daily_250m_sub$votemper)
   atm_daily_250m <- rast_to_atm(do = rast_daily_250m_sub$o2, so = rast_daily_250m_sub$vosaline, temp = rast_daily_250m_sub$votemper, depth = 250)
   AGI_daily_250m <- atm_daily_250m/demand_daily_250m
+  writeCDF(AGI_daily_250m, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name,"/", output_name, "_daily_agi_250m.nc")))
   
     #seas rast AGI
   demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_sub$votemper_1)
@@ -209,12 +213,12 @@ theme_map <- function(){
       axis.title = element_text(             #axis titles
         family = font,            #font family
         color = "black",
-        size = 14),               #font size
+        size = 16),               #font size
       
       axis.text = element_text(              #axis text
         family = font,            #axis famuly
         color = "black",
-        size = 12),                #font size
+        size = 14),                #font size
       
       axis.text.x = element_text(            #margin for axis text
         margin=margin(5, b = 10)),
@@ -360,9 +364,7 @@ hsi_diff_maps <- function(rast_folder){
     ggtitle("Comparing HSI: Base vs. DO") +
     labs(fill = "% change") +
     theme_map() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank())
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
   base_agi_map <- ggplot() + 
     geom_spatraster(data = diff_base_agi) + 
@@ -373,9 +375,7 @@ hsi_diff_maps <- function(rast_folder){
     ggtitle("Comparing HSI: Base vs. AGI") +
     labs(fill = "% change") +
     theme_map() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank())
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
   do_agi_map <- ggplot() + 
     geom_spatraster(data = diff_do_agi) + 
@@ -386,9 +386,7 @@ hsi_diff_maps <- function(rast_folder){
     ggtitle("Comparing HSI: DO vs. AGI") +
     labs(fill = "% change") +
     theme_map() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank())
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
   #combine and return maps --------------------------------------------------------------------------------------------
   all_maps <- base_do_map | base_agi_map | do_agi_map
@@ -397,3 +395,106 @@ hsi_diff_maps <- function(rast_folder){
 
 #end function
 }
+
+### AGI map function ####
+agi_maps <- function(rast_folder = NULL, get_rast = c("Y", "N"), agi_0m_rast = NULL, agi_250m_rast = NULL){
+    #load agi raster data
+  if(get_rast == "Y"){
+  agi_0m <- rast(list.files(here(rast_folder), full.names = TRUE, pattern = "0m"))
+  agi_250m <- rast(list.files(here(rast_folder), full.names = TRUE, pattern = "250m"))
+  } 
+  if(get_rast == "N"){
+    agi_0m = agi_0m_rast
+    agi_250m = agi_250m_rast
+  }
+  
+    #calculate AGIcrit value (10th percentile)
+  cmem_dat0_file <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_AGI_0m.rds"))
+  cmem_dat0 <- cmem_dat0_file %>% filter(PA == 0)
+  AGIcrit_0 <- quantile(cmem_dat0$AGI_0m, 0.10, na.rm = TRUE)
+  
+  cmem_dat250_file <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_AGI_250m.rds"))
+  cmem_dat250 <- cmem_dat250_file %>% filter(PA == 0)
+  AGIcrit_250 <- quantile(cmem_dat250$AGI_250m, 0.10, na.rm = TRUE)
+  
+    #create shape file of areas surrounding AGIcrit
+  crit_0m_map <- raster::clamp(agi_0m, upper = AGIcrit_0, values = FALSE) #create raster of values below AGIcrit
+  crit_poly_0m <- as.polygons(ext(crit_0m_map))
+  crit_poly_0m <- as.polygons(crit_0m_map > -Inf)
+  
+  crit_250m_map <- raster::clamp(agi_250m, upper = AGIcrit_250, values = FALSE) #create raster of values below AGIcrit
+  crit_poly_250m <- as.polygons(ext(crit_250m_map))
+  crit_poly_250m <- as.polygons(crit_250m_map > -Inf)
+  
+    #agi crit map 
+  map.world = map_data(map="world")
+  testt=map.world %>% filter(long<=180)
+  
+  agi_crit_0m <- ggplot() + 
+    geom_spatraster(data = agi_0m) + 
+    geom_spatvector(data = crit_poly_0m, color = "black", fill = NA, linewidth = 0.8) +
+    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+    scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)+
+    ggtitle("AGIcrit 0m") +
+    labs(fill = "AGI")+
+    theme_map()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          legend.position = "none")
+  
+  agi_crit_250m <- ggplot() + 
+    geom_spatraster(data = agi_250m) + 
+    geom_spatvector(data = crit_poly_250m, color = "black", fill = NA, linewidth = 0.8) +
+    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+    scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)+
+    ggtitle("AGIcrit 250m") +
+    labs(fill = "AGI")+
+    theme_map()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          legend.position = "none")
+  
+    #create shape file of areas surrounding AGI < 1
+  one_0m_map <- raster::clamp(agi_0m, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_0m <- as.polygons(ext(one_0m_map))
+  one_poly_0m <- as.polygons(one_0m_map > -Inf)
+  
+  one_250m_map <- raster::clamp(agi_250m, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_250m <- as.polygons(ext(one_250m_map))
+  one_poly_250m <- as.polygons(one_250m_map > -Inf)  
+  
+    #agi <1 map
+  agi_one_0m <- ggplot() + 
+    geom_spatraster(data = agi_0m) + 
+    geom_spatvector(data = one_poly_0m, color = "black", fill = NA, linewidth = 0.8) +
+    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+    scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)+
+    ggtitle("AGI<1 0m") +
+    labs(fill = "AGI")+
+    theme_map()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          legend.position = "none")
+  
+  agi_one_250m <- ggplot() + 
+    geom_spatraster(data = agi_250m) + 
+    geom_spatvector(data = one_poly_250m, color = "black", fill = NA, linewidth = 0.8) +
+    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+    scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)+
+    ggtitle("AGI<1 250m") +
+    labs(fill = "AGI")+
+    theme_map()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          legend.position = "none")
+  
+  return((agi_crit_0m | agi_crit_250m)/(agi_one_0m | agi_one_250m))
+  
+#end function 
+}
+
+

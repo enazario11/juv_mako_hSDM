@@ -52,6 +52,9 @@ library(sf)
 library(tidyterra)
 library(here);here <- here::here #plyr's here function masks here::here
 library(tidyquant)
+library(lessR)
+library(rstatix)
+library(ggpubr)
 
 set.seed(1004)
 
@@ -316,12 +319,12 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dai
 
 # HSI maps
 
-## List models
-
 ```{r}
 #| echo: false
 #| warning: false
 #| include: false
+
+#list models
 
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 do_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
@@ -390,6 +393,210 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11")
 
 hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09")
 
+```
+
+## Models by ENSO phase
+
+### Base model
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+  #neutral map
+base_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_base_rast.nc"))
+names(base_rast_neut) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+  
+extent <- c(-153, -103, 1 , 49)
+
+base_pred_neut <- predict(base_rast_neut, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+base_pred_neut <- crop(base_pred_neut, extent)
+
+map.world = map_data(map="world")
+testt = map.world %>% filter(long <= 180)
+  
+base_map_neut <- ggplot() +
+    geom_spatraster(data = base_pred_neut) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("Neutral year (2013)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #La Niña
+base_rast_la <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11/Jan11_Dec11_base_rast.nc"))
+names(base_rast_la) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+
+base_pred_la <- predict(base_rast_la, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+base_pred_la <- crop(base_pred_la, extent)
+  
+base_map_la <- ggplot() +
+    geom_spatraster(data = base_pred_la) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("La Niña year (2011)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #El Niño
+base_rast_el <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09/Jan09_Dec09_base_rast.nc"))
+names(base_rast_el) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+
+base_pred_el <- predict(base_rast_el, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+base_pred_el <- crop(base_pred_el, extent)
+  
+base_map_el <- ggplot() +
+    geom_spatraster(data = base_pred_el) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("El Niño year (2009)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+base_map_neut | base_map_la | base_map_el
+  
+```
+
+### AGI model
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+  #neutral map
+agi_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_agi_rast.nc"))
+names(agi_rast_neut) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+  
+extent <- c(-153, -103, 1 , 49)
+
+agi_pred_neut <- predict(agi_rast_neut, agi_mod_fin, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+agi_pred_neut <- crop(agi_pred_neut, extent)
+
+map.world = map_data(map="world")
+testt = map.world %>% filter(long <= 180)
+  
+agi_map_neut <- ggplot() +
+    geom_spatraster(data = agi_pred_neut) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("Neutral year (2013)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #La Niña
+agi_rast_la <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11/Jan11_Dec11_agi_rast.nc"))
+names(agi_rast_la) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+
+agi_pred_la <- predict(agi_rast_la, agi_mod_fin, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+agi_pred_la <- crop(agi_pred_la, extent)
+  
+agi_map_la <- ggplot() +
+    geom_spatraster(data = agi_pred_la) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("La Niña year (2011)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #El Niño
+agi_rast_el <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09/Jan09_Dec09_agi_rast.nc"))
+names(agi_rast_el) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+
+agi_pred_el <- predict(agi_rast_el, agi_mod_fin, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+agi_pred_el <- crop(agi_pred_el, extent)
+  
+agi_map_el <- ggplot() +
+    geom_spatraster(data = agi_pred_el) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("El Niño year (2009)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+agi_map_neut | agi_map_la | agi_map_el
+```
+
+### DO model
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+  #neutral map
+do_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_do_rast.nc"))
+names(do_rast_neut) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+  
+extent <- c(-153, -103, 1 , 49)
+
+do_pred_neut <- predict(do_rast_neut, do_mod_fin, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+do_pred_neut <- crop(do_pred_neut, extent)
+
+map.world = map_data(map="world")
+testt = map.world %>% filter(long <= 180)
+  
+do_map_neut <- ggplot() +
+    geom_spatraster(data = do_pred_neut) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("Neutral year (2013)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #La Niña
+do_rast_la <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11/Jan11_Dec11_do_rast.nc"))
+names(do_rast_la) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+
+do_pred_la <- predict(do_rast_la, do_mod_fin, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+do_pred_la <- crop(do_pred_la, extent)
+  
+do_map_la <- ggplot() +
+    geom_spatraster(data = do_pred_la) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("La Niña year (2011)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #El Niño
+do_rast_el <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09/Jan09_Dec09_do_rast.nc"))
+names(do_rast_el) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+
+do_pred_el <- predict(do_rast_el, do_mod_fin, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+do_pred_el <- crop(do_pred_el, extent)
+  
+do_map_el <- ggplot() +
+    geom_spatraster(data = do_pred_el) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("El Niño year (2009)") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+do_map_neut | do_map_la | do_map_el
 ```
 
 ## Random day (September 24, 2007)
@@ -475,6 +682,406 @@ hsi_diff_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Sept_24_2007")
 
 # AGI maps
 
-# Predictor variable relative importance
+::: panel-tabset
+## Average across study period
 
-# Performance metric comparisons
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan03_Dec15", get_rast = "Y")
+
+```
+
+## Average by season
+
+### Winter
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#load rasters 
+rast_file_seas_0m <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_0m_season.nc"))
+rast_file_seas_250m <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_250m_season.nc"))
+
+#subset for winter
+rast_seas_0m_subW <- subset(rast_file_seas_0m, month(time(rast_file_seas_0m)) == 12)
+rast_seas_250m_subW <- subset(rast_file_seas_250m, month(time(rast_file_seas_250m)) == 12)
+
+#create winter AGI raster
+source(here("functions/oxy_demand_functions.R"))
+OxyThresh_0m = 0.04928389 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 0m
+OxyThresh_250m = 0.03816138 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 250m
+Tpref = 16.45201 #mean temp experienced by sharks at mean dive depth (50m)
+  
+  #0m
+demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_subW$votemper_1)
+atm_seas_0m <- rast_to_atm(do = rast_seas_0m_subW$o2_1, so = rast_seas_0m_subW$vosaline_1, temp = rast_seas_0m_subW$votemper_1, depth = 0)
+AGI_W_0m <- atm_seas_0m/demand_seas_0m
+  
+  #250m
+demand_seas_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_seas_250m_subW $votemper_1)
+atm_seas_250m <- rast_to_atm(do = rast_seas_250m_subW $o2_1, so = rast_seas_250m_subW $vosaline_1, temp = rast_seas_250m_subW $votemper_1, depth = 250)
+AGI_W_250m <- atm_seas_250m/demand_seas_250m
+  
+#plot
+agi_maps(rast_folder = NULL, get_rast = "N", agi_0m_rast = AGI_W_0m, agi_250m_rast = AGI_W_250m)
+```
+
+### Spring
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#subset for spring
+rast_seas_0m_subSp <- subset(rast_file_seas_0m, month(time(rast_file_seas_0m)) == 3)
+rast_seas_250m_subSp <- subset(rast_file_seas_250m, month(time(rast_file_seas_250m)) == 3)
+
+#create spring AGI raster
+  #0m
+demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_subSp$votemper_2)
+atm_seas_0m <- rast_to_atm(do = rast_seas_0m_subSp$o2_2, so = rast_seas_0m_subSp$vosaline_2, temp = rast_seas_0m_subSp$votemper_2, depth = 0)
+AGI_Sp_0m <- atm_seas_0m/demand_seas_0m
+  
+  #250m
+demand_seas_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_seas_250m_subSp$votemper_2)
+atm_seas_250m <- rast_to_atm(do = rast_seas_250m_subSp$o2_2, so = rast_seas_250m_subSp$vosaline_2, temp = rast_seas_250m_subSp$votemper_2, depth = 250)
+AGI_Sp_250m <- atm_seas_250m/demand_seas_250m
+  
+#plot
+agi_maps(rast_folder = NULL, get_rast = "N", agi_0m_rast = AGI_Sp_0m, agi_250m_rast = AGI_Sp_250m)
+
+```
+
+### Summer
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#subset for summer
+rast_seas_0m_subSu <- subset(rast_file_seas_0m, month(time(rast_file_seas_0m)) == 6)
+rast_seas_250m_subSu <- subset(rast_file_seas_250m, month(time(rast_file_seas_250m)) == 6)
+
+#create summer AGI raster
+  #0m
+demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_subSu$votemper_3)
+atm_seas_0m <- rast_to_atm(do = rast_seas_0m_subSu$o2_3, so = rast_seas_0m_subSu$vosaline_3, temp = rast_seas_0m_subSu$votemper_3, depth = 0)
+AGI_Su_0m <- atm_seas_0m/demand_seas_0m
+  
+  #250m
+demand_seas_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_seas_250m_subSu$votemper_3)
+atm_seas_250m <- rast_to_atm(do = rast_seas_250m_subSu$o2_3, so = rast_seas_250m_subSu$vosaline_3, temp = rast_seas_250m_subSu$votemper_3, depth = 250)
+AGI_Su_250m <- atm_seas_250m/demand_seas_250m
+  
+#plot
+agi_maps(rast_folder = NULL, get_rast = "N", agi_0m_rast = AGI_Su_0m, agi_250m_rast = AGI_Su_250m)
+```
+
+### Fall
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#subset for fall
+rast_seas_0m_subF <- subset(rast_file_seas_0m, month(time(rast_file_seas_0m)) == 9)
+rast_seas_250m_subF <- subset(rast_file_seas_250m, month(time(rast_file_seas_250m)) == 9)
+
+#create fall AGI raster
+  #0m
+demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_subF$votemper_4)
+atm_seas_0m <- rast_to_atm(do = rast_seas_0m_subF$o2_4, so = rast_seas_0m_subF$vosaline_4, temp = rast_seas_0m_subF$votemper_4, depth = 0)
+AGI_F_0m <- atm_seas_0m/demand_seas_0m
+  
+  #250m
+demand_seas_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_seas_250m_subF$votemper_4)
+atm_seas_250m <- rast_to_atm(do = rast_seas_250m_subF$o2_4, so = rast_seas_250m_subF$vosaline_4, temp = rast_seas_250m_subF$votemper_4, depth = 250)
+AGI_F_250m <- atm_seas_250m/demand_seas_250m
+  
+#plot
+agi_maps(get_rast = "N", agi_0m_rast = AGI_F_0m, agi_250m_rast = AGI_F_250m)
+
+```
+
+## Average by ENSO phase
+
+### Neutral year (2013)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_maps(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13")
+
+```
+
+### Strong La Niña year (-1.5 to -1.9 temperature anomaly; 2011)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_maps(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan11_Dec11")
+
+```
+
+### Moderate/strong El Niño year (1.5 to 1.9 temperature anomaly; 2009)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+agi_maps(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan09_Dec09")
+
+```
+:::
+
+# Model evaluation
+
+## Predictor variable relative importance
+
+### Base model
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 8
+
+base_inf <- as.data.frame(ggBRT::ggInfluence(base_mod, plot = FALSE)) %>% rownames_to_column()
+colnames(base_inf) <- c("Predictor_variable", "relative_influence")
+
+base_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(base_inf$Predictor_variable)))
+
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = base_inf, fill = base_cols, main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
+
+```
+
+### DO model
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 8
+
+do_inf <- as.data.frame(ggBRT::ggInfluence(do_mod_fin, plot = FALSE)) %>% rownames_to_column()
+colnames(do_inf) <- c("Predictor_variable", "relative_influence")
+
+do_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(do_inf$Predictor_variable)))
+
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, fill = do_cols, main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
+
+```
+
+### AGI model
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 8
+
+agi_inf <- as.data.frame(ggBRT::ggInfluence(agi_mod_fin, plot = FALSE)) %>% rownames_to_column()
+colnames(agi_inf) <- c("Predictor_variable", "relative_influence")
+
+agi_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(agi_inf$Predictor_variable)))
+
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, fill = agi_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
+
+```
+
+## Partial plots
+
+### DO model
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+#| include: false
+
+par_plot_func <- function(x, vars, vars_type = NULL){
+  
+df_box <- list("vector", length(vars))
+for (i in (1:length(vars))){
+  df_box[[i]] <- treezy::partial_dependence(x, vars[[i]])
+ }
+
+df <- dplyr::bind_rows(df_box)
+
+if(str_detect(vars_type, "o2_0m")){
+  df <- df %>% 
+    mutate(variable = as.factor(variable), 
+           variable = fct_relevel(variable, c("o2_mean_0m", "o2_mean_0m_seas", "o2_mean_0m_ann")))
+}
+if(str_detect(vars_type, "o2_250m")){
+  df <- df %>% 
+    mutate(variable = as.factor(variable), 
+           variable = fct_relevel(variable, c("o2_mean_250m", "o2_mean_250m_seas", "o2_mean_250m_ann")))
+}
+if(str_detect(vars_type, "AGI_0m")){
+  df <- df %>% 
+    mutate(variable = as.factor(variable), 
+           variable = fct_relevel(variable, c("AGI_mean_0m", "AGI_mean_0m_seas", "AGI_mean_0m_ann")))
+}
+if(str_detect(vars_type, "AGI_250m")){
+  df <- df %>% 
+    mutate(variable = as.factor(variable), 
+           variable = fct_relevel(variable, c("AGI_mean_250m", "AGI_mean_250m_seas", "AGI_mean_250m_ann")))
+}
+
+df_mean <-
+    df %>%
+    dplyr::group_by(variable) %>%
+    dplyr::summarise(mean = mean(value))
+
+par_plot <- ggplot(data = df, aes(x = value, y = fitted_function, color = variable)) + 
+  geom_line(linewidth = 2)+
+  labs(x = "Variable values", 
+       y = "Model Predicted values") + 
+  scale_color_manual(values = MetBrewer::met.brewer("Hokusai1", n = length(vars)))+
+  theme_minimal()
+
+return(par_plot)
+}
+
+```
+
+#### 0m
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+par_plot_func(do_mod_fin, vars = c("o2_mean_0m", "o2_mean_0m_seas", "o2_mean_0m_ann"), vars_type = "o2_0m")
+
+```
+
+#### 250m
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+
+par_plot_func(do_mod_fin, vars = c("o2_mean_250m", "o2_mean_250m_seas", "o2_mean_250m_ann"), vars_type = "o2_250m")
+
+```
+
+### AGI model
+
+#### 0m
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+par_plot_func(agi_mod_fin, vars = c("AGI_0m", "AGI_0m_seas", "AGI_0m_ann"), vars_type = "AGI_0m")
+
+```
+
+#### 250m
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+par_plot_func(agi_mod_fin, vars = c("AGI_250m", "AGI_250m_seas", "AGI_250m_ann"), vars_type = "AGI_250m")
+
+```
+
+## Performance metric comparisons
+
+Will later run models 20-50 times to get means and SDs in order to test significance between the values reported for each model type.
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+mod_metrics <- output_sum %>% filter(model == "base_Nwind_crw" | model == "agi_0m_250m_dail_seas_ann_crw" | model == "do_0m_250m_dail_seas_ann_crw") %>% mutate(model = as.factor(model), model = fct_relevel(model, c("base_Nwind_crw", "do_0m_250m_dail_seas_ann_crw", "agi_0m_250m_dail_seas_ann_crw")))
+
+# stat.tss <- mod_metrics %>%
+#   wilcox_test(TSS ~ model) %>%
+#   adjust_pvalue(method = "bonferroni") %>%
+#   add_significance("p.adj")
+# stat.tss
+
+TSS <- ggplot(mod_metrics, aes(x = model, y=TSS)) +
+  geom_segment(aes(x=model, xend=model, y=0, yend=TSS), color="darkslategrey", linewidth = 1.5) +
+  geom_point(color="orange", size=8) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("TSS") + 
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14))
+
+AUC <- ggplot(mod_metrics, aes(x = model, y=AUC)) +
+  geom_segment(aes(x=model, xend=model, y=0, yend=AUC), color="darkslategrey", linewidth = 1.5) +
+  geom_point(color="orange", size=8) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("AUC") + 
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14))
+
+perc_exp <- ggplot(mod_metrics, aes(x = model, y=deviance_exp*100)) +
+  geom_segment(aes(x=model, xend=model, y=0, yend=deviance_exp*100), color="darkslategrey", linewidth = 1.5) +
+  geom_point(color="orange", size=8) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("Deviance explained (%)") + 
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14))
+
+TSS|AUC|perc_exp
+
+```
