@@ -57,6 +57,7 @@ set.seed(1004)
 
 source(here("functions/BRT_evaluation_functions.R"))
 source(here("functions/brt_explore_quarto_function.R"))
+source(here("functions/hsi_rast_functions.R"))
 
 # CRW outputs and data -------------------------------------------------------
 brt_outputs_crw <- list.files(here("data/brt/mod_outputs/crw"), full.names = TRUE, pattern = ".rds")
@@ -90,7 +91,7 @@ agi_test_daily_seasonal_annual_back <- readRDS(here("data/brt/mod_eval/back/agi_
 
 # Model summaries
 
-::: panel-tabset{}
+::: panel-tabset
 ## Base model - crw
 
 ```{r}
@@ -248,49 +249,229 @@ ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
 
 -   Given the similar values among performance metrics between the overfit models (those with all depth levels and temporal resolutions) and the models without data at 60m, we have selected the latter to be the final study models. We explored similar models without data at 60m and at a seasonal temporal resolution, but these models performed considerably worse. Additionally, DO and AGI at 0m and 250m at a seasonal resolution were often a predictor variable with a top 5 highest relative importance, thus, keeping data at a seasonal resolution seemed valuable.
 
+# Final models w/o random predictor variables
+
+::: panel-tabset
+## Base model
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds",
+            test_data = base_test_daily_crw)
+
+```
+
+## DO overfit model
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = do_test_daily_seasonal_annual_crw)
+
+```
+
+## AGI overfit model
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds",
+            test_data = agi_test_daily_seasonal_annual_crw)
+
+```
+
+## DO final model
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds",
+            test_data = do_test_daily_seasonal_annual_crw)
+
+```
+
+## AGI final model
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds",
+            test_data = agi_test_daily_seasonal_annual_crw)
+
+```
+:::
+
 # HSI maps
+
+## List models
+
+```{r}
+#| echo: false
+#| warning: false
+#| include: false
+
+base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
+do_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
+do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
+agi_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds"))
+agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
+
+```
 
 ::: panel-tabset
 ## Average across study period
 
 ```{r}
-agi_rast_2007 <- rast(here("data/enviro/CMEMS/hsi_map/agi_covar2007_spatrast.nc"))
-names(agi_rast_2007) <- c("so0", "chl0","so250", "chl250", "bathy", "dist_coast", "AGI0", "AGI250", "lat", "j_day")
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
 
-map_pred = predict(agi_rast_2007, agi_tc5_lr01, type = "response", n.trees = agi_tc5_lr01$gbm.call$best.trees, na.rm = FALSE) 
-map_pred = crop(map_pred,extent1)
+#hsi_rast_gen(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name = "Jan03_Dec15")
 
-df_map = as.points(map_pred) %>% st_as_sf() %>% as.data.frame()
-colnames(df_map) = c("value", "geometry") 
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15")
 
-map.world = map_data(map="world")
-testt=map.world %>% filter(long<=180)
-
-ggplot() + 
-  geom_spatraster(data = map_pred) + 
-  geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="grey75",color="black")+
-  scale_x_continuous(expand=c(0,0),limits = c(-140,-110)) +
-  scale_y_continuous(expand=c(0,0),limits = c(10,50))+
-  scale_fill_whitebox_c(palette = "deep", direction = -1)+
-  ggtitle("AGI") +
-  theme_bls_() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 ## Average by ENSO phase
 
+These dates run from January to December of each year, but I am happy to modify this if there are better ways to categorize/plot ENSO phases.
+
+### Neutral year (2013)
+
 ```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+#hsi_rast_gen(date_start = c("2013-01-01"), date_end = c("2013-12-31"), season = "WSpSuF", output_name = "Jan13_Dec13")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13")
+
+```
+
+### Strong La Niña year (-1.5 to -1.9 temperature anomaly; 2011)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+#hsi_rast_gen(date_start = c("2011-01-01"), date_end = c("2011-12-31"), season = "WSpSuF", output_name = "Jan11_Dec11")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11")
+
+```
+
+### Moderate/strong El Niño year (1.5 to 1.9 temperature anomaly; 2009)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+#hsi_rast_gen(date_start = c("2009-01-01"), date_end = c("2009-12-31"), season = "WSpSuF", output_name = "Jan09_Dec09")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09")
 
 ```
 
 ## Random day (September 24, 2007)
 
 ```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+#hsi_rast_gen(date_start = c("2007-09-24"), date_end = c("2007-09-24"), season = "F", output_name = "Sept_24_2007")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Sept_24_2007")
 
 ```
 :::
 
 # HSI difference maps
+
+::: panel-tabset
+## Average across study period
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+hsi_diff_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15")
+
+```
+
+## Average by ENSO phase
+
+### Neutral year (2013)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+hsi_diff_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13")
+
+```
+
+### Strong La Niña year (-1.5 to -1.9 temperature anomaly; 2011)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+hsi_diff_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11")
+
+```
+
+### Moderate/strong El Niño year (1.5 to 1.9 temperature anomaly; 2009)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+hsi_diff_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09")
+
+```
+
+## Random day (September 24, 2007)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 5
+
+hsi_diff_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Sept_24_2007")
+
+```
+:::
 
 # AGI maps
 

@@ -112,7 +112,7 @@ dat_test_do_agi_all <- dat_test_do_agi_all %>%
 # base model w/o wind vars
 try(brt_base_0m_dail_no_wind <- dismo::gbm.step(
   data = dat_train_base_d, 
-  gbm.x = c(8:10, 15:18, 20), 
+  gbm.x = c(8:10, 15:18), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -122,12 +122,12 @@ try(brt_base_0m_dail_no_wind <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_base_0m_dail_no_wind, here("data/brt/mod_outputs/crw/refined/brt_base_0m_dail_no_wind.rds"))
+saveRDS(brt_base_0m_dail_no_wind, here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 
 #do reference model w/o wind vars
 try(brt_do_0m_60m_250m_dail_seas_ann_no_wind <- dismo::gbm.step(
   data = dat_train_do_all, 
-  gbm.x = c(8:11, 16:19, 21:29), 
+  gbm.x = c(8:11, 16:19, 21, 22, 24:29), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -137,12 +137,12 @@ try(brt_do_0m_60m_250m_dail_seas_ann_no_wind <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_do_0m_60m_250m_dail_seas_ann_no_wind, here("data/brt/mod_outputs/crw/refined/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
+saveRDS(brt_do_0m_60m_250m_dail_seas_ann_no_wind, here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 
 #agi reference model w/o wind vars
 try(brt_agi_0m_60m_250m_dail_seas_ann_no_wind <- dismo::gbm.step(
   data = dat_train_agi_all, 
-  gbm.x = c(8:11, 16:19, 21:29), 
+  gbm.x = c(8:10, 15:19, 21, 22, 24:29), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -152,7 +152,7 @@ try(brt_agi_0m_60m_250m_dail_seas_ann_no_wind <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_agi_0m_60m_250m_dail_seas_ann_no_wind, here("data/brt/mod_outputs/crw/refined/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds"))
+saveRDS(brt_agi_0m_60m_250m_dail_seas_ann_no_wind, here("data/brt/mod_outputs/final_mods/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 
 ### Combo models of DO and AGI #### 
 #agi at 250 m at all temp res and do at 0 m at all temp res
@@ -174,7 +174,7 @@ saveRDS(brt_agi_250_DO_0_dail_seas_ann, here("data/brt/mod_outputs/crw/refined/b
 #DO removed 60m from reference model w/ all info
 try(brt_do_0m_250m_dail_seas_ann <- dismo::gbm.step(
   data = dat_train_do_all, 
-  gbm.x = c(8:11, 16:19, 22:24, 26, 27, 29), 
+  gbm.x = c(8:11, 16:19, 22, 24, 26, 27, 29), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -184,7 +184,7 @@ try(brt_do_0m_250m_dail_seas_ann <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_do_0m_250m_dail_seas_ann, here("data/brt/mod_outputs/crw/refined/brt_do_0m_250m_dail_seas_ann.rds"))
+saveRDS(brt_do_0m_250m_dail_seas_ann, here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
 
 #DO removed seasonal res from reference model w/ all info
 try(brt_do_0m_60m_250m_dail_ann <- dismo::gbm.step(
@@ -249,7 +249,7 @@ saveRDS(brt_do_0m_250m_daily_ann_refined, here("data/brt/mod_outputs/crw/refined
 #agi removed 60m from reference model w/ all info
 try(brt_agi_0m_250m_dail_seas_ann <- dismo::gbm.step(
   data = dat_train_agi_all, 
-  gbm.x = c(8:10, 16:19, 22:24, 26, 27, 29), 
+  gbm.x = c(8:10, 15:19, 22, 24, 26, 27, 29), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -259,7 +259,7 @@ try(brt_agi_0m_250m_dail_seas_ann <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_agi_0m_250m_dail_seas_ann, here("data/brt/mod_outputs/crw/refined/brt_agi_0m_250m_dail_seas_ann.rds"))
+saveRDS(brt_agi_0m_250m_dail_seas_ann, here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
 
 #agi removed seasonal res from reference model w/ all info
 try(brt_agi_0m_60m_250m_dail_ann <- dismo::gbm.step(
