@@ -94,23 +94,23 @@ dat_base_back <- dat0_back %>%
   subset(select = -c(o2_mean_0m, pO2_atm_0m, o2_demand_0m, AGI_0m))
 
     #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 1, 2) #change PAs to temporarily equal 2
-dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 0, 1) #change true positions to a 1
-dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 2, 0) #change PA positions to a 0
+#dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 1, 2) #change PAs to temporarily equal 2
+#dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 0, 1) #change true positions to a 1
+#dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 2, 0) #change PA positions to a 0
 
 #saveRDS(dat_base_back, here("data/locs_brts/bckg_pas/dat_base_back.rds"))
 
 #DO model dataset
 dat_do_back <- dat0_back %>% 
   subset(select = -c(pO2_atm_0m, o2_demand_0m, AGI_0m)) %>% 
-  cbind(dat60_back$o2_mean_60m,dat250_back$o2_mean_250m) %>%
-  rename(o2_mean_60m = "dat60_back$o2_mean_60m", 
+  cbind(dat60_back$o2_mean_60m, dat250_back$o2_mean_250m) %>%
+  dplyr::rename(o2_mean_60m = "dat60_back$o2_mean_60m", 
          o2_mean_250m = "dat250_back$o2_mean_250m")
 
     #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 1, 2) #change PAs to temporarily equal 2
-dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 0, 1) #change true positions to a 1
-dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 2, 0) #change PA positions to a 0
+#dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 1, 2) #change PAs to temporarily equal 2
+#dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 0, 1) #change true positions to a 1
+#dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 2, 0) #change PA positions to a 0
 
 #saveRDS(dat_do_back, here("data/locs_brts/bckg_pas/dat_do_back.rds"))
 
@@ -118,13 +118,13 @@ dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 2, 0) #change PA pos
 dat_agi_back <- dat0_back %>% 
   subset(select = -c(o2_mean_0m, pO2_atm_0m, o2_demand_0m)) %>% 
   cbind(dat60_back$AGI_60m, dat250_back$AGI_250m)%>%
-  rename(AGI_60m = "dat60_back$AGI_60m", 
+  dplyr::rename(AGI_60m = "dat60_back$AGI_60m", 
          AGI_250m = "dat250_back$AGI_250m")
 
     #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 1, 2) #change PAs to temporarily equal 2
-dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 0, 1) #change true positions to a 1
-dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 2, 0) #change PA positions to a 0
+#dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 1, 2) #change PAs to temporarily equal 2
+#dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 0, 1) #change true positions to a 1
+#dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 2, 0) #change PA positions to a 0
 
 #saveRDS(dat_agi_back, here("data/locs_brts/bckg_pas/dat_agi_back.rds"))
 
@@ -246,9 +246,9 @@ format_dat_back_brts <- function(dat0_path, dat60_path, dat250_path, res = c("an
     subset(select = -c(o2_mean_0m, pO2_atm_0m, o2_demand_0m, AGI_0m))
   
   #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-  dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 1, 2) #change PAs to temporarily equal 2
-  dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 0, 1) #change true positions to a 1
-  dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 2, 0) #change PA positions to a 0
+  #dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 1, 2) #change PAs to temporarily equal 2
+  #dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 0, 1) #change true positions to a 1
+  #dat_base_back$PA <- replace(dat_base_back$PA, dat_base_back$PA == 2, 0) #change PA positions to a 0
   
   saveRDS(dat_base_back, here(paste0(out_path,"/dat_base","_", res,".rds")))
   
@@ -256,13 +256,13 @@ format_dat_back_brts <- function(dat0_path, dat60_path, dat250_path, res = c("an
   dat_do_back <- dat0_back %>% 
     subset(select = -c(pO2_atm_0m, o2_demand_0m, AGI_0m)) %>% 
     cbind(dat60_back$o2_mean_60m,dat250_back$o2_mean_250m) %>%
-    rename(o2_mean_60m = "dat60_back$o2_mean_60m", 
+    dplyr::rename(o2_mean_60m = "dat60_back$o2_mean_60m", 
            o2_mean_250m = "dat250_back$o2_mean_250m")
   
   #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-  dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 1, 2) #change PAs to temporarily equal 2
-  dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 0, 1) #change true positions to a 1
-  dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 2, 0) #change PA positions to a 0
+  #dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 1, 2) #change PAs to temporarily equal 2
+  #dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 0, 1) #change true positions to a 1
+  #dat_do_back$PA <- replace(dat_do_back$PA, dat_do_back$PA == 2, 0) #change PA positions to a 0
   
   saveRDS(dat_do_back, here(paste0(out_path,"/dat_do","_", res,".rds")))
   
@@ -270,13 +270,13 @@ format_dat_back_brts <- function(dat0_path, dat60_path, dat250_path, res = c("an
   dat_agi_back <- dat0_back %>% 
     subset(select = -c(o2_mean_0m, pO2_atm_0m, o2_demand_0m)) %>% 
     cbind(dat60_back$AGI_60m, dat250_back$AGI_250m)%>%
-    rename(AGI_60m = "dat60_back$AGI_60m", 
+    dplyr::rename(AGI_60m = "dat60_back$AGI_60m", 
            AGI_250m = "dat250_back$AGI_250m")
   
   #originally, PA = 0 means a true position. Change so PA = 1 means a true position for fitting the BRT
-  dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 1, 2) #change PAs to temporarily equal 2
-  dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 0, 1) #change true positions to a 1
-  dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 2, 0) #change PA positions to a 0
+  #dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 1, 2) #change PAs to temporarily equal 2
+  #dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 0, 1) #change true positions to a 1
+  #dat_agi_back$PA <- replace(dat_agi_back$PA, dat_agi_back$PA == 2, 0) #change PA positions to a 0
   
   saveRDS(dat_agi_back, here(paste0(out_path,"/dat_agi","_", res,".rds")))
 }

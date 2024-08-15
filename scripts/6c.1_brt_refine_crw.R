@@ -321,3 +321,44 @@ try(brt_agi_0m_250m_daily_ann_refined <- dismo::gbm.step(
 )
 saveRDS(brt_agi_0m_250m_daily_ann_refined, here("data/brt/mod_outputs/crw/refined/brt_agi_0m_250m_daily_ann_refined.rds"))
 
+### ensemble model explore ####
+#generate agi only model
+try(brt_agi_only <- dismo::gbm.step(
+  data = dat_train_agi_all, 
+  gbm.x = c(19, 22, 24, 26, 27, 29), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+#saveRDS(brt_agi_only, here("data/brt/mod_outputs/crw/refined/brt_agi_only.rds"))
+
+#load do final model 
+agi_mod <- readRDS(here("data/brt/mod_outputs/crw/refined/brt_agi_only.rds"))
+do_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
+
+# make df of predictions from each model
+do_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/do_test_daily_seasonal_annual.rds"))
+agi_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/agi_test_daily_seasonal_annual.rds"))
+
+pred_testdata <- data.frame(
+  do = predict.gbm(do_mod, do_test_daily_seasonal_annual_crw,
+                   n.trees = do_mod$gbm.call$best.trees,
+                   type = "response"),
+  agi = predict.gbm(agi_mod, agi_test_daily_seasonal_annual_crw,
+                    n.trees = agi_mod$gbm.call$best.trees,
+                    type = "response")
+)
+
+summary(pred_testdata)
+
+# Mean of probabilities
+mean_prob <- rowMeans(pred_testdata)
+
+# performance measures for "mean of probabilities"
+(perf_mean_prob <- mecofun::evalSDM(do_test_daily_seasonal_annual_crw$PA, mean_prob))
+

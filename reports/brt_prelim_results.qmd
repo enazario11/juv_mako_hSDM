@@ -331,6 +331,7 @@ do_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_da
 do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
 agi_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
+agi_mod_back <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann_back.rds"))
 
 ```
 
@@ -341,7 +342,7 @@ agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dai
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
 #hsi_rast_gen(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name = "Jan03_Dec15")
 
@@ -359,7 +360,7 @@ These dates run from January to December of each year, but I am happy to modify 
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
 #hsi_rast_gen(date_start = c("2013-01-01"), date_end = c("2013-12-31"), season = "WSpSuF", output_name = "Jan13_Dec13")
 
@@ -373,7 +374,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
 #hsi_rast_gen(date_start = c("2011-01-01"), date_end = c("2011-12-31"), season = "WSpSuF", output_name = "Jan11_Dec11")
 
@@ -387,7 +388,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
 #hsi_rast_gen(date_start = c("2009-01-01"), date_end = c("2009-12-31"), season = "WSpSuF", output_name = "Jan09_Dec09")
 
@@ -403,7 +404,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
   #neutral map
 base_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_base_rast.nc"))
@@ -471,7 +472,7 @@ base_map_neut | base_map_la | base_map_el
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
   #neutral map
 agi_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_agi_rast.nc"))
@@ -538,7 +539,7 @@ agi_map_neut | agi_map_la | agi_map_el
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
   #neutral map
 do_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_do_rast.nc"))
@@ -599,13 +600,55 @@ do_map_el <- ggplot() +
 do_map_neut | do_map_la | do_map_el
 ```
 
+## SD by ENSO phase
+
+### Neutral year (2013)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#hsi_rast_gen_sd(date_start = c("2013-01-01"), date_end = c("2013-12-31"), season = "WSpSuF", output_name = "Jan13_Dec13")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts_sd/Jan13_Dec13")
+
+```
+
+### Strong La Niña year (-1.5 to -1.9 temperature anomaly; 2011)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#hsi_rast_gen_sd(date_start = c("2011-01-01"), date_end = c("2011-12-31"), season = "WSpSuF", output_name = "Jan11_Dec11")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts_sd/Jan11_Dec11")
+```
+
+### Moderate/strong El Niño year (1.5 to 1.9 temperature anomaly; 2009)
+
+```{r}
+#| echo: false
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#hsi_rast_gen_sd(date_start = c("2009-01-01"), date_end = c("2009-12-31"), season = "WSpSuF", output_name = "Jan09_Dec09")
+
+hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts_sd/Jan09_Dec09")
+```
+
 ## Random day (September 24, 2007)
 
 ```{r}
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 10
 
 #hsi_rast_gen(date_start = c("2007-09-24"), date_end = c("2007-09-24"), season = "F", output_name = "Sept_24_2007")
 
@@ -873,7 +916,7 @@ colnames(base_inf) <- c("Predictor_variable", "relative_influence")
 
 base_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(base_inf$Predictor_variable)))
 
-lessR::PieChart(x = Predictor_variable, y = relative_influence, data = base_inf, fill = base_cols, main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = base_inf, fill = base_cols, color = base_cols, main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
 
 ```
 
@@ -891,7 +934,7 @@ colnames(do_inf) <- c("Predictor_variable", "relative_influence")
 
 do_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(do_inf$Predictor_variable)))
 
-lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, fill = do_cols, main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, fill = do_cols, color = base_cols,  main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
 
 ```
 
@@ -909,7 +952,7 @@ colnames(agi_inf) <- c("Predictor_variable", "relative_influence")
 
 agi_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(agi_inf$Predictor_variable)))
 
-lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, fill = agi_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, fill = agi_cols, color = base_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
 
 ```
 
@@ -1032,7 +1075,13 @@ Will later run models 20-50 times to get means and SDs in order to test signific
 #| fig-width: 12
 #| fig-height: 5
 
-mod_metrics <- output_sum %>% filter(model == "base_Nwind_crw" | model == "agi_0m_250m_dail_seas_ann_crw" | model == "do_0m_250m_dail_seas_ann_crw") %>% mutate(model = as.factor(model), model = fct_relevel(model, c("base_Nwind_crw", "do_0m_250m_dail_seas_ann_crw", "agi_0m_250m_dail_seas_ann_crw")))
+mod_metrics <- output_sum %>% filter(model == "base_Nwind_crw" | model == "agi_0m_250m_dail_seas_ann_crw" | model == "do_0m_250m_dail_seas_ann_crw")
+
+mod_metrics[1, "model"] <- "Base model"
+mod_metrics[2,"model"] <- "AGI model"
+mod_metrics[3,"model"] <- "DO model"
+
+mod_metrics <- mod_metrics %>% mutate(model = as.factor(model), model = fct_relevel(model, c("Base model", "DO model", "AGI model")))
 
 # stat.tss <- mod_metrics %>%
 #   wilcox_test(TSS ~ model) %>%

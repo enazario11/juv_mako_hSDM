@@ -36,7 +36,7 @@ dat_base_s$pred_var <- pred_var
 #### Add seasonal and annual data to daily data df ####
 dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
 dat_do_all <- dat_do_all %>%
-  rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
+  dplyr::rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
          "o2_mean_60m_seas" = "dat_do_s$o2_mean_60m", 
          "o2_mean_250m_seas" = "dat_do_s$o2_mean_250m", 
          "o2_mean_0m_ann" = "dat_do_a$o2_mean_0m", 
@@ -45,7 +45,7 @@ dat_do_all <- dat_do_all %>%
 
 dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
 dat_agi_all <- dat_agi_all %>%
-  rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
+  dplyr::rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
          "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
          "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
          "AGI_0m_ann" = "dat_agi_a$AGI_0m", 
@@ -97,14 +97,14 @@ dat_test_agi_all <- dat_agi_all[sample(nrow(dat_agi_all),nrow(dat_agi_all)-dat_a
 #do and agi 
 dat_train_do_agi_all <- cbind(dat_train_agi_all, dat_train_do_all$o2_mean_0m, dat_train_do_all$o2_mean_0m_seas, dat_train_do_all$o2_mean_0m_ann)
 dat_train_do_agi_all <- dat_train_do_agi_all %>%
-  rename("o2_mean_0m" = "dat_train_do_all$o2_mean_0m", 
+  dplyr::rename("o2_mean_0m" = "dat_train_do_all$o2_mean_0m", 
          "o2_mean_0m_seas" = "dat_train_do_all$o2_mean_0m_seas",
          "o2_mean_0m_ann" = "dat_train_do_all$o2_mean_0m_ann")
 
 
 dat_test_do_agi_all <- cbind(dat_test_agi_all, dat_test_do_all$o2_mean_0m, dat_test_do_all$o2_mean_0m_seas, dat_test_do_all$o2_mean_0m_ann)
 dat_test_do_agi_all <- dat_test_do_agi_all %>%
-  rename("o2_mean_0m" = "dat_test_do_all$o2_mean_0m", 
+  dplyr::rename("o2_mean_0m" = "dat_test_do_all$o2_mean_0m", 
          "o2_mean_0m_seas" = "dat_test_do_all$o2_mean_0m_seas",
          "o2_mean_0m_ann" = "dat_test_do_all$o2_mean_0m_ann")
 
@@ -251,7 +251,7 @@ saveRDS(brt_do_0m_250m_dail_ann_refined, here("data/brt/mod_outputs/background/r
 #agi removed 60m from reference model w/ all info
 try(brt_agi_0m_250m_dail_seas_ann <- dismo::gbm.step(
   data = dat_train_agi_all, 
-  gbm.x = c(7:9, 14:18, 21:23, 25, 26, 28), 
+  gbm.x = c(7:9, 14:18, 21, 23, 25, 26, 28), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -261,7 +261,7 @@ try(brt_agi_0m_250m_dail_seas_ann <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_agi_0m_250m_dail_seas_ann, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_dail_seas_ann.rds"))
+saveRDS(brt_agi_0m_250m_dail_seas_ann, here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann_back.rds"))
 
 #agi removed seasonal res from reference model w/ all info
 try(brt_agi_0m_60m_250m_dail_ann <- dismo::gbm.step(
@@ -306,7 +306,7 @@ try(brt_agi_0m_250m_dail_ann <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_agi_0m_250m_dail_ann, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_ann.rds"))
+saveRDS(brt_agi_0m_250m_dail_ann, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_dail_ann.rds"))
 
 #agi remove seasonal res and 60m from reference model, also removed 250m daily and 0m annual, kept all other reference model info 
 try(brt_agi_0m_250m_dail_ann_refined <- dismo::gbm.step(
@@ -321,4 +321,4 @@ try(brt_agi_0m_250m_dail_ann_refined <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-saveRDS(brt_agi_0m_250m_dail_ann_refined, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_ann_refined.rds"))
+saveRDS(brt_agi_0m_250m_dail_ann_refined, here("data/brt/mod_outputs/background/refined/brt_agi_0m_250m_dail_ann_refined.rds"))

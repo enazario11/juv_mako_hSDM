@@ -740,8 +740,8 @@ ggplot(output_sum_seas_ann_Nspat, aes(AUC, TSS, color = deviance_exp, label = mo
 Here, I take the two best performing models from the above sections (agi and do with all depths and temporal resolutions without tag ID or spatial variables as predictors) to be used as overfit reference models. The following model options excluded the wind predictors as these consistently had lower relative importance than the random predictor variable we included. I also included a combo model that uses information about AGI at 250 m and DO at 0m across temporal resolutions. Lastly, the final models also remove do/agi at 60m and at a seasonal resolution, as these were typically the vars with the lowest predictive performance relative to the other depth layers and resolutions.
 
 ::: panel-tabset
-
 ## Base no wind
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -753,6 +753,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_base_0m
 ```
 
 ## DO no wind
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -764,6 +765,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_6
 ```
 
 ## AGI no wind
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -775,6 +777,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_
 ```
 
 ## DO 0m, AGI 250m
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -785,7 +788,8 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_250
 
 ```
 
-## DO w/o 60m 
+## DO w/o 60m
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -797,6 +801,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_2
 ```
 
 ## DO w/o seasonal
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -808,6 +813,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_6
 ```
 
 ## DO w/o daily
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -819,6 +825,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_6
 ```
 
 ## DO w/o seasonal and 60m
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -830,6 +837,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_2
 ```
 
 ## DO w/ 0m daily and 250m annual
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -840,7 +848,8 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_2
 
 ```
 
-## AGI w/o 60m 
+## AGI w/o 60m
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -852,6 +861,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_
 ```
 
 ## AGI w/o seasonal
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -863,6 +873,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_
 ```
 
 ## AGI w/o daily
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -874,6 +885,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_
 ```
 
 ## AGI w/o seasonal and 60m
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -885,6 +897,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_agi_0m_
 ```
 
 ## AGI w/ 0m daily and 250m annual
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -927,8 +940,6 @@ ggplot(output_sum_refined, aes(AUC, TSS, color = deviance_exp, label = model)) +
 
 ```
 
-## Conclusions from refined mdoels ####
+## Conclusions from refined mdoels
 
 -   
-
-
