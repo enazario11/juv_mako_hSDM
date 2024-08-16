@@ -52,6 +52,9 @@ dat_agi_all <- dat_agi_all %>%
          "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
          "AGI_250m_ann" = "dat_agi_a$AGI_250m")
 
+### combined DO and AGI df ####
+dat_do_agi_all <- cbind(dat_do_all, dat_agi_all[,c(19, 22, 24, 26, 27, 29)])
+
 #### Split into test and train daily data #####
 #base
 dat_base_temp <- floor((nrow(dat_base_d)/4)*3) #define % of training and test set
@@ -95,17 +98,9 @@ dat_test_agi_all <- dat_agi_all[sample(nrow(dat_agi_all),nrow(dat_agi_all)-dat_a
 #saveRDS(dat_test_agi_all, here("data/brt/mod_eval/agi_test_daily_seasonal_annual.rds"))
 
 #do and agi 
-dat_train_do_agi_all <- cbind(dat_train_agi_all, dat_train_do_all$o2_mean_0m, dat_train_do_all$o2_mean_0m_seas, dat_train_do_all$o2_mean_0m_ann)
-dat_train_do_agi_all <- dat_train_do_agi_all %>%
-  rename("o2_mean_0m" = "dat_train_do_all$o2_mean_0m", 
-         "o2_mean_0m_seas" = "dat_train_do_all$o2_mean_0m_seas",
-         "o2_mean_0m_ann" = "dat_train_do_all$o2_mean_0m_ann")
-
-dat_test_do_agi_all <- cbind(dat_test_agi_all, dat_test_do_all$o2_mean_0m, dat_test_do_all$o2_mean_0m_seas, dat_test_do_all$o2_mean_0m_ann)
-dat_test_do_agi_all <- dat_test_do_agi_all %>%
-  rename("o2_mean_0m" = "dat_test_do_all$o2_mean_0m", 
-         "o2_mean_0m_seas" = "dat_test_do_all$o2_mean_0m_seas",
-         "o2_mean_0m_ann" = "dat_test_do_all$o2_mean_0m_ann")
+dat_do_agi_temp_all <- floor((nrow(dat_do_agi_all)/4)*3) #define % of training and test set
+dat_train_do_agi_all <- dat_do_agi_all[sample(nrow(dat_do_agi_all),dat_do_agi_temp_all),]
+dat_test_do_agi_all <- dat_do_agi_all[sample(nrow(dat_do_agi_all),nrow(dat_do_agi_all)-dat_do_agi_temp_all),]
 #saveRDS(dat_test_do_agi_all, here("data/brt/mod_eval/agi_do_test_daily_seasonal_annual.rds"))
 
 ### Remove wind vars ####
@@ -158,7 +153,7 @@ saveRDS(brt_agi_0m_60m_250m_dail_seas_ann_no_wind, here("data/brt/mod_outputs/fi
 #agi at 250 m at all temp res and do at 0 m at all temp res
 try(brt_agi_250_DO_0_dail_seas_ann <- dismo::gbm.step(
   data = dat_train_do_agi_all, 
-  gbm.x = c(8:10, 15:18, 22:23, 26, 29, 30:32), 
+  gbm.x = c(8:11, 16:19, 24, 27, 31,33, 35), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -324,8 +319,8 @@ saveRDS(brt_agi_0m_250m_daily_ann_refined, here("data/brt/mod_outputs/crw/refine
 ### ensemble model explore ####
 #generate agi only model
 try(brt_agi_only <- dismo::gbm.step(
-  data = dat_train_agi_all, 
-  gbm.x = c(19, 22, 24, 26, 27, 29), 
+  data = dat_train_do_agi_all, 
+  gbm.x = c(30:35), 
   gbm.y = 5,
   family = "bernoulli", 
   tree.complexity = 3,
@@ -335,21 +330,35 @@ try(brt_agi_only <- dismo::gbm.step(
   plot.main = TRUE
 )
 )
-#saveRDS(brt_agi_only, here("data/brt/mod_outputs/crw/refined/brt_agi_only.rds"))
+saveRDS(brt_agi_only, here("data/brt/mod_outputs/crw/ensemble/brt_agi_only.rds"))
+
+#generate DO model 
+try(brt_do_final <- dismo::gbm.step(
+  data = dat_train_do_agi_all, 
+  gbm.x = c(8:11, 16:19, 22, 24, 26, 27, 29), 
+  gbm.y = 5,
+  family = "bernoulli", 
+  tree.complexity = 3,
+  learning.rate = 0.05, 
+  bag.fraction = 0.75, 
+  silent = TRUE, 
+  plot.main = TRUE
+)
+)
+saveRDS(brt_do_final, here("data/brt/mod_outputs/crw/ensemble/brt_do_final.rds"))
 
 #load do final model 
-agi_mod <- readRDS(here("data/brt/mod_outputs/crw/refined/brt_agi_only.rds"))
-do_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
+agi_mod <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_agi_only.rds"))
+do_mod <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_do_final.rds"))
 
 # make df of predictions from each model
-do_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/do_test_daily_seasonal_annual.rds"))
-agi_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/agi_test_daily_seasonal_annual.rds"))
+test_df <- readRDS(here("data/brt/mod_eval/agi_do_test_daily_seasonal_annual.rds"))
 
 pred_testdata <- data.frame(
-  do = predict.gbm(do_mod, do_test_daily_seasonal_annual_crw,
+  do = predict.gbm(do_mod, test_df,
                    n.trees = do_mod$gbm.call$best.trees,
                    type = "response"),
-  agi = predict.gbm(agi_mod, agi_test_daily_seasonal_annual_crw,
+  agi = predict.gbm(agi_mod, test_df,
                     n.trees = agi_mod$gbm.call$best.trees,
                     type = "response")
 )
@@ -360,5 +369,5 @@ summary(pred_testdata)
 mean_prob <- rowMeans(pred_testdata)
 
 # performance measures for "mean of probabilities"
-(perf_mean_prob <- mecofun::evalSDM(do_test_daily_seasonal_annual_crw$PA, mean_prob))
+(perf_mean_prob <- mecofun::evalSDM(test_df$PA, mean_prob))
 

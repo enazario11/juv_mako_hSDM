@@ -76,6 +76,8 @@ agi_test_daily_crw <- readRDS(here("data/brt/mod_eval/agi_test_daily.rds"))
 do_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/do_test_daily_seasonal_annual.rds"))
 agi_test_daily_seasonal_annual_crw <- readRDS(here("data/brt/mod_eval/agi_test_daily_seasonal_annual.rds"))
 
+dat_test_do_agi_all <- readRDS(here("data/brt/mod_eval/agi_do_test_daily_seasonal_annual.rds"))
+
 # Background outputs and data ----------------------------------------------
 brt_outputs_back <- list.files(here("data/brt/mod_outputs/background"), full.names = TRUE, pattern = ".rds")
 
@@ -164,6 +166,56 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_6
             test_data = do_test_daily_seasonal_annual_back)
 
 ```
+
+## DO/AGI Combo 
+
+Here, dissolved oxygen was included at 0m and at all temporal resolutions, while AGI was included at 250m and all temporal resolutions. 
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+explore_brt(mod_file_path = "data/brt/mod_outputs/crw/refined/brt_agi_250_DO_0_dail_seas_ann.rds",
+            test_data = dat_test_do_agi_all)
+
+```
+
+## DO/AGI Ensemble
+
+```{r}
+#| warning: false
+#| fig-width: 12
+#| fig-height: 10
+
+#load do final model 
+agi_mod <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_agi_only.rds"))
+do_mod <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_do_final.rds"))
+
+# make df of predictions from each model
+test_ensemble_df <- readRDS(here("data/brt/mod_eval/agi_do_test_daily_seasonal_annual.rds"))
+
+pred_testdata <- data.frame(
+  do = predict.gbm(do_mod, test_ensemble_df,
+                   n.trees = do_mod$gbm.call$best.trees,
+                   type = "response"),
+  agi = predict.gbm(agi_mod, test_ensemble_df,
+                    n.trees = agi_mod$gbm.call$best.trees,
+                    type = "response")
+)
+
+# Mean of probabilities
+mean_prob <- rowMeans(pred_testdata)
+
+# performance measures for "mean of probabilities"
+(perf_mean_prob <- mecofun::evalSDM(test_ensemble_df$PA, mean_prob))
+
+#calculate percent external deviance explained
+ext.residual.deviance <- calc.deviance(obs = test_ensemble_df$PA, pred=mean_prob, family="bernoulli", calc.mean=TRUE) #get % deviance
+null.dev =  calc.deviance(test_ensemble_df$PA ,rep(mean(test_ensemble_df$PA),length(test_ensemble_df$PA)), family="bernoulli", calc.mean=T)
+(dev=(null.dev - ext.residual.deviance)/null.dev) 
+
+```
+
 
 ## AGI final - crw
 
