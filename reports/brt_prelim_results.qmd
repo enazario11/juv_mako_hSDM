@@ -377,13 +377,32 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dai
 #| include: false
 
 #list models
-
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 do_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
 agi_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
 agi_mod_back <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann_back.rds"))
+do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_dail_seas_ann.rds"))
+
+#ensemble model 
+agi_mod <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_agi_only.rds"))
+do_mod <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_do_final.rds"))
+
+# make df of predictions from each model
+test_ensemble_df <- readRDS(here("data/brt/mod_eval/agi_do_test_daily_seasonal_annual.rds"))
+
+pred_testdata <- data.frame(
+  do = predict.gbm(do_mod, test_ensemble_df,
+                   n.trees = do_mod$gbm.call$best.trees,
+                   type = "response"),
+  agi = predict.gbm(agi_mod, test_ensemble_df,
+                    n.trees = agi_mod$gbm.call$best.trees,
+                    type = "response")
+)
+
+# Mean of probabilities
+do_agi_ensemb <- rowMeans(pred_testdata)
 
 ```
 
@@ -394,7 +413,7 @@ agi_mod_back <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_da
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name = "Jan03_Dec15")
 
@@ -412,7 +431,7 @@ These dates run from January to December of each year, but I am happy to modify 
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen(date_start = c("2013-01-01"), date_end = c("2013-12-31"), season = "WSpSuF", output_name = "Jan13_Dec13")
 
@@ -426,7 +445,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen(date_start = c("2011-01-01"), date_end = c("2011-12-31"), season = "WSpSuF", output_name = "Jan11_Dec11")
 
@@ -440,7 +459,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan11_Dec11")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen(date_start = c("2009-01-01"), date_end = c("2009-12-31"), season = "WSpSuF", output_name = "Jan09_Dec09")
 
@@ -456,7 +475,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan09_Dec09")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 5
 
   #neutral map
 base_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_base_rast.nc"))
@@ -524,7 +543,7 @@ base_map_neut | base_map_la | base_map_el
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 5
 
   #neutral map
 agi_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_agi_rast.nc"))
@@ -591,7 +610,7 @@ agi_map_neut | agi_map_la | agi_map_el
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 5
 
   #neutral map
 do_rast_neut <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_do_rast.nc"))
@@ -660,7 +679,7 @@ do_map_neut | do_map_la | do_map_el
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen_sd(date_start = c("2013-01-01"), date_end = c("2013-12-31"), season = "WSpSuF", output_name = "Jan13_Dec13")
 
@@ -674,7 +693,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts_sd/Jan13_Dec13")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen_sd(date_start = c("2011-01-01"), date_end = c("2011-12-31"), season = "WSpSuF", output_name = "Jan11_Dec11")
 
@@ -687,7 +706,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts_sd/Jan11_Dec11")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen_sd(date_start = c("2009-01-01"), date_end = c("2009-12-31"), season = "WSpSuF", output_name = "Jan09_Dec09")
 
@@ -700,7 +719,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts_sd/Jan09_Dec09")
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 10
+#| fig-height: 12
 
 #hsi_rast_gen(date_start = c("2007-09-24"), date_end = c("2007-09-24"), season = "F", output_name = "Sept_24_2007")
 
@@ -986,7 +1005,7 @@ colnames(do_inf) <- c("Predictor_variable", "relative_influence")
 
 do_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(do_inf$Predictor_variable)))
 
-lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, fill = do_cols, color = base_cols,  main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, fill = do_cols, color = do_cols,  main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
 
 ```
 
@@ -1004,7 +1023,25 @@ colnames(agi_inf) <- c("Predictor_variable", "relative_influence")
 
 agi_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(agi_inf$Predictor_variable)))
 
-lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, fill = agi_cols, color = base_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, fill = agi_cols, color = agi_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
+
+```
+
+### DO, AGI model
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 8
+
+do_agi_inf <- as.data.frame(ggBRT::ggInfluence(do_agi_comb, plot = FALSE)) %>% rownames_to_column()
+colnames(do_agi_inf) <- c("Predictor_variable", "relative_influence")
+
+comb_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(do_agi_inf$Predictor_variable)))
+
+lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_agi_inf, fill = comb_cols, color = comb_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
 
 ```
 
@@ -1127,11 +1164,13 @@ Will later run models 20-50 times to get means and SDs in order to test signific
 #| fig-width: 12
 #| fig-height: 5
 
-mod_metrics <- output_sum %>% filter(model == "base_Nwind_crw" | model == "agi_0m_250m_dail_seas_ann_crw" | model == "do_0m_250m_dail_seas_ann_crw")
+mod_metrics <- output_sum %>% filter(model == "base_Nwind_crw" | model == "agi_0m_250m_dail_seas_ann_crw" | model == "do_0m_250m_dail_seas_ann_crw" | model == "do_agi_comb" | model == "do_agi_ensemble")
 
 mod_metrics[1, "model"] <- "Base model"
 mod_metrics[2,"model"] <- "AGI model"
 mod_metrics[3,"model"] <- "DO model"
+mod_metrics[4, "model"] <- "DO, AGI combo model"
+mod_metrics[5, "model"] <- "DO, AGI ensemble model"
 
 mod_metrics <- mod_metrics %>% mutate(model = as.factor(model), model = fct_relevel(model, c("Base model", "DO model", "AGI model")))
 
@@ -1180,7 +1219,7 @@ perc_exp <- ggplot(mod_metrics, aes(x = model, y=deviance_exp*100)) +
   ) +
   xlab("") +
   ylab("Deviance explained (%)") + 
-  theme(axis.text = element_text(size = 12),
+  theme(axis.text = element_text(size = 12, angle = 45, hjust = 1),
         axis.title = element_text(size = 14))
 
 TSS|AUC|perc_exp

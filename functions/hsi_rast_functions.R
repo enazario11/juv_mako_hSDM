@@ -174,6 +174,10 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   agi_rast <- c(rast_daily_0m_sub$votemper, AGI_ann_250m, AGI_daily_0m, bathy, AGI_seas_0m, rast_daily_0m_sub$vosaline, AGI_seas_250m, AGI_ann_0m, rast_daily_0m_sub$chl, AGI_daily_250m, bathy_sd, rast_daily_0m_sub$somxlavt, rast_daily_0m_sub$sossheig)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
   
+  #comb model
+  comb_rast <- c(rast_daily_0m_sub$votemper, AGI_ann_250m, bathy, rast_daily_0m_sub$vosaline, AGI_seas_250m, rast_daily_0m_sub$chl, AGI_daily_250m, bathy_sd, rast_daily_0m_sub$somxlavt, rast_daily_0m_sub$sossheig, rast_daily_0m_sub$o2, rast_ann_0m_sub$o2, rast_seas_0m_sub$o2_1)
+  names(comb_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
+  
   #save HSI raster input file ---------------------------------------------------------------------------------
   dir.create(here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name)), showWarnings = FALSE) 
   
@@ -185,6 +189,10 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   
     #AGI model
   writeCDF(agi_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"/", output_name,"_agi_rast.nc")))
+  
+  #comb model
+  writeCDF(comb_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"/", output_name,"_combo_rast.nc")))
+
   
 # end function  
 }
@@ -359,6 +367,10 @@ hsi_rast_gen_sd <- function(date_start = c("2003-01-01"), date_end = c("2015-12-
   agi_rast <- c(rast_daily_0m_sub$votemper, AGI_ann_250m, AGI_daily_0m, bathy, AGI_seas_0m, rast_daily_0m_sub$vosaline, AGI_seas_250m, AGI_ann_0m, rast_daily_0m_sub$chl, AGI_daily_250m, bathy_sd, rast_daily_0m_sub$somxlavt, rast_daily_0m_sub$sossheig)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
   
+  #comb model
+  comb_rast <- c(rast_daily_0m_sub$votemper, AGI_ann_250m, bathy, rast_daily_0m_sub$vosaline, AGI_seas_250m, rast_daily_0m_sub$chl, AGI_daily_250m, bathy_sd, rast_daily_0m_sub$somxlavt, rast_daily_0m_sub$sossheig, rast_daily_0m_sub$o2, rast_ann_0m_sub$o2, rast_seas_0m_sub$o2_1)
+  names(comb_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
+  
   #save HSI raster input file ---------------------------------------------------------------------------------
   
   #base model
@@ -369,6 +381,9 @@ hsi_rast_gen_sd <- function(date_start = c("2003-01-01"), date_end = c("2015-12-
   
   #AGI model
   writeCDF(agi_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts_sd/", output_name,"/", output_name,"_agi_rast.nc")))
+  
+  #comb model
+  writeCDF(comb_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts_sd/", output_name,"/", output_name,"_combo_rast.nc")))
   
   # end function  
 }
@@ -421,6 +436,7 @@ hsi_maps <- function(rast_folder){
   base_rast_file <- list.files(here(rast_folder), pattern = "base", full.names = TRUE)
   do_rast_file <- list.files(here(rast_folder), pattern = "do", full.names = TRUE)
   agi_rast_file <- list.files(here(rast_folder), pattern = "agi", full.names = TRUE)
+  do_agi_file <- list.files(here(rast_folder), pattern = "comb", full.names = TRUE)
   
   base_rast <- rast(base_rast_file)
   names(base_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
@@ -430,6 +446,9 @@ hsi_maps <- function(rast_folder){
   
   agi_rast <- rast(agi_rast_file)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+  
+  do_agi_rast <- rast(do_agi_file)
+  names(do_agi_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
   
   extent <- c(-153, -103, 1 , 49)
   
@@ -447,6 +466,9 @@ hsi_maps <- function(rast_folder){
   agi_back <- predict(agi_rast, agi_mod_back, type = "response", n.tress = agi_mod_back$gbm.call$best.trees, na.rm = FALSE)
   agi_back <- crop(agi_back, extent)
   
+  do_agi_combo <- predict(do_agi_rast, do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
+  do_agi_combo <- crop(do_agi_combo, extent)
+  
     #predict to df
   base_df <- as.points(base_pred) %>% st_as_sf() %>% as.data.frame()
   colnames(base_df) = c("value", "geometry")
@@ -456,6 +478,17 @@ hsi_maps <- function(rast_folder){
   
   agi_df <- as.points(agi_pred) %>% st_as_sf() %>% as.data.frame()
   colnames(agi_df) = c("value", "geometry")
+  
+    #predictions for ensemble model
+  agi_mod_e <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_agi_only.rds"))
+  agi_pred_e <- predict(agi_rast, agi_mod_e, type = "response", n.tress = agi_mod_e$gbm.call$best.trees, na.rm = FALSE)
+  agi_pred_e <- crop(agi_pred_e, extent)
+  
+  do_mod_e <- readRDS(here("data/brt/mod_outputs/crw/ensemble/brt_do_final.rds"))
+  do_pred_e <- predict(do_rast, do_mod_e, type = "response", n.tress = do_mod_e$gbm.call$best.trees, na.rm = FALSE)
+  do_pred_e <- crop(do_pred_e, extent)
+  
+  ensemb_pred <- mean(agi_pred_e, do_pred_e)
   
   #plot maps --------------------------------------------------------------------------------------------------------
     #land files
@@ -506,8 +539,31 @@ hsi_maps <- function(rast_folder){
     theme_map() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
+  #do agi combo map
+  combo_map <- ggplot() +
+    geom_spatraster(data = do_agi_combo) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("DO, AGI combo model") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  #ensemble map
+  ensemb_map <- ggplot() +
+    geom_spatraster(data = ensemb_pred) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1) +
+    ggtitle("DO, AGI ensemble model") +
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  
   #combine and return maps ------------------------------------------------------------------------------------------------------
-  all_maps <- (base_map|do_map)/(agi_map|agi_map_back)
+  all_maps <- (base_map|do_map)/(agi_map|agi_map_back)/(combo_map|ensemb_map)
   
   return(all_maps)
   
