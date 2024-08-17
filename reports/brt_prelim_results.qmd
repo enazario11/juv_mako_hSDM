@@ -1191,7 +1191,7 @@ TSS <- ggplot(mod_metrics, aes(x = model, y=TSS)) +
   ) +
   xlab("") +
   ylab("TSS") + 
-  theme(axis.text = element_text(size = 12),
+  theme(axis.text = element_text(size = 12, angle = 45, hjust = 1),
         axis.title = element_text(size = 14))
 
 AUC <- ggplot(mod_metrics, aes(x = model, y=AUC)) +
@@ -1205,7 +1205,8 @@ AUC <- ggplot(mod_metrics, aes(x = model, y=AUC)) +
   ) +
   xlab("") +
   ylab("AUC") + 
-  theme(axis.text = element_text(size = 12),
+  ylim(0.6, 1) +
+  theme(axis.text = element_text(size = 12, angle = 45, hjust = 1),
         axis.title = element_text(size = 14))
 
 perc_exp <- ggplot(mod_metrics, aes(x = model, y=deviance_exp*100)) +
