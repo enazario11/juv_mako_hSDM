@@ -1195,7 +1195,7 @@ TSS <- ggplot(mod_metrics, aes(x = model, y=TSS)) +
         axis.title = element_text(size = 14))
 
 AUC <- ggplot(mod_metrics, aes(x = model, y=AUC)) +
-  geom_segment(aes(x=model, xend=model, y=0, yend=AUC), color="darkslategrey", linewidth = 1.5) +
+  geom_segment(aes(x=model, xend=model, y=0.6, yend=AUC), color="darkslategrey", linewidth = 1.5) +
   geom_point(color="orange", size=8) +
   theme_light() +
   theme(
