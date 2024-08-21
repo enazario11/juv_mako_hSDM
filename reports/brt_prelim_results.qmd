@@ -1156,32 +1156,60 @@ par_plot_func(agi_mod_fin, vars = c("AGI_250m", "AGI_250m_seas", "AGI_250m_ann")
 
 ## Performance metric comparisons
 
-Will later run models 20-50 times to get means and SDs in order to test significance between the values reported for each model type.
+20 iterations were performed for each model type. Then an anova and post-hoc Tukey tests were run to evaluate the pairwise comparisons. Letters represent relative significance. 
 
 ```{r}
 #| echo: false
 #| warning: false
 #| fig-width: 12
-#| fig-height: 5
+#| fig-height: 6
 
-mod_metrics <- output_sum %>% filter(model == "base_Nwind_crw" | model == "agi_0m_250m_dail_seas_ann_crw" | model == "do_0m_250m_dail_seas_ann_crw" | model == "do_agi_comb" | model == "do_agi_ensemble")
+mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
 
-mod_metrics[1, "model"] <- "Base model"
-mod_metrics[2,"model"] <- "AGI model"
-mod_metrics[3,"model"] <- "DO model"
-mod_metrics[4, "model"] <- "DO, AGI combo model"
-mod_metrics[5, "model"] <- "DO, AGI ensemble model"
+base_file <- readRDS(mod_metric_files[2])
+do_file <- readRDS(mod_metric_files[4])
+agi_file <- readRDS(mod_metric_files[1])
+combo_file <- readRDS(mod_metric_files[3])
 
-mod_metrics <- mod_metrics %>% mutate(model = as.factor(model), model = fct_relevel(model, c("Base model", "DO model", "AGI model")))
+base_file$mod_type <- "Base model"
+agi_file$mod_type <- "AGI model"
+do_file$mod_type <- "DO model"
+combo_file$mod_type <- "DO, AGI combo model"
+
+mod_metrics <- rbind(base_file, agi_file, do_file, combo_file)
+mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
+
+# mod_type = as.factor(mod_type),
+#                                       mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO, AGI combo model")),
 
 # stat.tss <- mod_metrics %>%
-#   wilcox_test(TSS ~ model) %>%
+#   wilcox_test(TSS ~ mod_type) %>%
 #   adjust_pvalue(method = "bonferroni") %>%
 #   add_significance("p.adj")
 # stat.tss
 
-TSS <- ggplot(mod_metrics, aes(x = model, y=TSS)) +
-  geom_segment(aes(x=model, xend=model, y=0, yend=TSS), color="darkslategrey", linewidth = 1.5) +
+# analysis of variance
+anova <- aov(TSS ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_tss <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
+  arrange(desc(mean_tss))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_tss$cld <- cld$Letters
+
+TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_tss)) +
+  geom_segment(aes(x=mod_type, xend=mod_type, y=0, yend=mean_tss), color="darkslategrey", linewidth = 1.5) +
   geom_point(color="orange", size=8) +
   theme_light() +
   theme(
@@ -1192,10 +1220,32 @@ TSS <- ggplot(mod_metrics, aes(x = model, y=TSS)) +
   xlab("") +
   ylab("TSS") + 
   theme(axis.text = element_text(size = 12, angle = 45, hjust = 1),
-        axis.title = element_text(size = 14))
+        axis.title = element_text(size = 14)) +
+  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5) 
 
-AUC <- ggplot(mod_metrics, aes(x = model, y=AUC)) +
-  geom_segment(aes(x=model, xend=model, y=0.6, yend=AUC), color="darkslategrey", linewidth = 1.5) +
+
+# analysis of variance
+anova <- aov(AUC ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_auc <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
+  arrange(desc(mean_auc))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_auc$cld <- cld$Letters
+
+AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_auc)) +
+  geom_segment(aes(x=mod_type, xend=mod_type, y=0.7, yend=mean_auc), color="darkslategrey", linewidth = 1.5) +
   geom_point(color="orange", size=8) +
   theme_light() +
   theme(
@@ -1205,12 +1255,34 @@ AUC <- ggplot(mod_metrics, aes(x = model, y=AUC)) +
   ) +
   xlab("") +
   ylab("AUC") + 
-  ylim(0.6, 1) +
+  ylim(0.7, 1) +
   theme(axis.text = element_text(size = 12, angle = 45, hjust = 1),
-        axis.title = element_text(size = 14))
+        axis.title = element_text(size = 14)) +
+  geom_text(aes(label = cld, y = mean_auc + 0.015), vjust = -0.5, size = 5) 
 
-perc_exp <- ggplot(mod_metrics, aes(x = model, y=deviance_exp*100)) +
-  geom_segment(aes(x=model, xend=model, y=0, yend=deviance_exp*100), color="darkslategrey", linewidth = 1.5) +
+
+# analysis of variance
+anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_dev <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
+  arrange(desc(mean_dev))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_dev$cld <- cld$Letters
+
+perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_dev)) +
+  geom_segment(aes(x=mod_type, xend=mod_type, y=20, yend=mean_dev), color="darkslategrey", linewidth = 1.5) +
   geom_point(color="orange", size=8) +
   theme_light() +
   theme(
@@ -1221,8 +1293,10 @@ perc_exp <- ggplot(mod_metrics, aes(x = model, y=deviance_exp*100)) +
   xlab("") +
   ylab("Deviance explained (%)") + 
   theme(axis.text = element_text(size = 12, angle = 45, hjust = 1),
-        axis.title = element_text(size = 14))
+        axis.title = element_text(size = 14))+
+  ylim(20, 70)+
+  geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
 
-TSS|AUC|perc_exp
+TSS_plot|AUC_plot|perc_exp_plot
 
 ```
