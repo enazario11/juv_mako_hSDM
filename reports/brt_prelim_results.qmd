@@ -985,7 +985,7 @@ agi_maps(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_
 base_inf <- as.data.frame(ggBRT::ggInfluence(base_mod, plot = FALSE)) %>% rownames_to_column()
 colnames(base_inf) <- c("Predictor_variable", "relative_influence")
 
-base_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(base_inf$Predictor_variable)))
+base_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(base_inf$Predictor_variable))+6, direction = -1)
 
 lessR::PieChart(x = Predictor_variable, y = relative_influence, data = base_inf, fill = base_cols, color = base_cols, main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
 
@@ -1003,7 +1003,7 @@ lessR::PieChart(x = Predictor_variable, y = relative_influence, data = base_inf,
 do_inf <- as.data.frame(ggBRT::ggInfluence(do_mod_fin, plot = FALSE)) %>% rownames_to_column()
 colnames(do_inf) <- c("Predictor_variable", "relative_influence")
 
-do_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(do_inf$Predictor_variable)))
+do_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(do_inf$Predictor_variable))+6, direction = -1)
 
 lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, fill = do_cols, color = do_cols,  main = NULL, quiet = TRUE, cex = 2, labes_size = 1.5) 
 
@@ -1021,7 +1021,7 @@ lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_inf, f
 agi_inf <- as.data.frame(ggBRT::ggInfluence(agi_mod_fin, plot = FALSE)) %>% rownames_to_column()
 colnames(agi_inf) <- c("Predictor_variable", "relative_influence")
 
-agi_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(agi_inf$Predictor_variable)))
+agi_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(agi_inf$Predictor_variable))+8, direction = -1)
 
 lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, fill = agi_cols, color = agi_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
 
@@ -1039,7 +1039,7 @@ lessR::PieChart(x = Predictor_variable, y = relative_influence, data = agi_inf, 
 do_agi_inf <- as.data.frame(ggBRT::ggInfluence(do_agi_comb, plot = FALSE)) %>% rownames_to_column()
 colnames(do_agi_inf) <- c("Predictor_variable", "relative_influence")
 
-comb_cols <- MetBrewer::met.brewer("Hokusai1", n = length(unique(do_agi_inf$Predictor_variable)))
+comb_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(do_agi_inf$Predictor_variable))+8, direction = -1)
 
 lessR::PieChart(x = Predictor_variable, y = relative_influence, data = do_agi_inf, fill = comb_cols, color = comb_cols, main = NULL, quiet= TRUE, cex = 2, labes_size = 1.5) 
 
