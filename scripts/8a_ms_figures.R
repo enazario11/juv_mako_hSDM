@@ -3,7 +3,8 @@
   library(here)
   library(MetBrewer)
   library(terra)
-  library(cowplot)}
+  library(patchwork)
+  library(ggrepel)}
 
 ### saved custom themes ####
 theme_bls_map <- function(){ 
@@ -88,7 +89,25 @@ theme_bls_map() +
 
 ggsave(here("figs/ms/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 
-# Figure 2: predictor relative importance ####
+### Figure 2: AGI maps ####
+source(here("functions/hsi_rast_functions.R"))
+
+#neutral year
+agi_250m_2013 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13")
+ggsave(here("figs/ms/fig2_agi/250_2013.png"), agi_250m_2013, height = 7, width = 7, units = c("in"))
+
+#La Niña
+hsi_rast_gen(date_start = c("2010-09-01"), date_end = c("2010-11-30"), season = "F", output_name = "LN_F_2010")
+agi_250m_2010 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010")
+ggsave(here("figs/ms/fig2_agi/250_2010.png"), agi_250m_2010, height = 7, width = 7, units = c("in"))
+
+#EL Niño
+hsi_rast_gen(date_start = c("2009-11-30"), date_end = c("2010-01-31"), season = "FW", output_name = "EN_FW_2009_2010")
+agi_250m_2009 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_2009_2010")
+ggsave(here("figs/ms/fig2_agi/250_2009.png"), agi_250m_2009, height = 7, width = 7, units = c("in"))
+
+
+# Figure 3: predictor relative importance ####
 #list models
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 do_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
@@ -118,7 +137,7 @@ base_inf2 <- base_inf %>% mutate(fraction = relative_influence / sum(relative_in
 
 base_pred <- ggplot(base_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 5)+
+  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
                    fill = alpha(c("white"),0),
                    label.size = NA,
@@ -165,7 +184,7 @@ do_inf2 <- do_inf %>% mutate(fraction = relative_influence / sum(relative_influe
 
 do_pred <- ggplot(do_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 5)+
+  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
                    fill = alpha(c("white"),0),
                    label.size = NA,
@@ -212,7 +231,7 @@ agi_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(agi_inf$Predicto
 
 agi_pred <- ggplot(agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 5)+
+  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
                    fill = alpha(c("white"),0),
                    label.size = NA,
@@ -259,7 +278,7 @@ do_agi_inf2 <- do_agi_inf %>% mutate(fraction = relative_influence / sum(relativ
 
 do_agi_pred <- ggplot(do_agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 5)+
+  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
                    fill = alpha(c("white"),0),
                    label.size = NA,
@@ -285,7 +304,169 @@ all_pred <- (base_pred|do_pred)/(agi_pred|do_agi_pred) +
   plot_annotation(tag_levels = "A", theme = theme(plot.margin = unit(c(0,0,0,0), "in"))) & 
   theme(plot.tag = element_text(size = 20))
 
-ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
+#ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
+ggsave(here("figs/ms/fig2/base_pred.png"), base_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig2/do_pred.png"), do_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig2/agi_pred.png"), agi_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig2/do_agi_pred.png"), do_agi_pred, height = 7, width = 7, units = c("in"))
+
+### Figure 4: Partial plots ####
+source(here("functions/partial_plot.R"))
+
+#DO, 0m
+do_0m <- par_plot_func(do_mod_fin, vars = c("o2_mean_0m", "o2_mean_0m_seas", "o2_mean_0m_ann"), vars_type = "o2_0m")
+ggsave(here("figs/ms/fig3/do_0m.png"), do_0m, height = 5, width = 7, units = c("in"))
+
+#DO, 250m 
+do_250m <- par_plot_func(do_mod_fin, vars = c("o2_mean_250m", "o2_mean_250m_seas", "o2_mean_250m_ann"), vars_type = "o2_250m")
+ggsave(here("figs/ms/fig3/do_250m.png"), do_250m, height = 5, width = 7, units = c("in"))
+
+#AGI, 0m
+agi_0m <- par_plot_func(agi_mod_fin, vars = c("AGI_0m", "AGI_0m_seas", "AGI_0m_ann"), vars_type = "AGI_0m")
+ggsave(here("figs/ms/fig3/agi_0m.png"), agi_0m, height = 5, width = 9, units = c("in"))
+
+#AGI, 250m
+agi_250m <- par_plot_func(agi_mod_fin, vars = c("AGI_250m", "AGI_250m_seas", "AGI_250m_ann"), vars_type = "AGI_250m")
+ggsave(here("figs/ms/fig3/agi_250m.png"), agi_250m, height = 5, width = 7, units = c("in"))
+
+all_do <- ggarrange(do_0m, do_250m, nrow = 2, ncol = 1, common.legend = TRUE)
+ggsave(here("figs/ms/fig3/all_do.png"), all_do, height = 8, width = 7, units = c("in"))
+
+all_agi <- ggarrange(agi_0m, agi_250m, nrow = 2, ncol = 1, common.legend = TRUE)
+ggsave(here("figs/ms/fig3/all_agi.png"), all_agi, height = 8, width = 7, units = c("in"))
+
+### Figure 5: model performance ####
+mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
+
+base_file <- readRDS(mod_metric_files[2])
+do_file <- readRDS(mod_metric_files[4])
+agi_file <- readRDS(mod_metric_files[1])
+combo_file <- readRDS(mod_metric_files[3])
+
+base_file$mod_type <- "Base model"
+agi_file$mod_type <- "AGI model"
+do_file$mod_type <- "DO model"
+combo_file$mod_type <- "DO, AGI combo model"
+
+mod_metrics <- rbind(base_file, agi_file, do_file, combo_file)
+mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
+
+# analysis of variance
+anova <- aov(TSS ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_tss <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
+  arrange(desc(mean_tss))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_tss$cld <- cld$Letters
+
+TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_tss)) +
+  geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
+  geom_point(color="orange", size=6) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("TSS") + 
+  ylim(0.4, 0.75)+
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14)) +
+  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5) 
+
+
+# analysis of variance
+anova <- aov(AUC ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_auc <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
+  arrange(desc(mean_auc))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_auc$cld <- cld$Letters
+
+AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_auc)) +
+  geom_segment(aes(x=mod_type, xend=mod_type, y=0.7, yend=mean_auc), color="#92351e", linewidth = 1.5) +
+  geom_point(color="orange", size=6) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("AUC") + 
+  ylim(0.7, 1) +
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14)) +
+  geom_text(aes(label = cld, y = mean_auc + 0.015), vjust = -0.5, size = 5) 
+
+
+# analysis of variance
+anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_dev <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
+  arrange(desc(mean_dev))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_dev$cld <- cld$Letters
+
+perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
+                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_dev)) +
+  geom_segment(aes(x=mod_type, xend=mod_type, y=20, yend=mean_dev), color="#92351e", linewidth = 1.5) +
+  geom_point(color="orange", size=6) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("Deviance explained (%)") + 
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14))+
+  ylim(20, 70)+
+  geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
+
+all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
+
+ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 5, width = 10, units = c("in"))
 
 ### Supplementary files ####
 #### ST1: Shark metadata ####

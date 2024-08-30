@@ -18,7 +18,7 @@ dat_agi_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_agi_ann.rds")) %>% mut
 # Add seasonal and annual data to daily data df
 dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
 dat_agi_all <- dat_agi_all %>%
-  rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
+  dplyr::rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
          "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
          "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
          "AGI_0m_ann" = "dat_agi_a$AGI_0m", 
@@ -29,40 +29,29 @@ dat_agi_all <- dat_agi_all %>%
 wilcox.test(dat_agi_all$AGI_0m) #2e-16, use generalized LMs
 
 ### gamm ####
-#find way to modify number of curves in smoother
-#all predictors
-gamm_lat <- gam(lat ~ AGI_0m^2 + s(AGI_250m) +  AGI_0m_seas^2 + s(AGI_250m_seas) + AGI_0m_ann^2 + s(AGI_250m_ann) + s(tag, bs = "re"), 
-                 data = dat_agi_all, 
-                 family = gaussian(link = "log"))
-
-summary(gamm_lat)
-plot(gamm_lat, pages = 1)
-diag_plots <- mgcViz::getViz(gamm_lat)
-mgcViz::check.gamViz(diag_plots)
-
 #AGI 0m, daily
-gamm_lat_0m_daily <- gam(AGI_0m ~ lat + dist_coast + s(tag, bs = "re"), 
+gamm_lat_0m_daily <- gam(AGI_0m ~ s(lat) + s(dist_coast) + s(tag, bs = "re"), 
                           data = dat_agi_all, 
                           family = Gamma(link = "log"))
 
 
-summary(gamm_lat_0m_daily)
+summary(gamm_lat_0m_daily)  #p-value: <2e-16 for lat and dist coast
 plot(gamm_lat_0m_daily)
 diag_plots_0m_daily <- mgcViz::getViz(gamm_lat_0m_daily)
-mgcViz::check.gamViz(diag_plots_0m_daily)
-gamm_lat_0m_daily$aic #-17934, more negative is the preferred model in this case
+mgcViz::check.gamViz(diag_plots_0m_daily) #residuals look good
+gamm_lat_0m_daily$aic #-17934, more negative is the preferred model in this case, -18657 with smoothers
 
 # AGI 0m, seasonal 
-gamm_lat_0m_seas <- gam(AGI_0m_seas ~ lat + dist_coast + s(tag, bs = "re"), 
+gamm_lat_0m_seas <- gam(AGI_0m_seas ~ s(lat) + s(dist_coast) + s(tag, bs = "re"), 
                          data = dat_agi_all, 
                          family = Gamma(link = "log"))
 
 
-summary(gamm_lat_0m_seas)
+summary(gamm_lat_0m_seas) #p-value: <2e-16 for lat and dist coast
 plot(gamm_lat_0m_seas)
-diag_plots_0m_seas <- mgcViz::getViz(gamm_lat_0m_seas)
-mgcViz::check.gamViz(diag_plots_0m_seas)
-gamm_lat_0m_seas$aic #-68826.59, 
+diag_plots_0m_seas <- mgcViz::getViz(gamm_lat_0m_seas) #residuals look good
+mgcViz::check.gamViz(diag_plots_0m_seas) 
+gamm_lat_0m_seas$aic #-79048 
 
 #AGI 0m, annual
 gamm_lat_0m_ann <- gam(AGI_0m_ann ~ s(lat) + s(dist_coast) + s(tag, bs = "re"), 
@@ -70,11 +59,11 @@ gamm_lat_0m_ann <- gam(AGI_0m_ann ~ s(lat) + s(dist_coast) + s(tag, bs = "re"),
                          family = Gamma(link = "log"))
 
 
-summary(gamm_lat_0m_ann)
+summary(gamm_lat_0m_ann) #p-value: <2e-16 for lat and dist coast
 plot(gamm_lat_0m_ann)
-diag_plots_0m_ann <- mgcViz::getViz(gamm_lat_0m_ann)
+diag_plots_0m_ann <- mgcViz::getViz(gamm_lat_0m_ann) #residuals look okay
 mgcViz::check.gamViz(diag_plots_0m_ann)
-gamm_lat_0m_ann$aic #-94792.5, -106905 w/ smoothers
+gamm_lat_0m_ann$aic #-106905 
 
 # AGI 250m, daily 
 gamm_lat_250m_daily <- gam(AGI_250m ~ s(lat) + s(dist_coast) + s(tag, bs = "re"), 
@@ -82,32 +71,51 @@ gamm_lat_250m_daily <- gam(AGI_250m ~ s(lat) + s(dist_coast) + s(tag, bs = "re")
                          family = Gamma(link = "log"))
 
 
-summary(gamm_lat_250m_daily)
+summary(gamm_lat_250m_daily) #p-value: <2e-16 for lat and dist coast
 plot(gamm_lat_250m_daily)
-diag_plots_250m_daily <- mgcViz::getViz(gamm_lat_250m_daily)
+diag_plots_250m_daily <- mgcViz::getViz(gamm_lat_250m_daily) #clear patterns in resid   
 mgcViz::check.gamViz(diag_plots_250m_daily)
-gamm_lat_250m_daily$aic #78376.27, 65370 w/ smoothers
+gamm_lat_250m_daily$aic #65370
 
 # AGI 250m, seasonal 
-gamm_lat_250m_seas <- gam(AGI_250m_seas ~ lat + dist_coast + s(tag, bs = "re"), 
+gamm_lat_250m_seas <- gam(AGI_250m_seas ~ s(lat) + s(dist_coast) + s(tag, bs = "re"), 
                         data = dat_agi_all, 
                         family = Gamma(link = "log"))
 
 
-summary(gamm_lat_250m_seas)
+summary(gamm_lat_250m_seas) #p-value: <2e-16 for lat and dist coast
 plot(gamm_lat_250m_seas)
-diag_plots_250m_seas <- mgcViz::getViz(gamm_lat_250m_seas)
+diag_plots_250m_seas <- mgcViz::getViz(gamm_lat_250m_seas) #clear patterns in resid
 mgcViz::check.gamViz(diag_plots_250m_seas)
-gamm_lat_250m_seas$aic #74890.57, strong patterns in residual plots
+gamm_lat_250m_seas$aic #600051
 
 #AGI 250m, annual
-gamm_lat_250m_ann <- gam(AGI_250m_ann ~ lat + dist_coast + s(tag, bs = "re"), 
+gamm_lat_250m_ann <- gam(AGI_250m_ann ~ s(lat) + s(dist_coast) + s(tag, bs = "re"), 
                        data = dat_agi_all, 
                        family = Gamma(link = "log"))
 
 
-summary(gamm_lat_250m_ann)
+summary(gamm_lat_250m_ann) #p-value: <2e-16 for lat and dist coast
 plot(gamm_lat_250m_ann)
-diag_plots_250m_ann <- mgcViz::getViz(gamm_lat_250m_ann)
+diag_plots_250m_ann <- mgcViz::getViz(gamm_lat_250m_ann) #clear patterns in resid
 mgcViz::check.gamViz(diag_plots_250m_ann)
-gamm_lat_250m_ann$aic #77493, strong patterns in residual plots
+gamm_lat_250m_ann$aic #63624
+
+#convert agi 0m, agi 250m into single column, add depth as fixed effect 
+agi_daily <- dat_agi_all %>% 
+  pivot_longer(cols = c("AGI_0m", "AGI_250m"), 
+               names_to = "daily_AGI", 
+               values_to = "AGI_vals")
+
+gamm_all_daily <- gam(AGI_vals ~ s(lat) + s(dist_coast) + daily_AGI + s(tag, bs = "re"), 
+                         data = agi_daily, 
+                         family = Gamma(link = "log"))
+
+summary(gamm_all_daily) #p-value: <2e-16 for lat and dist coast
+plot(gamm_all_daily)
+diag_plots_all_daily <- mgcViz::getViz(gamm_all_daily) #clear patterns in resid
+mgcViz::check.gamViz(diag_plots_all_daily)
+gamm_all_daily$aic 
+
+
+

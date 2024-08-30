@@ -4,6 +4,7 @@ library(terra)
 library(sf)
 library(here)
 library(patchwork)
+library(tidyterra)
 
 ### raster generation function ####
 hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name){
@@ -768,4 +769,52 @@ agi_maps <- function(rast_folder = NULL, get_rast = c("Y", "N"), agi_0m_rast = N
 #end function 
 }
 
-
+agi_maps_ms <- function(rast_folder = NULL, get_rast = c("Y", "N"), agi_0m_rast = NULL, agi_250m_rast = NULL){
+  #load agi raster data
+  if(get_rast == "Y"){
+    agi_0m <- rast(list.files(here(rast_folder), full.names = TRUE, pattern = "0m"))
+    agi_0m <- agi_0m[[1]]
+    agi_250m <- rast(list.files(here(rast_folder), full.names = TRUE, pattern = "250m"))
+  } 
+  if(get_rast == "N"){
+    agi_0m = agi_0m_rast
+    agi_250m = agi_250m_rast
+  }
+  
+  #create shape file of areas surrounding AGI < 1
+  one_250m_map <- raster::clamp(agi_250m, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_250m <- as.polygons(ext(one_250m_map))
+  one_poly_250m <- as.polygons(one_250m_map > -Inf)  
+  
+  #calculate percent area polygon takes up of raster 
+  poly_area_250m <- expanse(one_poly_250m)
+  rast_area <- expanse(agi_250m)
+  perc_area_250m <- (poly_area_250m/rast_area$area[1])*100
+  
+  #agi <1 map
+  map.world = map_data(map="world")
+  testt=map.world %>% filter(long<=180)
+  
+  agi_one_250m <- ggplot() + 
+    geom_spatraster(data = agi_250m) + 
+    geom_spatvector(data = one_poly_250m, color = "black", fill = NA, linewidth = 0.8) +
+    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+    scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)+
+    labs(fill = "AGI")+
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = paste0("Area: ", round(perc_area_250m, 2), "%")), 
+              hjust = 1.1, vjust = 2, size = 6, color = "black")+
+    theme_map()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          axis.text.y = element_blank(), 
+          axis.title.y = element_blank(), 
+          legend.text = element_text(size = 14), 
+          legend.title = element_text(size = 16))
+          #legend.position = "none") #
+  
+  return(agi_one_250m)
+  
+  #end function 
+}
