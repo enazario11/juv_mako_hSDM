@@ -468,6 +468,22 @@ all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
 
 ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 5, width = 10, units = c("in"))
 
+### Figure 6: HSI maps study period ####
+all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
+ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
+
+### Figure 7: ENSO HSI maps ####
+#base year
+enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "base")
+ggsave(here("figs/ms/fig7_enso_diet/base_panel.png"), enso_base, width = 3, height = 8, units = c("in"))
+
+#LN year 
+hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", enso = "LN")
+ggsave(here("figs/ms/fig7_enso_diet/LN_panel.png"), enso_LN, width = 3, height = 8, units = c("in"))
+
+#EN year
+
+
 ### Supplementary files ####
 #### ST1: Shark metadata ####
 md_df <- readRDS(here("data/presence_locs/psat_spot_domain/psat_spot_data.rds"))
