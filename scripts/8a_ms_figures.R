@@ -102,7 +102,7 @@ agi_250m_2010 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spo
 ggsave(here("figs/ms/fig2_agi/250_2010.png"), agi_250m_2010, height = 7, width = 7, units = c("in"))
 
 #EL Niño
-hsi_rast_gen(date_start = c("2009-11-30"), date_end = c("2010-01-31"), season = "FW", output_name = "EN_FW_2009_2010")
+hsi_rast_gen(date_start = c("2009-11-01"), date_end = c("2010-01-31"), season = "FW", output_name = "EN_FW_2009_2010")
 agi_250m_2009 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_2009_2010")
 ggsave(here("figs/ms/fig2_agi/250_2009.png"), agi_250m_2009, height = 7, width = 7, units = c("in"))
 
@@ -478,10 +478,65 @@ enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Ja
 ggsave(here("figs/ms/fig7_enso_diet/base_panel.png"), enso_base, width = 3, height = 8, units = c("in"))
 
 #LN year 
-hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", enso = "LN")
+enso_LN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", enso = "LN")
 ggsave(here("figs/ms/fig7_enso_diet/LN_panel.png"), enso_LN, width = 3, height = 8, units = c("in"))
 
 #EN year
+enso_EN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_2009_2010", enso = "EN")
+ggsave(here("figs/ms/fig7_enso_diet/EN_panel.png"), enso_EN, width = 3, height = 8, units = c("in"))
+
+#diet data 
+source(here("scripts/7a_diet_data.R"))
+
+#neutral year 
+diet_neutral <- rmpq_prey_year2 %>% ungroup() %>%
+  filter(perc_GII >= 1 & Year == 2013) %>% 
+  top_n(3) %>%
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
+  theme_minimal() + 
+  theme(axis.text=element_text(size=8, color = "black"), 
+        axis.title=element_text(size=8, color = "black")) +
+  xlab('')+
+  ylab('% GII')+
+  scale_x_discrete(position = "top") 
+ggsave(here("figs/ms/fig7_enso_diet/diet_neutral.png"), diet_neutral, height = 3, width = 3, units = c("in"))
+
+
+#LN year 
+diet_LN <- rmpq_prey_year2 %>% ungroup() %>%
+  filter(perc_GII >= 1 & Year == 2010) %>% 
+  top_n(3) %>%
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
+  theme_minimal() + 
+  theme(axis.text=element_text(size=8, color = "black"), 
+        axis.title=element_text(size=8, color = "black"), 
+        axis.text.y = element_blank(), 
+        axis.title.y = element_blank()) +
+  xlab('')+
+  ylab('% GII')+
+  scale_x_discrete(position = "top") 
+ggsave(here("figs/ms/fig7_enso_diet/diet_LN.png"), diet_LN, height = 3, width = 3, units = c("in"))
+
+
+#EN year 
+diet_EN <- rmpq_prey_year2 %>%
+  filter(perc_GII >= 1 & Year == 2009) %>% 
+  top_n(3) %>%
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
+  theme_minimal() + 
+  theme(axis.text=element_text(size=8, color = "black"), 
+        axis.title=element_text(size=8, color = "black"), 
+        axis.text.y = element_blank(), 
+        axis.title.y = element_blank()) +
+  xlab('')+
+  ylab('% GII')+
+  scale_x_discrete(position = "top") 
+
+ggsave(here("figs/ms/fig7_enso_diet/diet_EN.png"), diet_EN, height = 3, width = 3, units = c("in"))
+
 
 
 ### Supplementary files ####

@@ -698,42 +698,31 @@ hsi_maps_enso <- function(rast_folder, enso){
   testt = map.world %>% filter(long <= 180)
   
   #base map
+  #calculate percent area polygon takes up of raster 
+  base_hsi <- raster::clamp(base_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  hsi_area_base <- expanse(base_hsi)
+  rast_area_base <- expanse(base_pred)
+  perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
+  print(paste0("Base hsi > 0.50:", " ", round(perc_area_base$area[1], 2), "%"))
+  
   base_map <- ggplot() +
     geom_spatraster(data = base_pred) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
     scale_fill_whitebox_c(palette = "muted") +
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = paste0(round(perc_area_base$area[1], 2), "%")), 
+              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
     theme_map() +
     theme(axis.text.x = element_blank(),
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank(), 
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
           legend.position = "none", 
           axis.title.x = element_blank())
   
-  base_hsi <- raster::clamp(base_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
-  
-  #calculate percent area polygon takes up of raster 
-  hsi_area_base <- expanse(base_hsi)
-  rast_area_base <- expanse(base_pred)
-  perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
-  print(paste0("Base hsi > 0.50:", " ", round(perc_area_base$area[1], 2), "%"))
-  
 
   #do map
-  do_map <- ggplot() +
-    geom_spatraster(data = do_pred) +
-    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
-    theme_map() +
-    theme(axis.title.x = element_blank(),
-          axis.text.x = element_blank(),
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank(),
-          legend.position = "none")
-  
   #calculate percent area polygon takes up of raster 
   do_hsi <- raster::clamp(do_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
   
@@ -742,21 +731,24 @@ hsi_maps_enso <- function(rast_folder, enso){
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
   print(paste0("DO hsi > 0.50:", " ", round(perc_area_do$area[1], 2), "%"))
   
-
-  #agi map
-  agi_map <- ggplot() +
-    geom_spatraster(data = agi_pred) +
+  do_map <- ggplot() +
+    geom_spatraster(data = do_pred) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "muted")+
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = paste0(round(perc_area_do$area[1], 2), "%")), 
+              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
     theme_map() +
-    theme(axis.text.x = element_blank(), 
-          axis.title.x = element_blank(),
-          axis.text.y = element_blank(), 
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
           axis.title.y = element_blank(),
-      legend.position = "none")
+          legend.position = "none")
   
+
+  #agi map
   #calculate percent area polygon takes up of raster 
   agi_hsi <- raster::clamp(agi_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
   
@@ -764,6 +756,22 @@ hsi_maps_enso <- function(rast_folder, enso){
   rast_area_agi <- expanse(agi_pred)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
   print(paste0("agi hsi > 0.50:", " ", round(perc_area_agi$area[1], 2), "%"))
+  
+  agi_map <- ggplot() +
+    geom_spatraster(data = agi_pred) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted") +
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = paste0(round(perc_area_agi$area[1], 2), "%")), 
+              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
+    theme_map() +
+    theme(axis.text.x = element_blank(), 
+          axis.title.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+      legend.position = "none")
   
 
   #agi map background PA
@@ -778,19 +786,6 @@ hsi_maps_enso <- function(rast_folder, enso){
   #   theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
   #do agi combo map
-  combo_map <- ggplot() +
-    geom_spatraster(data = do_agi_combo) +
-    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
-    theme_map() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank(),
-          legend.position = "none")
-  
-  
   #calculate percent area polygon takes up of raster 
   combo_hsi <- raster::clamp(do_agi_combo, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
   
@@ -798,6 +793,21 @@ hsi_maps_enso <- function(rast_folder, enso){
   rast_area_combo <- expanse(do_agi_combo)
   perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
   print(paste0("combo hsi > 0.50:", " ", round(perc_area_combo$area[1], 2), "%"))
+  
+  combo_map <- ggplot() +
+    geom_spatraster(data = do_agi_combo) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted") +
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = paste0(round(perc_area_combo$area[1], 2), "%")), 
+              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none")
   
 
   #ensemble map
