@@ -495,12 +495,14 @@ diet_neutral <- rmpq_prey_year2 %>% ungroup() %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
   geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
   theme_minimal() + 
-  theme(axis.text=element_text(size=8, color = "black"), 
-        axis.title=element_text(size=8, color = "black")) +
+  theme(axis.text.y=element_text(size=20, color = "black"), 
+        axis.title=element_text(size=22, color = "black"), 
+        axis.text.x = element_blank(),
+        panel.grid = element_blank()) +
   xlab('')+
   ylab('% GII')+
   scale_x_discrete(position = "top") 
-ggsave(here("figs/ms/fig7_enso_diet/diet_neutral.png"), diet_neutral, height = 3, width = 3, units = c("in"))
+ggsave(here("figs/ms/fig7_enso_diet/diet_neutral.png"), diet_neutral, height = 4, width = 4, units = c("in"))
 
 
 #LN year 
@@ -510,14 +512,16 @@ diet_LN <- rmpq_prey_year2 %>% ungroup() %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
   geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
   theme_minimal() + 
-  theme(axis.text=element_text(size=8, color = "black"), 
-        axis.title=element_text(size=8, color = "black"), 
-        axis.text.y = element_blank(), 
-        axis.title.y = element_blank()) +
+  theme(axis.text=element_text(size=20, color = "black"), 
+        axis.title=element_text(size=22, color = "black"), 
+        #axis.text.y = element_blank(), 
+        axis.title.y = element_blank(),
+        #axis.text.x = element_blank(),
+        panel.grid = element_blank()) +
   xlab('')+
   ylab('% GII')+
   scale_x_discrete(position = "top") 
-ggsave(here("figs/ms/fig7_enso_diet/diet_LN.png"), diet_LN, height = 3, width = 3, units = c("in"))
+ggsave(here("figs/ms/fig7_enso_diet/diet_LN.png"), diet_LN, height = 4, width = 4, units = c("in"))
 
 
 #EN year 
@@ -527,15 +531,17 @@ diet_EN <- rmpq_prey_year2 %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
   geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
   theme_minimal() + 
-  theme(axis.text=element_text(size=8, color = "black"), 
-        axis.title=element_text(size=8, color = "black"), 
-        axis.text.y = element_blank(), 
-        axis.title.y = element_blank()) +
+  theme(axis.text=element_text(size=20, color = "black"), 
+        axis.title=element_text(size=22, color = "black"), 
+        #axis.text.y = element_blank(), 
+        #axis.text.x = element_blank(),
+        axis.title.y = element_blank(), 
+        panel.grid = element_blank()) +
   xlab('')+
   ylab('% GII')+
   scale_x_discrete(position = "top") 
 
-ggsave(here("figs/ms/fig7_enso_diet/diet_EN.png"), diet_EN, height = 3, width = 3, units = c("in"))
+ggsave(here("figs/ms/fig7_enso_diet/diet_EN.png"), diet_EN, height = 4, width = 4, units = c("in"))
 
 
 
