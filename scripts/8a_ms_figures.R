@@ -3,8 +3,10 @@
   library(here)
   library(MetBrewer)
   library(terra)
+  library(ggBRT)
   library(patchwork)
-  library(ggrepel)}
+  library(ggrepel)
+  set.seed(1004)}
 
 ### saved custom themes ####
 theme_bls_map <- function(){ 
@@ -561,11 +563,397 @@ md_df2 <- md_df %>%
 
 #write.csv(md_df2, here("data/presence_locs/metadata_sum.csv"))
 
+#### SF 3: Model exploration performance metrics ####
+output_sum <- read.csv(here("data/brt/mod_outputs/brt_prelim_results.csv"))
+output_sum$deviance_exp <- output_sum$deviance_exp*100
 
+mod_metrics <- ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
+  geom_point(size = 5) +
+  xlab('AUC') +
+  ylab('TSS') +
+  labs(color = "Deviance explained (%)")+
+  scale_color_gradientn(colors = MetBrewer::met.brewer("Greek")) +
+  ggrepel::geom_label_repel(aes(label = model),
+                            box.padding   = 0.35,
+                            point.padding = 1,
+                            segment.color = 'grey50',
+                            max.overlaps = 40,
+                            label.size = 0.5)+
+  theme_minimal()+
+  theme(legend.position = "right", 
+        axis.title = element_text(color = "black"), 
+        axis.text = element_text(color = "black"))
+ggsave(here("figs/ms/supp_figs/explore_mod_metrics.png"), mod_metrics, width = 8, height = 6, units = c("in"))
 
+#### SF 4: Final model's partial plots w/ CIs ####
+ggPD_boot <- function (gbm.object, predictor = NULL, n.plots = length(pred.names), 
+                       list.4.preds = NULL, booted.preds = NULL, nrow = NULL, ncol = NULL, 
+                       col.line = "darkorange", cex.line = 0.5, type.ci = "lines", 
+                       col.ci = "grey80", cex.ci = 0.3, lty.ci = 2, alpha.ci = 0.5, 
+                       smooth = FALSE, col.smooth = "blue", cex.smooth = 0.3, span = 0.3, 
+                       rug = FALSE, rug.pos = "t", common.scale = TRUE, cis = c(0.025, 
+                                                                                0.975), y.label = "Fitted function", x.label = paste(var.name, "  (", 
+                                                                                                                                     round(gbm.object$contributions[predictor, 2], 
+                                                                                                                                           1), "%)", sep = ""), 
+                       ...) 
+{
+  gbm.call <- gbm.object$gbm.call
+  pred.names <- gbm.call$predictor.names
+  ggPD_boot.plots <- function(gbm.object) {
+    if (!requireNamespace("gbm")) {
+      stop("you need to install the gbm package to run this function")
+    }
+    if (is.null(booted.preds)) {
+      stop("you need to set booted.preds as the array from the bootstrap run\n           (eg testboot$function.preds using testboot<-gbm.bootstrap.functions())")
+    }
+    if (is.null(list.4.preds)) {
+      stop("you need to set list.4.preds as the result of plot.gbm.4list()")
+    }
+    requireNamespace("splines")
+    gbm.x <- gbm.call$gbm.x
+    response.name <- gbm.call$response.name
+    nt <- gbm.object$n.trees
+    data <- gbm.call$dataframe
+    max.vars <- length(gbm.object$contributions$var)
+    if (n.plots > max.vars) {
+      n.plots <- max.vars
+      warning("reducing no of plotted predictors to maximum available (", 
+              max.vars, ")")
+    }
+    predictors <- list(rep(NA, n.plots))
+    responses <- list(rep(NA, n.plots))
+    responses.lower <- list(rep(NA, n.plots))
+    responses.upper <- list(rep(NA, n.plots))
+    for (j in c(1:max.vars)) {
+      k <- match(gbm.object$contributions$var[j], pred.names)
+      if (is.null(x.label)) {
+        var.name <- gbm.call$predictor.names[k]
+      }
+      else {
+        var.name <- x.label
+      }
+      pred.data <- data[, gbm.call$gbm.x[k]]
+      response.matrix <- gbm::plot.gbm(gbm.object, i.var = k, 
+                                       n.trees = nt, return.grid = TRUE, ...)
+      predictors[[j]] <- response.matrix[, 1]
+      if (is.factor(data[, gbm.call$gbm.x[k]])) {
+        predictors[[j]] <- factor(predictors[[j]], levels = levels(data[, 
+                                                                        gbm.call$gbm.x[k]]))
+      }
+      responses[[j]] <- response.matrix[, 2] - mean(response.matrix[, 
+                                                                    2])
+      num.values <- nrow(response.matrix)
+      temp <- apply(booted.preds[, k, ] - mean(booted.preds[, 
+                                                            k, ]), 1, function(x) {
+                                                              quantile(x, cis[1], na.rm = T)
+                                                            })
+      responses.lower[[j]] <- temp[1:num.values]
+      temp <- apply(booted.preds[, k, ] - mean(booted.preds[, 
+                                                            k, ]), 1, function(x) {
+                                                              quantile(x, cis[2], na.rm = T)
+                                                            })
+      responses.upper[[j]] <- temp[1:num.values]
+      if (j == 1) {
+        ymin = min(responses.lower[[j]])
+        ymax = max(responses.upper[[j]])
+        dat <- data.frame(pred.data)
+      }
+      else {
+        ymin = min(ymin, min(responses.lower[[j]]))
+        ymax = max(ymax, max(responses.upper[[j]]))
+        dat <- data.frame(dat, pred.data)
+      }
+    }
+    if (is.null(predictor)) {
+      fittedFunc <- list()
+      fittedFunc.lower <- list()
+      fittedFunc.upper <- list()
+      fittedVal <- list()
+      ribbon <- list()
+      ggPD <- list()
+      for (i in 1:n.plots) {
+        k <- match(gbm.object$contributions$var[i], pred.names)
+        var.name <- gbm.call$predictor.names[k]
+        fittedFunc[[i]] <- data.frame(predictors[i], 
+                                      responses[i])
+        colnames(fittedFunc[[i]]) <- c("x", "y")
+        fittedFunc.lower[[i]] <- data.frame(predictors[i], 
+                                            responses.lower[i])
+        colnames(fittedFunc.lower[[i]]) <- c("x", "y")
+        fittedFunc.upper[[i]] <- data.frame(predictors[i], 
+                                            responses.upper[i])
+        colnames(fittedFunc.upper[[i]]) <- c("x", "y")
+        fittedVal[[i]] <- data.frame(gbm.object$fitted, 
+                                     dat[i])
+        colnames(fittedVal[[i]]) <- c("y", "x")
+        ribbon[[i]] <- data.frame(x = fittedFunc.lower[[i]]$x, 
+                                  ylow = fittedFunc.lower[[i]]$y, yup = fittedFunc.upper[[i]]$y)
+        if (is.factor(fittedFunc[[i]]$x)) {
+          ggPD[[i]] <- ggplot(fittedFunc[[i]], aes(x = x, 
+                                                   y = y)) + geom_boxplot(color = col.line, 
+                                                                          size = cex.line) + geom_boxplot(data = fittedFunc.lower[[i]], 
+                                                                                                          aes(x = x, y = y), color = col.ci) + geom_boxplot(data = fittedFunc.upper[[i]], 
+                                                                                                                                                            aes(x = x, y = y), color = col.ci) + ylab(y.label) + 
+            xlab(paste(var.name, "  (", round(gbm.object$contributions[i, 
+                                                                       2], 1), "%)", sep = "")) + theme_bw() + 
+            theme(panel.grid.minor = element_line(linetype = "blank"), 
+                  panel.grid.major = element_line(linetype = "blank"), 
+                  axis.text.x = element_text(size = 6), axis.title.x = element_text(size = 10), 
+                  axis.line.y = element_line(size = 0.1), 
+                  axis.line.x = element_line(size = 0.1))
+          if (common.scale == T) {
+            ggPD[[i]] <- ggPD[[i]] + ylim(c(ymin, ymax))
+          }
+        }
+        if (type.ci == "lines") {
+          ggPD[[i]] <- ggplot(fittedFunc[[i]], aes(x = x, 
+                                                   y = y)) + geom_line(color = col.line, size = cex.line) + 
+            geom_line(data = fittedFunc.lower[[i]], aes(x = x, 
+                                                        y = y), size = cex.ci, color = col.ci, 
+                      linetype = lty.ci) + geom_line(data = fittedFunc.upper[[i]], 
+                                                     aes(x = x, y = y), size = cex.ci, color = col.ci, 
+                                                     linetype = lty.ci) + ylab(y.label) + xlab(paste(var.name, 
+                                                                                                     "  (", round(gbm.object$contributions[i, 
+                                                                                                                                           2], 1), "%)", sep = "")) + theme_bw() + 
+            theme(panel.grid.minor = element_line(linetype = "blank"), 
+                  panel.grid.major = element_line(linetype = "blank"), 
+                  axis.title.x = element_text(size = 10), 
+                  axis.line.y = element_line(size = 0.1), 
+                  axis.line.x = element_line(size = 0.1))
+          if (smooth == T) {
+            ggPD[[i]] <- ggPD[[i]] + geom_smooth(span = span, 
+                                                 size = 0.3, color = col.smooth, se = F, 
+                                                 linetype = 2)
+          }
+          if (rug == T) {
+            ggPD[[i]] <- ggPD[[i]] + geom_rug(data = fittedVal[[i]], 
+                                              aes(x = x, y = y), sides = rug.pos, position = "jitter", 
+                                              color = "#EBEBEB")
+          }
+          if (common.scale == T) {
+            ggPD[[i]] <- ggPD[[i]] + ylim(c(ymin, ymax))
+          }
+        }
+        if (type.ci == "ribbon") {
+          ggPD[[i]] <- ggplot() + geom_ribbon(data = ribbon[[i]], 
+                                              aes(x = x, ymin = ylow, ymax = yup), fill = col.ci, 
+                                              alpha = alpha.ci) + geom_line(data = fittedFunc[[i]], 
+                                                                            aes(x = x, y = y), color = col.line, size = cex.line) + 
+            ylab(y.label) + xlab(paste(var.name, "  (", 
+                                       round(gbm.object$contributions[i, 2], 1), 
+                                       "%)", sep = "")) + theme_bw() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+                                                                             panel.grid.major = element_line(linetype = "blank"), 
+                                                                             axis.title.x = element_text(size = 10), axis.line.y = element_line(size = 0.1), 
+                                                                             axis.line.x = element_line(size = 0.1))
+          if (smooth == T) {
+            ggPD[[i]] <- ggPD[[i]] + geom_smooth(data = fittedFunc[[i]], 
+                                                 aes(x = x, y = y), span = span, size = 0.3, 
+                                                 color = col.smooth, se = F, linetype = 2)
+          }
+          if (rug == T) {
+            ggPD[[i]] <- ggPD[[i]] + geom_rug(data = fittedVal[[i]], 
+                                              aes(x = x, y = y), sides = rug.pos, position = "jitter", 
+                                              color = "#EBEBEB")
+          }
+          if (common.scale == T) {
+            ggPD[[i]] <- ggPD[[i]] + ylim(c(ymin, ymax))
+          }
+        }
+      }
+      list(ggPD = ggPD)
+    }
+    else {
+      if (is.character(predictor)) {
+        predictor <- match(predictor, gbm.object$contributions$var)
+      }
+      k <- match(gbm.object$contributions$var[predictor], 
+                 pred.names)
+      var.name <- gbm.call$predictor.names[k]
+      fittedFunc <- data.frame(predictors[predictor], responses[predictor])
+      colnames(fittedFunc) <- c("x", "y")
+      fittedFunc.lower <- data.frame(predictors[predictor], 
+                                     responses.lower[predictor])
+      colnames(fittedFunc.lower) <- c("x", "y")
+      fittedFunc.upper <- data.frame(predictors[predictor], 
+                                     responses.upper[predictor])
+      colnames(fittedFunc.upper) <- c("x", "y")
+      ribbon <- data.frame(x = fittedFunc.lower$x, ylow = fittedFunc.lower$y, 
+                           yup = fittedFunc.upper$y)
+      fittedVal <- data.frame(gbm.object$fitted, dat[predictor])
+      colnames(fittedVal) <- c("y", "x")
+      if (is.factor(fittedFunc$x)) {
+        ggPD <- ggplot(fittedFunc, aes(x = x, y = y)) + 
+          geom_boxplot(color = col.line, size = cex.line) + 
+          geom_boxplot(data = fittedFunc.lower, aes(x = x, 
+                                                    y = y), color = col.ci) + geom_boxplot(data = fittedFunc.upper, 
+                                                                                           aes(x = x, y = y), color = col.ci) + ylab(y.label) + 
+          xlab(paste(var.name, "  (", round(gbm.object$contributions[predictor, 
+                                                                     2], 1), "%)", sep = "")) + theme_bw() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+                                                                                                                   panel.grid.major = element_line(linetype = "blank"), 
+                                                                                                                   axis.text.x = element_text(size = 6), axis.title.x = element_text(size = 10), 
+                                                                                                                   axis.line.y = element_line(size = 0.1), axis.line.x = element_line(size = 0.1))
+        if (common.scale == T) {
+          ggPD <- ggPD + ylim(c(ymin, ymax))
+        }
+      }
+      if (type.ci == "lines") {
+        ggPD <- ggplot(fittedFunc, aes(x = x, y = y)) + 
+          geom_line(color = col.line, size = cex.line) + 
+          geom_line(data = fittedFunc.lower, aes(x = x, 
+                                                 y = y), size = cex.ci, color = col.ci, linetype = lty.ci) + 
+          geom_line(data = fittedFunc.upper, aes(x = x, 
+                                                 y = y), size = cex.ci, color = col.ci, linetype = lty.ci) + 
+          ylab(y.label) + xlab(paste(var.name, "  (", 
+                                     round(gbm.object$contributions[predictor, 2], 
+                                           1), "%)", sep = "")) + theme_bw() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+                                                                                     panel.grid.major = element_line(linetype = "blank"), 
+                                                                                     axis.title.x = element_text(size = 10), axis.line.y = element_line(size = 0.1), 
+                                                                                     axis.line.x = element_line(size = 0.1))
+        if (smooth == T) {
+          ggPD <- ggPD + geom_smooth(span = span, size = 0.3, 
+                                     color = col.smooth, se = F, linetype = 2)
+        }
+        if (rug == T) {
+          ggPD <- ggPD + geom_rug(data = fittedVal, aes(x = x, 
+                                                        y = y), sides = rug.pos, position = "jitter", 
+                                  color = "#EBEBEB")
+        }
+        if (common.scale == T) {
+          ggPD <- ggPD + ylim(c(ymin, ymax))
+        }
+      }
+      if (type.ci == "ribbon") {
+        ggPD <- ggplot() + geom_ribbon(data = ribbon, 
+                                       aes(x = x, ymin = ylow, ymax = yup), fill = col.ci, 
+                                       alpha = alpha.ci) + geom_line(data = fittedFunc, 
+                                                                     aes(x = x, y = y), color = col.line, size = cex.line) + 
+          ylab(y.label) + xlab(x.label) + theme_bw() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+                                                                                     panel.grid.major = element_line(linetype = "blank"), 
+                                                                                     axis.title.x = element_text(size = 10), axis.line.y = element_line(size = 0.1), 
+                                                                                     axis.line.x = element_line(size = 0.1))
+        if (smooth == T) {
+          ggPD <- ggPD + geom_smooth(data = fittedFunc, 
+                                     aes(x = x, y = y), span = span, size = 0.3, 
+                                     color = col.smooth, se = F, linetype = 2)
+        }
+        if (rug == T) {
+          ggPD <- ggPD + geom_rug(data = fittedVal, aes(x = x, 
+                                                        y = y), sides = rug.pos, position = "jitter", 
+                                  color = "#EBEBEB")
+        }
+        if (common.scale == T) {
+          ggPD <- ggPD + ylim(c(ymin, ymax))
+        }
+      }
+      list(ggPD = ggPD)
+    }
+  }
+  plot <- ggPD_boot.plots(gbm.object)
+  if (is.null(predictor)) {
+    do.call(grid.arrange, c(plot$ggPD, list(nrow = nrow, 
+                                            ncol = ncol)))
+  }
+  else grid.draw(plot$ggPD)
+}
 
+# Boostrap the BRT 1000 times to build confidence intervals
+brt1.prerun_base<- plot.gbm.4list(base_mod)
+base_boot <- gbm.bootstrap.functions(base_mod, list.predictors=brt1.prerun, n.reps=20)
 
+# Draw partial dependency plots a given predictor (i.e., "Complexity")
+#base model
+plot_list <- list()
+base_names <- c("z", "temp", "sal", "chl-a", "z_sd", "SSH", "MLD")
+for(i in 1:nrow(base_mod$contributions)){
+  plot_temp <- ggPD_boot(base_mod, 
+                         predictor = base_mod$contributions[i, 1], 
+                         list.4.preds = brt1.prerun_base, 
+                         booted.preds = base_boot$function.preds, 
+                         type.ci = "ribbon",
+                         rug = T, 
+                         alpha.ci = 0.75, 
+                         y.label = "Probability of presence", 
+                         x.label = paste(base_names[i], "  (", 
+                                         round(base_mod$contributions[i, 2], 
+                                               1), "%)", sep = ""))
+  
+  plot_list[[i]] <- plot_temp
+}
 
+base_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
+ggsave(here("figs/ms/supp_figs/par_plot_base.png"), base_plots, height = 4, width = 8.5, units = c("in"))
 
+#do model
+brt1.prerun_do<- plot.gbm.4list(do_mod_fin)
+do_boot <- gbm.bootstrap.functions(do_mod_fin, list.predictors=brt1.prerun_do, n.reps=20)
 
+plot_list <- list()
+do_names <- c("DO, daily, 0m", "DO, annual, 250m", "DO, seasonal, 0m", "DO, seasonal, 250m", "temp", "sal", "z", "chl-a", "DO, annual, 0m", "DO, daily, 250m", "SSH", "MLD", "z_sd")
+for(i in 1:nrow(do_mod_fin$contributions)){
+  plot_temp <- ggPD_boot(do_mod_fin, 
+                         predictor = do_mod_fin$contributions[i, 1], 
+                         list.4.preds = brt1.prerun_do, 
+                         booted.preds = do_boot$function.preds, 
+                         type.ci = "ribbon",
+                         rug = T, 
+                         alpha.ci = 0.75, 
+                         y.label = "Probability of presence",
+                         x.label = paste(do_names[i], "  (", 
+                                         round(do_mod_fin$contributions[i, 2], 
+                                               1), "%)", sep = ""))
+  
+  plot_list[[i]] <- plot_temp
+}
 
+do_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
+ggsave(here("figs/ms/supp_figs/par_plot_do.png"), do_plots, height = 7, width = 11, units = c("in"))
+
+#agi model
+brt1.prerun_agi<- plot.gbm.4list(agi_mod_fin)
+agi_boot <- gbm.bootstrap.functions(agi_mod_fin, list.predictors=brt1.prerun_agi, n.reps=20)
+
+plot_list <- list()
+agi_names <- c("AGI, annual, 250m", "temp", "AGI, daily, 0m", "z", "AGI, seasonal, 0m", "sal", "AGI, seasonal, 250m", "SSH", "AGI, annual, 0m", "AGI, daily, 250m", "chl-a", "z_sd", "MLD")
+for(i in 1:nrow(agi_mod_fin$contributions)){
+  plot_temp <- ggPD_boot(agi_mod_fin, 
+                         predictor = agi_mod_fin$contributions[i, 1], 
+                         list.4.preds = brt1.prerun_agi, 
+                         booted.preds = agi_boot$function.preds, 
+                         type.ci = "ribbon",
+                         rug = T, 
+                         alpha.ci = 0.75, 
+                         y.label = "Probability of presence",
+                         x.label = paste(agi_names[i], "  (", 
+                                         round(agi_mod_fin$contributions[i, 2], 
+                                               1), "%)", sep = ""))
+  
+  plot_list[[i]] <- plot_temp
+}
+
+agi_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
+ggsave(here("figs/ms/supp_figs/par_plot_agi.png"), agi_plots, height = 7, width = 11, units = c("in"))
+
+#DO, AGI combo model
+brt1.prerun_do_agi<- plot.gbm.4list(do_agi_comb)
+do_agi_boot <- gbm.bootstrap.functions(do_agi_comb, list.predictors=brt1.prerun_do_agi, n.reps=20)
+
+plot_list <- list()
+do_agi_names <- c("DO, daily, 0m", "AGI, annual, 250m", "DO, seasonal, 0m", "AGI, seasonal, 250m", "temp", "z", "sal", "AGI, daily, 250m", "chl-a", "DO, annual, 0m", "SSH", "MLD", "z_sd")
+for(i in 1:nrow(do_agi_comb$contributions)){
+  plot_temp <- ggPD_boot(do_agi_comb, 
+                         predictor = do_agi_comb$contributions[i, 1], 
+                         list.4.preds = brt1.prerun_do_agi, 
+                         booted.preds = do_agi_boot$function.preds, 
+                         type.ci = "ribbon",
+                         rug = T, 
+                         alpha.ci = 0.75, 
+                         y.label = "Probability of presence",
+                         x.label = paste(do_agi_names[i], "  (", 
+                                         round(agi_mod_fin$contributions[i, 2], 
+                                               1), "%)", sep = ""))
+  
+  plot_list[[i]] <- plot_temp
+}
+
+do_agi_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
+ggsave(here("figs/ms/supp_figs/par_plot_do_agi.png"), do_agi_plots, height = 7, width = 11, units = c("in"))
