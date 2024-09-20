@@ -21,21 +21,14 @@ back_do <- readRDS(here("data/locs_brts/bckg_pas/dat_do_back.rds"))
 back_agi <- readRDS(here("data/locs_brts/bckg_pas/dat_agi_back.rds"))
 
 ### optimize hyperparameters (CRW PAs) ####
-#split into test and train
 #base
 dat_base_nas <- na.omit(dat_base)
-dat_train_base <- dat_base_nas %>% sample_frac(0.75)
-dat_test_base <- dat_base_nas %>% sample_frac(0.25)
 
 #do
 dat_do_nas <- na.omit(dat_do)
-dat_train_do <- dat_do_nas %>% sample_frac(0.75)
-dat_test_do <- dat_do_nas %>% sample_frac(0.25)
 
 #agi
 dat_agi_nas <- na.omit(dat_agi)
-dat_train_agi <- dat_agi_nas %>% sample_frac(0.75)
-dat_test_agi <- dat_agi_nas %>% sample_frac(0.25)
 
 # Set optimization options using caret
 fitControl <- trainControl(method = "cv", number = 5) # Can be very slow with high "number"
@@ -49,7 +42,7 @@ gbmGrid <- expand.grid(interaction.depth = seq(2, 5, by = 1),
 # Now test which combination of parameters works best. For some reason, the presence/absence variable must be a factor. Took ~30 min to run. 
 #base model
 gbmFit_base <- caret::train(factor(PA) ~ chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                        data = dat_train_base, 
+                        data = dat_base_nas, 
                         method = "gbm", 
                         trControl = fitControl, 
                         verbose = FALSE, 
@@ -59,7 +52,7 @@ plot(gbmFit_base)
 
 #do model
 gbmFit_do <- caret::train(factor(PA) ~ o2_mean_0m + o2_mean_60m + o2_mean_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                          data = dat_train_do, 
+                          data = dat_do_nas, 
                           method = "gbm", 
                           trControl = fitControl, 
                           verbose = FALSE, 
@@ -69,7 +62,7 @@ plot(gbmFit_do)
 
 #agi model
 gbmFit_agi <- caret::train(factor(PA) ~ AGI_0m + AGI_60m + AGI_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                           data = dat_train_agi, 
+                           data = dat_agi_nas, 
                            method = "gbm", 
                            trControl = fitControl, 
                            verbose = FALSE, 
@@ -94,26 +87,19 @@ tc.best_agi <- gbmFit_agi$bestTune$interaction.depth #3 and 4 trees look about t
 # Based on above results, for the CRW PA models, I should use a lr of 0.05, tree complexity of 3, bag fraction of 0.75, and model that selects the optimal number of trees rather than a set number. 
 
 ### optimize hyperparameters (Bkg PAs) ####
-#split into test and train
 #base
 back_base_nas <- na.omit(back_base)
-back_train_base <- back_base_nas %>% sample_frac(0.75)
-back_test_base <- back_base_nas %>% sample_frac(0.25)
 
 #do
 back_do_nas <- na.omit(back_do)
-back_train_do <- back_do_nas %>% sample_frac(0.75)
-back_test_do <- back_do_nas %>% sample_frac(0.25)
 
 #agi
 back_agi_nas <- na.omit(back_agi)
-back_train_agi <- back_agi_nas %>% sample_frac(0.75)
-back_test_agi <- back_agi_nas %>% sample_frac(0.25)
 
 # Now test which combination of parameters works best. For some reason, the presence/absence variable must be a factor. Took ~30 min to run. 
 #base model
 gbmFit_base_back <- caret::train(factor(PA) ~ chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                            data = back_train_base, 
+                            data = back_base_nas, 
                             method = "gbm", 
                             trControl = fitControl, 
                             verbose = FALSE, 
@@ -123,7 +109,7 @@ plot(gbmFit_base_back)
 
 #do model
 gbmFit_do_back <- caret::train(factor(PA) ~ o2_mean_0m + o2_mean_60m + o2_mean_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                          data = back_train_do, 
+                          data = back_do_nas, 
                           method = "gbm", 
                           trControl = fitControl, 
                           verbose = FALSE, 
@@ -133,7 +119,7 @@ plot(gbmFit_do_back)
 
 #agi model
 gbmFit_agi_back <- caret::train(factor(PA) ~ AGI_0m + AGI_60m + AGI_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                           data = back_train_agi, 
+                           data = back_agi_nas, 
                            method = "gbm", 
                            trControl = fitControl, 
                            verbose = FALSE, 
@@ -177,14 +163,9 @@ hyperparam_tune <- function(fitControl, gbmGrid, base_input, do_input, agi_input
   do_dat <- readRDS(here(do_input)) #%>% subset(select = -c(rep))
   agi_dat <- readRDS(here(agi_input)) #%>% subset(select = -c(rep))
   
-  #split dat to train
-  base_7525 <- na.omit(base_dat) %>% sample_frac(0.75)
-  do_7525 <- na.omit(do_dat) %>% sample_frac(0.75)
-  agi_7525 <- na.omit(agi_dat) %>% sample_frac(0.75)
-  
   #optimize base HPs
   gbmFit_base <- caret::train(factor(PA) ~ chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                              data = base_7525, 
+                              data = base_dat, 
                               method = "gbm", 
                               trControl = fitControl, 
                               verbose = FALSE, 
@@ -196,7 +177,7 @@ hyperparam_tune <- function(fitControl, gbmGrid, base_input, do_input, agi_input
   
   #optimize do HPs
   gbmFit_do <- caret::train(factor(PA) ~ o2_mean_0m + o2_mean_60m + o2_mean_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                              data = do_7525, 
+                              data = do_dat, 
                               method = "gbm", 
                               trControl = fitControl, 
                               verbose = FALSE, 
@@ -208,7 +189,7 @@ hyperparam_tune <- function(fitControl, gbmGrid, base_input, do_input, agi_input
   
   #optimize agi HPs
   gbmFit_agi <- caret::train(factor(PA) ~ AGI_0m + AGI_60m + AGI_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                            data = agi_7525, 
+                            data = agi_dat, 
                             method = "gbm", 
                             trControl = fitControl, 
                             verbose = FALSE, 

@@ -1,11 +1,11 @@
 ### libraries ####
-{library(tidyverse)
-  library(here)
+{library(here)
   library(MetBrewer)
   library(terra)
   library(ggBRT)
   library(patchwork)
   library(ggrepel)
+  library(tidyverse)
   set.seed(1004)}
 
 ### saved custom themes ####
@@ -591,7 +591,7 @@ ggPD_boot <- function (gbm.object, predictor = NULL, n.plots = length(pred.names
                        col.line = "darkorange", cex.line = 0.5, type.ci = "lines", 
                        col.ci = "grey80", cex.ci = 0.3, lty.ci = 2, alpha.ci = 0.5, 
                        smooth = FALSE, col.smooth = "blue", cex.smooth = 0.3, span = 0.3, 
-                       rug = FALSE, rug.pos = "t", common.scale = TRUE, cis = c(0.025, 
+                       rug = FALSE, rug.pos = "t", common.scale = TRUE, type = NULL, cis = c(0.025, 
                                                                                 0.975), y.label = "Fitted function", x.label = paste(var.name, "  (", 
                                                                                                                                      round(gbm.object$contributions[predictor, 2], 
                                                                                                                                            1), "%)", sep = ""), 
@@ -827,10 +827,11 @@ ggPD_boot <- function (gbm.object, predictor = NULL, n.plots = length(pred.names
                                        aes(x = x, ymin = ylow, ymax = yup), fill = col.ci, 
                                        alpha = alpha.ci) + geom_line(data = fittedFunc, 
                                                                      aes(x = x, y = y), color = col.line, size = cex.line) + 
-          ylab(y.label) + xlab(x.label) + theme_bw() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+          ylab(y.label) + xlab(x.label) + theme_minimal() + theme(panel.grid.minor = element_line(linetype = "blank"), 
                                                                                      panel.grid.major = element_line(linetype = "blank"), 
-                                                                                     axis.title.x = element_text(size = 10), axis.line.y = element_line(size = 0.1), 
-                                                                                     axis.line.x = element_line(size = 0.1))
+                                                                                     axis.title.x = element_text(size = 14), axis.line.y = element_line(size = 0.1), 
+                                                                                     axis.line.x = element_line(size = 0.1), 
+                                                                  axis.text = element_text(size = 14, color = "black"))
         if (smooth == T) {
           ggPD <- ggPD + geom_smooth(data = fittedFunc, 
                                      aes(x = x, y = y), span = span, size = 0.3, 
@@ -845,6 +846,61 @@ ggPD_boot <- function (gbm.object, predictor = NULL, n.plots = length(pred.names
           ggPD <- ggPD + ylim(c(ymin, ymax))
         }
       }
+      
+      if (type.ci == "ribbon" & type == "do" & i != 1 & i != 10) {
+        ggPD <- ggplot() + geom_ribbon(data = ribbon, 
+                                       aes(x = x, ymin = ylow, ymax = yup), fill = col.ci, 
+                                       alpha = alpha.ci) + geom_line(data = fittedFunc, 
+                                                                     aes(x = x, y = y), color = col.line, size = cex.line) + 
+          ylab(y.label) + xlab(x.label) + theme_minimal() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+                                                             panel.grid.major = element_line(linetype = "blank"), 
+                                                             axis.title.x = element_text(size = 14), axis.line.y = element_blank(), 
+                                                             axis.line.x = element_line(size = 0.1), 
+                                                             axis.text.x = element_text(size = 14, color = "black"),
+                                                             axis.text.y = element_blank(), 
+                                                             axis.title.y = element_blank())
+        if (smooth == T) {
+          ggPD <- ggPD + geom_smooth(data = fittedFunc, 
+                                     aes(x = x, y = y), span = span, size = 0.3, 
+                                     color = col.smooth, se = F, linetype = 2)
+        }
+        if (rug == T) {
+          ggPD <- ggPD + geom_rug(data = fittedVal, aes(x = x, 
+                                                        y = y), sides = rug.pos, position = "jitter", 
+                                  color = "#EBEBEB")
+        }
+        if (common.scale == T) {
+          ggPD <- ggPD + ylim(c(ymin, ymax))
+        }
+      }
+      
+      if (type.ci == "ribbon" & type == "agi" & i != 3 & i != 10) {
+        ggPD <- ggplot() + geom_ribbon(data = ribbon, 
+                                       aes(x = x, ymin = ylow, ymax = yup), fill = col.ci, 
+                                       alpha = alpha.ci) + geom_line(data = fittedFunc, 
+                                                                     aes(x = x, y = y), color = col.line, size = cex.line) + 
+          ylab(y.label) + xlab(x.label) + theme_minimal() + theme(panel.grid.minor = element_line(linetype = "blank"), 
+                                                                  panel.grid.major = element_line(linetype = "blank"), 
+                                                                  axis.title.x = element_text(size = 14), axis.line.y = element_blank(), 
+                                                                  axis.line.x = element_line(size = 0.1), 
+                                                                  axis.text.x = element_text(size = 14, color = "black"),
+                                                                  axis.text.y = element_blank(), 
+                                                                  axis.title.y = element_blank())
+        if (smooth == T) {
+          ggPD <- ggPD + geom_smooth(data = fittedFunc, 
+                                     aes(x = x, y = y), span = span, size = 0.3, 
+                                     color = col.smooth, se = F, linetype = 2)
+        }
+        if (rug == T) {
+          ggPD <- ggPD + geom_rug(data = fittedVal, aes(x = x, 
+                                                        y = y), sides = rug.pos, position = "jitter", 
+                                  color = "#EBEBEB")
+        }
+        if (common.scale == T) {
+          ggPD <- ggPD + ylim(c(ymin, ymax))
+        }
+      }
+      
       list(ggPD = ggPD)
     }
   }
@@ -895,18 +951,22 @@ for(i in 1:nrow(do_mod_fin$contributions)){
                          list.4.preds = brt1.prerun_do, 
                          booted.preds = do_boot$function.preds, 
                          type.ci = "ribbon",
+                         col.line = "#92351e", 
+                         cex.line = 1.5,
+                         type = "do",
                          rug = T, 
                          alpha.ci = 0.75, 
-                         y.label = "Probability of presence",
-                         x.label = paste(do_names[i], "  (", 
-                                         round(do_mod_fin$contributions[i, 2], 
-                                               1), "%)", sep = ""))
+                         y.label = "",
+                         x.label = "")
   
   plot_list[[i]] <- plot_temp
 }
+#saveRDS(do_boot, file = here("figs/ms/fig4_par/do_ribbons.rds"))
+do_plots_0m <- grid.arrange(grobs = list(plot_list[[1]], plot_list[[3]], plot_list[[9]]), ncol = 3)
+ggsave(here("figs/ms/fig4_par/do_0m.png"), do_plots_0m, height = 5, width = 9, units = c("in"))
 
-do_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
-ggsave(here("figs/ms/supp_figs/par_plot_do.png"), do_plots, height = 7, width = 11, units = c("in"))
+do_plots_250m <- grid.arrange(grobs = list(plot_list[[10]], plot_list[[4]], plot_list[[2]]), ncol = 3)
+ggsave(here("figs/ms/fig4_par/do_250m.png"), do_plots_250m, height = 5, width = 9, units = c("in"))
 
 #agi model
 brt1.prerun_agi<- plot.gbm.4list(agi_mod_fin)
@@ -921,17 +981,23 @@ for(i in 1:nrow(agi_mod_fin$contributions)){
                          booted.preds = agi_boot$function.preds, 
                          type.ci = "ribbon",
                          rug = T, 
+                         type = "agi",
+                         col.line = "#92351e", 
+                         cex.line = 1.5,
                          alpha.ci = 0.75, 
-                         y.label = "Probability of presence",
-                         x.label = paste(agi_names[i], "  (", 
-                                         round(agi_mod_fin$contributions[i, 2], 
-                                               1), "%)", sep = ""))
+                         y.label = "",
+                         x.label = "")
   
   plot_list[[i]] <- plot_temp
 }
 
-agi_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
-ggsave(here("figs/ms/supp_figs/par_plot_agi.png"), agi_plots, height = 7, width = 11, units = c("in"))
+#saveRDS(agi_boot, file = here("figs/ms/fig4_par/agi_ribbons.rds"))
+
+agi_plots_0m <- grid.arrange(grobs = list(plot_list[[3]], plot_list[[5]], plot_list[[9]]), ncol = 3)
+ggsave(here("figs/ms/fig4_par/agi_0m.png"), agi_plots_0m, height = 5, width = 9, units = c("in"))
+
+agi_plots_250m <- grid.arrange(grobs = list(plot_list[[10]], plot_list[[7]], plot_list[[1]]), ncol = 3)
+ggsave(here("figs/ms/fig4_par/agi_250m.png"), agi_plots_250m, height = 5, width = 9, units = c("in"))
 
 #DO, AGI combo model
 brt1.prerun_do_agi<- plot.gbm.4list(do_agi_comb)
