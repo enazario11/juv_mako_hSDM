@@ -564,7 +564,7 @@ md_df2 <- md_df %>%
 #write.csv(md_df2, here("data/presence_locs/metadata_sum.csv"))
 
 #### SF 3: Model exploration performance metrics ####
-output_sum <- read.csv(here("data/brt/mod_outputs/brt_prelim_results.csv"))
+output_sum <- read.csv(here::here("data/brt/mod_outputs/brt_supp_table.csv"))
 output_sum$deviance_exp <- output_sum$deviance_exp*100
 
 mod_metrics <- ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +
@@ -583,7 +583,7 @@ mod_metrics <- ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = mo
   theme(legend.position = "right", 
         axis.title = element_text(color = "black"), 
         axis.text = element_text(color = "black"))
-ggsave(here("figs/ms/supp_figs/explore_mod_metrics.png"), mod_metrics, width = 8, height = 6, units = c("in"))
+ggsave(here::here("figs/ms/supp_figs/explore_mod_metrics.png"), mod_metrics, width = 10, height = 8, units = c("in"))
 
 #### SF 4: Final model's partial plots w/ CIs ####
 ggPD_boot <- function (gbm.object, predictor = NULL, n.plots = length(pred.names), 

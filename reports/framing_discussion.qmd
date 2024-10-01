@@ -1,0 +1,144 @@
+---
+title: "Framing discussion"
+author: "Emily Nazario"
+date: "`r Sys.Date()`"
+format:
+ html: 
+  self-contained: true
+editor: visual
+toc: TRUE
+toc-title: "On this page"
+theme: yeti
+fontcolor: "#134f5c"
+code-block-bg: true
+bibliography: references.bib
+---
+
+## In this doc
+
+I've sketched out a rough outline of what the discussion could include and my initial thoughts on how we may interpret the figures/selected results. I would love feedback on the figures themselves as well as what information we may want to include when discussing the results themselves. To refresh, I've included the study objectives and hypotheses here.
+
+```{r}
+#| label: libraries and data
+#| echo: false
+#| warning: false
+#| message: false
+#| include: false
+
+#libraries 
+library(tidyverse)
+library(gbm)
+library(dismo)
+library(here)
+library(terra)
+library(sf)
+library(tidyterra)
+library(here);here <- here::here #plyr's here function masks here::here
+library(tidyquant)
+library(lessR)
+library(rstatix)
+library(ggpubr)
+set.seed(1004)
+
+source(here("functions/BRT_evaluation_functions.R"))
+source(here("functions/brt_explore_quarto_function.R"))
+source(here("functions/hsi_rast_functions.R"))
+
+#map theme
+theme_bls_map <- function(){ 
+  font <- "Arial"   #assign font family up front
+  
+  theme_minimal() %+replace%    #replace elements we want to change
+    
+    theme(
+      
+      plot.title = element_text(             #axis titles
+        family = font,            #font family
+        color = "black",
+        size = 16), 
+      
+      #grid elements
+      panel.grid.major = element_blank(),    #strip major gridlines
+      panel.grid.minor = element_blank(),    #strip minor gridlines
+      axis.ticks = element_blank(),          #strip axis ticks
+      
+      #since theme_minimal() already strips axis lines, 
+      #we don't need to do that again
+      
+      axis.title = element_text(             #axis titles
+        family = font,            #font family
+        color = "black",
+        size = 16),               #font size
+      
+      axis.text = element_text(              #axis text
+        family = font,            #axis famuly
+        color = "black",
+        size = 16),                #font size
+      
+      axis.text.x = element_text(            #margin for axis text
+        margin=margin(5, b = 10)),
+      
+      legend.position = "none"
+      #since the legend often requires manual tweaking 
+      #based on plot content, don't define it here
+    )
+}
+
+#model files
+base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
+do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
+agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
+do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_dail_seas_ann.rds"))
+
+```
+
+### Hypotheses
+
+**H1:** The AGI model will perform better than the dissolved oxygen and base model, and the dissolved oxygen model will perform better than the base model.
+
+*Study objective:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)?
+
+**H2:** The inclusion ofdissolved oxygen and the AGI at deeper depths will result in better performing/more ecologically realistic habitat suitability predictions relative to the respective models considering surface values alone.
+
+*Study objective:* How does dissolved oxygen/AGI at different depths influence habitat suitability predictions relative to oxygen/AGI at the surface? How does the relative importance of each depth layer differ?
+
+**H3:** At lower latitudes and near shore, the AGI will reach values close to 1.
+
+*Study objective:* What spatial patterns can be observed with dissolved oxygen and the AGI?
+
+**H4:** The base model will predict higher habitat suitability in areas or during seasons or periods with lower dissolved oxygen (e.g., upwelling periods or La Niña years) through the water column relative to the dissolved oxygen and AGI models.
+
+Study *objective:* How do the habitat suitability maps differ between the models? How do these variations compare for different points in time with varying degrees of oxygenation?
+
+## Discussion
+
+-   Will first review hypotheses and where we landed with each of them given the results
+
+-   **Overarching Result 1:** Spatial insights from including DO and AGI relative to the base model
+
+    ```{r}
+    #| label: HSI maps
+    #| echo: false
+    #| warning: false
+    #| message: false 
+    #| fig-width: 6
+    #| fig-height: 6
+
+    hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
+    ```
+
+    -   Base and DO model identify low DO area of Pacific North Equatorial Current (PNEC) as highly suitable habitat, while AGI only model doesn't. Possibly showing a distinction of including metabolic demands relative to environmental features alone.
+
+    -   Implications for understanding immature mako habitat use.
+
+        -   All maps indicate high coastal habitat suitability, which is in agreement with previous work detailing immature/juvenile mako habitat use. All models outside of the AGI model, however, also indicate offshore suitability and a wide latitudinal spread up through the CCS. Possibly suggesting more suitability available than previously described for immature individuals [@carreon-zapiain2018];[@nasby-lucas2019].
+
+            -   Could indicate that the AGI model provides distinct insight better capturing habitat use that models that don't account for oxygen (base model) or that account for oxygen alone (DO model) rather than its interactive effects with temperature and the physiological implications.
+
+        -   Though, the SCBe still holds a high concentration of regions with high habitat suitability across all model types, agreeing with previous tagging efforts completed for immature mako sharks [@nosal2019];[@nasby-lucas2019].
+
+        -   Could have concerning conservation implications as these coastal and low latitude regions in the CCS may be some of the most metabolically vulnerable under future climate scenarios [@deutsch2015].
+
+    ![](images/agi_maps.png){width="21.06in"}
+
+    -   

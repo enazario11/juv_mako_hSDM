@@ -498,6 +498,8 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #base map
   #calculate percent area polygon takes up of raster 
+  base_hsi <- raster::clamp(base_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
@@ -516,8 +518,6 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     theme_map() +
     theme(axis.text.x = element_blank(), legend.position = "none", axis.title.x = element_blank())
   
-  base_hsi <- raster::clamp(base_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
-  
   if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/base_pred_all.png"), base_map, height = 5, width = 5)}
   
     #do map
@@ -527,7 +527,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_pred)
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
-  print(paste0("DO hsi > 0.50:", " ", round(perc_area_do$area[1], 2), "%"))
+  #print(paste0("DO hsi > 0.50:", " ", round(perc_area_do$area[1], 2), "%"))
   
   do_map <- ggplot() +
     geom_spatraster(data = do_pred) +
@@ -554,7 +554,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_pred)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
-  print(paste0("agi hsi > 0.50:", " ", round(perc_area_agi$area[1], 2), "%"))
+  #print(paste0("agi hsi > 0.50:", " ", round(perc_area_agi$area[1], 2), "%"))
   
   agi_map <- ggplot() +
     geom_spatraster(data = agi_pred) +
@@ -589,7 +589,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(do_agi_combo)
   perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
-  print(paste0("combo hsi > 0.50:", " ", round(perc_area_combo$area[1], 2), "%"))
+  #print(paste0("combo hsi > 0.50:", " ", round(perc_area_combo$area[1], 2), "%"))
   
   combo_map <- ggplot() +
     geom_spatraster(data = do_agi_combo) +
