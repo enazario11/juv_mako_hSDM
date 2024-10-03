@@ -503,7 +503,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
-  print(paste0("Base hsi > 0.50:", " ", round(perc_area_base$area[1], 2), "%"))
+  #print(paste0("Base hsi > 0.50:", " ", round(perc_area_base$area[1], 2), "%"))
   
   base_map <- ggplot() +
     geom_spatraster(data = base_pred) +
