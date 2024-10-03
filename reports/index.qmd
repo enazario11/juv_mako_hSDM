@@ -19,4 +19,6 @@ Below are links to the pages containing different exploratory analyses for the j
 
 [See here](brt_explore_psat_spot_back.html) for the initial BRT output exploration. This includes pseudo absences generated with background sampling and environmental data at a daily, seasonal, and annual resolution.
 
-[See here](brt_prelim_results.html) for the preliminary brt results across the base and final models for both crw and background PA approaches. Drafted figures include HSI maps and difference maps, AGI and AGIcrit maps, predictor relative influence donut and radar plots, and comparisons of model performance metrics across model types. 
+[See here](brt_prelim_results.html) for the preliminary brt results across the base and final models for both crw and background PA approaches. Drafted figures include HSI maps and difference maps, AGI and AGIcrit maps, predictor relative influence donut and radar plots, and comparisons of model performance metrics across model types.
+
+[See here](framing_discussion.html) for the outline of the discussion section for the ms. 
