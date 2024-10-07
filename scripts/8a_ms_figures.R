@@ -95,17 +95,17 @@ ggsave(here("figs/ms/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 source(here("functions/hsi_rast_functions.R"))
 
 #neutral year
-agi_250m_2013 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13")
+agi_250m_2013 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13", fig_pos = 1)
 ggsave(here("figs/ms/fig2_agi/250_2013.png"), agi_250m_2013, height = 7, width = 7, units = c("in"))
 
 #La Niña
-hsi_rast_gen(date_start = c("2010-09-01"), date_end = c("2010-11-30"), season = "F", output_name = "LN_F_2010")
-agi_250m_2010 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010")
+#hsi_rast_gen(date_start = c("2010-09-01"), date_end = c("2010-11-30"), season = "F", output_name = "LN_F_2010")
+agi_250m_2010 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010", fig_pos = 2)
 ggsave(here("figs/ms/fig2_agi/250_2010.png"), agi_250m_2010, height = 7, width = 7, units = c("in"))
 
 #EL Niño
-hsi_rast_gen(date_start = c("2009-11-01"), date_end = c("2010-01-31"), season = "FW", output_name = "EN_FW_2009_2010")
-agi_250m_2009 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_2009_2010")
+#hsi_rast_gen(date_start = c("2009-11-01"), date_end = c("2010-01-31"), season = "FW", output_name = "EN_FW_2009_2010")
+agi_250m_2009 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_2009_2010", fig_pos = 3)
 ggsave(here("figs/ms/fig2_agi/250_2009.png"), agi_250m_2009, height = 7, width = 7, units = c("in"))
 
 

@@ -133,17 +133,17 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
 -   Base and DO models identify low DO area of Pacific North Equatorial Current (NEC) as highly suitable habitat, while AGI only model doesn't. Possibly showing a distinction of including metabolic demands relative to environmental features alone.
 
-    -   Could indicate that the AGI model provides distinct insight better capturing habitat use that models that don't account for oxygen (base model) or that account for oxygen alone (DO model) rather than its interactive effects with temperature and the physiological implications.
+    -   If this is more ecologically accurate, could indicate that the AGI model provides distinct insight better capturing habitat use that models that don't account for oxygen (base model) or that account for oxygen alone (DO model) rather than its interactive effects with temperature and the physiological outcomes.
 
 -   Implications for understanding immature mako habitat use.
 
-    -   All modeled maps indicate high coastal habitat suitability, which is in agreement with previous work detailing immature/juvenile mako habitat use [@nosal2019];[@nasby-lucas2019]. All models outside of the AGI model, however, also indicate offshore suitability and a wide latitudinal spread up through the CCS. Possibly suggesting more suitability available than previously described for immature individuals [@carreon-zapiain2018];[@nasby-lucas2019].
+    -   All modeled maps indicate high coastal habitat suitability, which is in agreement with previous work detailing immature/juvenile mako habitat use [@nosal2019];[@nasby-lucas2019]. All models outside of the AGI model, however, also indicate offshore suitability and a wide latitudinal spread up through the CCS [@carreon-zapiain2018];[@nasby-lucas2019].
 
-    -   Though, the SCBe still holds a high concentration of regions with high habitat suitability across all model types, agreeing with previous tagging efforts completed for immature mako sharks [@nosal2019];[@nasby-lucas2019].
+    -   The SCBe still holds a high concentration of regions with high habitat suitability across all model types, agreeing with previous tagging efforts completed for immature mako sharks [@nosal2019];[@nasby-lucas2019].
 
     -   Could have concerning conservation implications as these coastal and low latitude regions in the CCS may be some of the most metabolically vulnerable under future climate scenarios [@deutsch2015].
 
-![AGI at 250m across ENSO phases. Percent areas represent the proportion of area with AGI values \< 1 and are outlined in black.](images/agi_maps.png){fig-align="center" width="15in"}
+![AGI at 250m across ENSO phases. Percent areas represent the proportion of area with AGI values \< 1 and are outlined in black.](images/agi_maps-01.png){fig-align="center"}
 
 -   Large portions of area at 250m have AGI \< 1, especially around the NEC. Could indicate that while this area is a sought after foraging zone for many sharks, including larger/adult makos, it may be metabolically stressful. This region overlaps with areas of strong habitat compression over the OMZ where DO concentrations at 100m are 3 ml/L or less, and contains areas known to be avoided by makos [@byrne2024].
 
@@ -181,11 +181,15 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
         -   Unsure why Saury not appearing in diet during LN year, due to metabolic sensitivity and seasonal distributions, would have possibly overlapped. Or maybe as Saury are more offshore and during LN makos were more coastal, wouldn't have overlapped? [@preti2012].
 
+        -   For prey overlap insights, I'd love to confirm interpretation with someone who is more familiar with the Saury/Squid habitat use/shifts!
+
     -   Mixed results regarding habitat expansion or contraction across models during EN phases. Could be result of DO/AGI focus here, and models looking at productivity and temperature through the water column may more accurately speak to consequences of EN conditions. General patterns of more offshore use observed here, though.
 
         -   Jumbo squid catch observed to decline under EN condtions (high SST, low Chl) [@medellín-ortiz2016], and high SST conditions contract areas of suitable habitat for Saury in the eastern Pacific [@yu2021]. Could be retreating more offshore to reach more suitable temperature ranges? Observed that off of Peru, coastal habitat suitability declines during strong EN conditions [@yu2019]. Could explain how they remained as top prey item, overlapping with the increased offshore suitability for the makos.
 
         -   Observed declines in habitat suitability for Saury under EN conditions could explain shift in importance, but changes in mako distributions to more pelagic habitat could support why they are in top three important prey [@chang2019];[@preti2012].
+
+        -   For prey overlap insights, I'd love to confirm interpretation with someone who is more familiar with the Saury/Squid habitat use/shifts!
 
 **Overarching Result 2:** Inclusion of DO/AGI into habitat models
 
@@ -197,9 +201,9 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
     -   250m annual = more important for driving metabolic constraints/areas that are more metabolically stressful.
 
-    -   Overall consistency of importance provides evidence for needing to consider these variables in future habitat modeling for makos, other species with high metabolic demands, and possibly ectotherms more broadly given anticipated deoxygenation relative to historical norms.
+    -   Overall consistency of importance provides evidence for needing to consider these variables in future habitat modeling for makos, other species with high metabolic demands, and possibly ectotherms more broadly given anticipated deoxygenation relative to historical norms. These results also indicate that including AGI/DO at different temporal resolutions may provide more diverse insights covering the different processes they each relate to. Could say the same about exploring different spatial scales in future?
 
-    ![The effect of DO and AGI on the probability of mako shark presence at 0m and 250m, and at daily, seasonal, and annual temporal resolutions. The red line is the mean and the grey bars represent the 25% CIs. These values were calculated by running 20 iterations of the DO and AGI models. Grey bars at the top of the plot represent data availability at each DO/AGI value.](images/partial_plots.png){width="21.05in"}
+    ![The effect of DO and AGI on the probability of mako shark presence at 0m and 250m, and at daily, seasonal, and annual temporal resolutions. The red line is the mean and the grey bars represent the 25% CIs. These values were calculated by running 20 iterations of the DO and AGI models. Grey bars at the top of the plot represent data availability at each DO/AGI value.](images/partial_plots.png){width="100%"}
 
 -   Low DO at surface at short time scales negatively correlated with species presence, while at depth, higher DO values had negative correlations with species presence. At depth, high oxygenation is found offshore and at higher latitudes, and thus this pattern may not be based on the species physiological demands, and more on where the species were actually found when pooling locations across the region and study domain. Future studies may seek to look at DO effects at a finer spatial scale as the patterns may be more physiologically meaningful.
 
@@ -207,13 +211,15 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
     -   However, the AGI only represents the most minimal of oxygen demands (solely those for maintenance including survival, feeding, and movement, but not growth), and thus having additional empirical measurements or improved methods for estimating metabolic demands would result in a more accurate understanding of how the interactive effects of temperature and oxygen availability may drive habitat suitability [@clarke2021].
 
+    -   *Note:* Figure got horizontally squished, so axes text appearing smaller than expected.
+
 ![The performance metrics listed for each model included in this analysis. Post-hoc Tukey Tests were performed to compare metrics between models. Values represent the means which were calculated by running 20 iterations of each model type.](images/perform_metrics.png){fig-align="center"}
 
 -   **Note:** Unsure if I should include the significance results here given previously published concerns about statistical tests comparing model results given arbitrary sample sizes [@white2014]. Happy to hear thoughts!
 
 -   The inclusion of DO/AGI improved model predictive performance when tested using new data (AUC, TSS) and improved how well the model explained the data (deviance explained).
 
-    -   Improvement not entirely surprising given that we know DO can be a key variable driving species distributions.
+    -   Improvement not entirely surprising given that we know DO/metabolic performance can be a key variable driving species distributions.
 
     -   Combined DO/AGI model slightly out-performed the other model types – could be relevant if suitability maps produced by this model seem to be the most biologically/ecologically realistic?
 
