@@ -92,8 +92,6 @@ theme_bls_map() +
 ggsave(here("figs/ms/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 
 ### Figure 2: AGI maps ####
-source(here("functions/hsi_rast_functions.R"))
-
 #neutral year
 agi_250m_2013 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13", fig_pos = 1)
 ggsave(here("figs/ms/fig2_agi/250_2013.png"), agi_250m_2013, height = 7, width = 7, units = c("in"))
@@ -112,11 +110,8 @@ ggsave(here("figs/ms/fig2_agi/250_2009.png"), agi_250m_2009, height = 7, width =
 # Figure 3: predictor relative importance ####
 #list models
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
-do_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
-agi_mod_of <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_60m_250m_dail_seas_ann_no_wind.rds"))
 agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
-agi_mod_back <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann_back.rds"))
 do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_dail_seas_ann.rds"))
 
 #base model 
@@ -177,7 +172,7 @@ do_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_inf$Predictor_variable)
 do_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_inf$Predictor_variable)
 do_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_inf$Predictor_variable)
 
-do_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(do_inf$Predictor_variable))+6, direction = -1)
+do_cols <- NatParksPalettes::natparks.pals("Acadia", n = length(unique(do_inf$Predictor_variable))+20, direction = -1)
 
 do_inf2 <- do_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
                                  ymax = cumsum(fraction),
@@ -229,7 +224,7 @@ agi_inf2 <- agi_inf %>% mutate(fraction = relative_influence / sum(relative_infl
                                  ymax = cumsum(fraction),
                                  ymin = c(0, head(ymax, n=-1)),
                                  labelPosition = (ymax + ymin)/2)
-agi_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(agi_inf$Predictor_variable))+8, direction = -1)
+agi_cols <- MetBrewer::met.brewer("Greek", n = length(unique(agi_inf$Predictor_variable))+5)
 
 agi_pred <- ggplot(agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
@@ -271,7 +266,7 @@ do_agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_agi_inf$Predictor_va
 do_agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_agi_inf$Predictor_variable)
 do_agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_agi_inf$Predictor_variable)
 
-comb_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(do_agi_inf$Predictor_variable))+8, direction = -1)
+comb_cols <- NatParksPalettes::natparks.pals("BryceCanyon", n = length(unique(do_agi_inf$Predictor_variable))+30)
 
 do_agi_inf2 <- do_agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
                                ymax = cumsum(fraction),
@@ -301,16 +296,11 @@ do_agi_pred <- ggplot(do_agi_inf2, aes(fill = reorder(Predictor_variable, -relat
     fill = "none"
   )
 
-#combine plots and save
-all_pred <- (base_pred|do_pred)/(agi_pred|do_agi_pred) + 
-  plot_annotation(tag_levels = "A", theme = theme(plot.margin = unit(c(0,0,0,0), "in"))) & 
-  theme(plot.tag = element_text(size = 20))
-
 #ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
-ggsave(here("figs/ms/fig2/base_pred.png"), base_pred, height = 7, width = 7, units = c("in"))
-ggsave(here("figs/ms/fig2/do_pred.png"), do_pred, height = 7, width = 7, units = c("in"))
-ggsave(here("figs/ms/fig2/agi_pred.png"), agi_pred, height = 7, width = 7, units = c("in"))
-ggsave(here("figs/ms/fig2/do_agi_pred.png"), do_agi_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig3_pred/base_pred.png"), base_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig3_pred/do_pred.png"), do_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig3_pred/agi_pred.png"), agi_pred, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width = 7, units = c("in"))
 
 ### Figure 4: Partial plots ####
 source(here("functions/partial_plot.R"))
@@ -374,8 +364,10 @@ dt_tss$cld <- cld$Letters
 TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
-  geom_point(color="orange", size=6) +
+  geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_tss - sd, ymax = mean_tss + sd), size =  1, color = "black", width = 0.4)+
+  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
+  #geom_point(color="orange", size=6) +
   theme_light() +
   theme(
     panel.grid.major.x = element_blank(),
@@ -384,7 +376,7 @@ TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type),
   ) +
   xlab("") +
   ylab("TSS") + 
-  ylim(0.4, 0.75)+
+  ylim(0, 0.75)+
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14)) +
@@ -412,8 +404,8 @@ dt_auc$cld <- cld$Letters
 AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_segment(aes(x=mod_type, xend=mod_type, y=0.7, yend=mean_auc), color="#92351e", linewidth = 1.5) +
-  geom_point(color="orange", size=6) +
+  geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_auc - sd, ymax = mean_auc + sd), size =  1, color = "black", width = 0.4)+
   theme_light() +
   theme(
     panel.grid.major.x = element_blank(),
@@ -422,7 +414,7 @@ AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type),
   ) +
   xlab("") +
   ylab("AUC") + 
-  ylim(0.7, 1) +
+  ylim(0, 1) +
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14)) +
@@ -450,8 +442,8 @@ dt_dev$cld <- cld$Letters
 perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
                                    mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_dev)) +
-  geom_segment(aes(x=mod_type, xend=mod_type, y=20, yend=mean_dev), color="#92351e", linewidth = 1.5) +
-  geom_point(color="orange", size=6) +
+  geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_dev - sd, ymax = mean_dev + sd), size =  1, color = "black", width = 0.4)+
   theme_light() +
   theme(
     panel.grid.major.x = element_blank(),
@@ -463,29 +455,31 @@ perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type),
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14))+
-  ylim(20, 70)+
+  ylim(0, 70)+
   geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
 
 all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
 
-ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 5, width = 10, units = c("in"))
+ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6, width = 12, units = c("in"))
 
 ### Figure 6: HSI maps study period ####
 all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
 ### Figure 7: ENSO HSI maps ####
+#have to save using export button otherwise adds border, using width of 750 and height 350 (200 for LN panel)
+
 #base year
 enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "base")
-ggsave(here("figs/ms/fig7_enso_diet/base_panel.png"), enso_base, width = 3, height = 8, units = c("in"))
+#ggsave(here("figs/ms/fig7_enso_diet/base_panel.png"), enso_base, width = 3, height = 8, units = c("in"))
 
 #LN year 
 enso_LN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", enso = "LN")
-ggsave(here("figs/ms/fig7_enso_diet/LN_panel.png"), enso_LN, width = 3, height = 8, units = c("in"))
+#ggsave(here("figs/ms/fig7_enso_diet/LN_panel.png"), enso_LN, width = 3, height = 8, units = c("in"))
 
 #EN year
 enso_EN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_2009_2010", enso = "EN")
-ggsave(here("figs/ms/fig7_enso_diet/EN_panel.png"), enso_EN, width = 3, height = 8, units = c("in"))
+#ggsave(here("figs/ms/fig7_enso_diet/EN_panel.png"), enso_EN, width = 3, height = 8, units = c("in"))
 
 #diet data 
 source(here("scripts/7a_diet_data.R"))

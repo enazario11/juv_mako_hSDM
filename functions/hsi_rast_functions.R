@@ -2,9 +2,17 @@
 library(tidyverse)
 library(terra)
 library(sf)
-library(here)
 library(patchwork)
 library(tidyterra)
+library(gbm)
+library(dismo)
+library(here);here <- here::here #plyr's here function masks here::here
+library(tidyquant)
+library(lessR)
+library(rstatix)
+library(ggpubr)
+
+set.seed(1004)
 
 ### raster generation function ####
 hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name){
@@ -498,7 +506,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  base_hsi <- raster::clamp(base_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
@@ -522,7 +530,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_pred)
@@ -549,7 +557,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  agi_hsi <- raster::clamp(agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_pred)
@@ -584,7 +592,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
-  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(do_agi_combo)
@@ -699,7 +707,7 @@ hsi_maps_enso <- function(rast_folder, enso){
   
   #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  base_hsi <- raster::clamp(base_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
@@ -713,7 +721,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     scale_fill_whitebox_c(palette = "muted") +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_base$area[1], 2), "%")), 
-              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
     theme_map() +
     theme(axis.text.x = element_blank(),
           axis.text.y = element_blank(),
@@ -724,7 +732,7 @@ hsi_maps_enso <- function(rast_folder, enso){
 
   #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_pred)
@@ -739,7 +747,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     scale_fill_whitebox_c(palette = "muted")+
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_do$area[1], 2), "%")), 
-              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
     theme_map() +
     theme(axis.title.x = element_blank(),
           axis.text.x = element_blank(),
@@ -750,7 +758,7 @@ hsi_maps_enso <- function(rast_folder, enso){
 
   #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_pred, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  agi_hsi <- raster::clamp(agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_pred)
@@ -765,7 +773,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     scale_fill_whitebox_c(palette = "muted") +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_agi$area[1], 2), "%")), 
-              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
     theme_map() +
     theme(axis.text.x = element_blank(), 
           axis.title.x = element_blank(),
@@ -787,7 +795,7 @@ hsi_maps_enso <- function(rast_folder, enso){
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
-  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.50
+  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(do_agi_combo)
@@ -802,7 +810,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     scale_fill_whitebox_c(palette = "muted") +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_combo$area[1], 2), "%")), 
-              hjust = 1.1, vjust = 2, size = 3.5, color = "black")+
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
     theme_map() +
     theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
           axis.text.y = element_blank(),
@@ -826,9 +834,22 @@ hsi_maps_enso <- function(rast_folder, enso){
   if(enso == "EN"){
   all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)+
     plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
-  } else {
+  } 
+  if(enso == "base"){
+    all_maps <- (base_map+
+                   theme(axis.text.y = element_text(size = 14, color = "black"), 
+                         axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(do_map+
+                                                                                                  theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                        axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map+
+                                                                                                                                                                                 theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                       axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(combo_map+
+                                                                                                                                                                                                                                                                theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                                                                      axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
+  } 
+  if(enso == "LN"){
     all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)
-    }
+  }
+  
   return(all_maps)
   
   #end function  
