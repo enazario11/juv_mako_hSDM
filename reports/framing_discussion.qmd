@@ -144,9 +144,11 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
         -   This could have concerning conservation implications as these coastal and low latitude regions in the CCS may be some of the most metabolically vulnerable under future climate scenarios [@deutsch2015].
 
-![AGI at 250m across ENSO phases. Percent areas represent the proportion of area with AGI values \< 1 and are outlined in black.](images/agi_maps-02.png){fig-align="center"}
+![AGI at 250m across ENSO phases. Percent areas represent the proportion of area with AGI values \< 1 and are outlined in black.](images/agi_maps-03.png){fig-align="center"}
 
--   Large portions of area at 250m have AGI \< 1, especially around the NEC. Could indicate that while this area is a sought after foraging zone for many sharks, including larger/adult makos, it may be metabolically stressful. This region overlaps with areas of strong habitat compression over the OMZ where DO concentrations at 100m are 3 ml/L or less, and contains areas known to be avoided by makos [@byrne2024].
+-   ***Question***: Change color scale because inverse of HSI map scales? Wanted red to represent low-DO areas, but in other maps, red represents high suitability habitats. Thoughts on modifying this?
+
+-   Large portions of area at 250m have AGI \< 1, especially around the NEC. Could indicate that while this area is a sought after foraging zone for many sharks, including larger/adult makos, it may be metabolically stressful. This region overlaps with areas of strong habitat compression over the OMZ where DO concentrations at 100m are 3 ml/L or less, and contains areas known to be avoided by makos [@byrne2024]. This area is also near part of the western warm pool of the Pacific, an area with high SSTs (\>28 degree), low salinity, and low dissolved oxygen, which may further compress metabolically sustainable habitats through the water column near these coastal low latitude regions [@obrien2014; @griffiths2019].
 
     -   Sharp thermocline and low DO areas (i.e., metabolically stressful habitat) have been targeted for foraging as prey items are concentrated towards the surface, which can explain the trips out to this region [@polovina2004];[@stewart2019];[@logan2023];[@ryan2017].
 
@@ -160,11 +162,13 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
         -   Reference papers that have observed low DO waters or OMZ depth shaping habitat use of high-DO demand species: [@humphries2024, @waller2024, @carlisle2017, @gilly2013, etc.]
 
-            ![HSI maps across ENSO phases for each model selected for this analysis. Percentages represent the percent area where the HSI \> 0.75. The "neutral year" presents HSI averages from Jan. 2013 - Dec. 2013, the "La Niña year" presents averages from Sept. 2010 - Nov. 2010", and the "El Niño year" presents averages from Nov. 2009 - Jan. 2010. These windows were selected to capture the most extreme conditions for the respective La Niña or El Niño conditions. Prey items at the top are listed in order of importance and GII values were calculated following the methods described in Preti et al., 2012.](images/enso_hsi-03.png)
+            ![HSI maps across ENSO phases for each model selected for this analysis. Percentages represent the percent area where the HSI \> 0.75. The "neutral year" presents HSI averages from Jan. 2013 - Dec. 2013, the "La Niña year" presents averages from Sept. 2010 - Nov. 2010", and the "El Niño year" presents averages from Nov. 2014 - Jan. 2015. These windows were selected to capture the most extreme conditions for the respective La Niña or El Niño conditions. Prey items at the top are listed in order of importance and GII values were calculated following the methods described in Preti et al., 2012.](images/enso_hsi-04.png){fig-align="center"}
 
 <!-- -->
 
 -   **Note:** Please see figure caption for how ENSO rasters were averaged. I would love feedback if there is a more recommended way for going about this!
+
+-   ***Question***: Thoughts on including difference maps instead for the LN and EN years to better show changes in habitat suitability relative to the neutral year?
 
 -   Different ENSO phases have also altered habitat suitability and species distributions in the CCS. Here, metabolically unsuitable habitat (AGI \< 1) expanded by 2.5% when comparing a normal to LN year, and as these phases are anticipated to become more extreme with climate change, may result in bigger sways of habitat contractions. Additionally, AGI reductions during LN conditions were observed, providing a preview of possible habitat loss as ocean deoxygenation intensifies under anticipated climate change scenarios.
 
@@ -176,7 +180,9 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
     -   Increased intensity of ENSO phases with climate change in CCS: [@yoon2015]
 
-    -   For makos, all maps that either considered DO or the AGI indicated habitat loss during the LN phase with general patterns of reduced offshore habitat suitability, and base model depicted little to no change across ENSO phases. Could be due to high metabolic demands of makos and reductions in metabolically viable habitat due to strong LN conditions.
+    -   **Diet data note:** diet cruises were completed between 30-48 degrees latitude and extended out to the U.S. EEZ, so offshore prey consumption is not considered here.
+
+    -   All maps that either considered DO or the AGI indicated habitat loss during the LN phase with general patterns of reduced offshore habitat suitability, and base model depicted little to no change across ENSO phases. Could be due to high metabolic demands of makos and reductions in metabolically viable habitat due to strong LN conditions.
 
         -   Highlight that it is important to include DO and/or AGI as the base model did not capture these spatial shifts, but it's interesting that DO models indicated much larger areas of high habitat suitability relative to the AGI model. The AGI model also captured the largest amount of high habitat suitability loss (1.4%) possibly suggesting this model approach could be the best positioned for capturing the spatial consequences of predicted deoxygenation, as other model types poorly captured these expected habitat contractions.
 
@@ -188,11 +194,11 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
         -   For prey overlap insights, I'd love to confirm interpretation with someone who is more familiar with the Saury/Squid habitat use/shifts!
 
-    -   Mixed results regarding habitat expansion or contraction across models during EN phases. Could be result of DO/AGI focus here, and models looking at productivity and temperature through the water column may more accurately speak to consequences of EN conditions. General patterns of increased offshore suitability observed here, though.
+    -   During the 2014 EN season, all models picked up a decline in habitat suitability, with the two models considering DO showing the largest contractions (\~1.8%). Generally, areas of high habitat suitability seem patchier, and generally cover similar distributions as the neutral year, but limited to the core areas of highest suitability (high habitat suitability patches shrinking when comparing neutral year to EN year). Here, the base model captured declines, but still predicted large areas of moderate habitat suitability, while other models predicted more focused regions. Improved ecological realism of habitat predictions could be due to chlorophyll and temperature being considered across all models, while mixed success during the LN year could be due to DO/AGI not being equally considered across models. May suggest that different model types that consider different features may be necessary for prediction during different conditions/seasons?
 
-        -   Jumbo squid catch observed to decline under EN condtions (high SST, low Chl) [@medellín-ortiz2016], and high SST conditions contract areas of suitable habitat for Saury in the eastern Pacific [@yu2021]. Could be retreating more offshore to reach more suitable temperature ranges? Observed that off of Peru, coastal habitat suitability declines during strong EN conditions [@yu2019]. Could explain how they remained as top prey item, overlapping with the increased offshore suitability for the makos.
+        -   Jumbo squid catch observed to decline under EN condtions (high SST, low Chl) [@medellín-ortiz2016], and high SST conditions contract areas of suitable habitat for Saury in the eastern Pacific [@yu2021]. Could be retreating more offshore to reach more suitable temperature ranges? Observed that off of Peru, coastal habitat suitability declines during strong EN conditions [@yu2019]. Could explain how they remained as top prey item, overlapping with offshore suitability for the makos.
 
-        -   Observed declines in habitat suitability for Saury under EN conditions could explain shift in importance, but changes in mako distributions to more pelagic habitat could support why they are in top three important prey [@chang2019];[@preti2012]?
+        -   Observed declines in habitat suitability for Saury under EN conditions could explain shift in importance, but remaining pelagic mako habitat could support why they are in top three important prey [@chang2019];[@preti2012]? While during LN season distributions were more coastally restricted?
 
         -   For prey overlap insights, I'd love to confirm interpretation with someone who is more familiar with the Saury/Squid habitat use/shifts!
 
@@ -202,15 +208,17 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
 -   DO/AGI at 0m daily resolution and at 250m annual resolution consistently appeared in the top 3 most important predictors. Could be capturing different physiological processes/mechanisms at these scales and depth layers.
 
-    -   0m daily = more important for oxygen reloading and could speak to DO availability through water column.
+    -   0m daily = more important for oxygen reloading and could speak to DO availability through water column. More relevant for more immediate processes like prey distributions and foraging?
 
-    -   250m annual = more important for driving metabolic constraints/areas that are more metabolically stressful.
+    -   250m annual = more important for driving metabolic constraints/areas that are more metabolically stressful. More relevant for broader scale temporal patterns of general habitat suitability?
 
     -   Overall consistency of importance provides evidence for needing to consider these variables in future habitat modeling for makos, other species with high metabolic demands, and possibly ectotherms more broadly given anticipated deoxygenation relative to historical norms. These results also indicate that including AGI/DO at different temporal resolutions may provide more diverse insights covering the different processes they relate to. Could say the same about exploring different spatial scales in future?
 
+    -   Bathymetry and temp appear as most important predictors for the base model, and while temp remains as a top predictor for the other model types, bathymetry shifts down. Bathymetry has appeared to be an important predictor for mako SDMs in the CCS [@lezama-ochoa2024; @brodie2018]. Other studies have considered that horizontal mako movement may be correlated with bathymetry, but no evidence has been strong enough to formalize this [@sepulveda2004]. Bathymetry declines in importance for other model types, possibly because its role is outweighed by the influence that DO/AGI and temp play.
+
     ![The effect of DO and AGI on the probability of mako shark presence at 0m and 250m, and at daily, seasonal, and annual temporal resolutions. The red line is the mean and the grey bars represent the 25% CIs. These values were calculated by running 20 iterations of the DO and AGI models. Grey bars at the top of the plot represent data availability at each DO/AGI value.](images/partial_plots.png){width="100%"}
 
--   Low DO at surface at short time scales negatively correlated with species presence, while at depth, higher DO values had negative correlations with species presence. At depth, high oxygenation is found offshore and at higher latitudes, and thus this pattern may not be based on the species physiological preferences, and more on where the species were actually found when pooling locations across the region and study domain. Future studies may seek to look at DO/AGI patterns at a finer spatial scale as the relationships may be more physiologically meaningful.
+-   Low DO at surface at short time scales negatively correlated with species presence, while at depth, higher DO values had negative correlations with species presence. At depth, high oxygenation is found offshore and at higher latitudes, and thus this pattern may not be based on the species physiological preferences, and more on where the species were actually found when pooling locations across the region and study domain. Future studies may seek to look at DO/AGI patterns at a finer spatial scale across different latitudes, regions (e.g., near vs. offshore) and seasons (e.g., upwelling) as the relationships may be more physiologically meaningful. Could also provide different insights into the use of these variables.
 
     -   Similar patterns observed for the AGI at depth, and at the surface, a more narrow band of AGI values between 4-5 were observed as being the most optimal at daily/seasonal resolutions. Indicates that oxygen supply at the surface should be about 4-5x greater than demand.
 
@@ -231,3 +239,13 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
     -   Biggest improvement was in deviance explained, thus showcasing the importance of accounting for DO and/or metabolic performance when understanding mako habitat suitability.
 
 Will end emphasizing the necessity for considering role of oxygen and metabolic demands when predicting and projecting species distributions and to continue investigating what species this may be the most critical for and how they can be used to better understand species redistributions into the future.
+
+-   Consequences for management include:
+
+    -   Better understanding of multi-nation habitat use and how conservation risk varies across these regions. Emphasize importance for future climate models and species habitat projections that appropriately capture the relevant spatiotemporal resolution and spatial extent to guide meaningful and effective management decisions/plans.
+
+        -   Cite work that is being done for SMPI6 and MOM6 for CEFI which includes spatial extent through Baja
+
+    -   Indications of how temperature and deoxygenation have differing effects on a species (either directly or indirectly through their prey) creating different drivers for observed shifts.
+
+    -   Coastal areas will face more challenges for the protection of species under climate change, which may have considerable economic implications for these regions (i.e., changing access to fished species).

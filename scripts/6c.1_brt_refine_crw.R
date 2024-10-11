@@ -371,3 +371,9 @@ mean_prob <- rowMeans(pred_testdata)
 # performance measures for "mean of probabilities"
 (perf_mean_prob <- mecofun::evalSDM(test_df$PA, mean_prob))
 
+### Leave one year out evaluation ####
+
+
+
+
+

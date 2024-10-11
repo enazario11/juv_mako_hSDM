@@ -93,6 +93,7 @@ ggsave(here("figs/ms/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 
 ### Figure 2: AGI maps ####
 #neutral year
+#hsi_rast_gen(date_start = c("2013-09-01"), date_end = c("2014-01-31"), season = "FW", output_name = "neut_FW_Sept2013_Jan2014")
 agi_250m_2013 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13", fig_pos = 1)
 ggsave(here("figs/ms/fig2_agi/250_2013.png"), agi_250m_2013, height = 7, width = 7, units = c("in"))
 
@@ -102,9 +103,10 @@ agi_250m_2010 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spo
 ggsave(here("figs/ms/fig2_agi/250_2010.png"), agi_250m_2010, height = 7, width = 7, units = c("in"))
 
 #EL Niño
-#hsi_rast_gen(date_start = c("2009-11-01"), date_end = c("2010-01-31"), season = "FW", output_name = "EN_FW_2009_2010")
-agi_250m_2009 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_2009_2010", fig_pos = 3)
-ggsave(here("figs/ms/fig2_agi/250_2009.png"), agi_250m_2009, height = 7, width = 7, units = c("in"))
+#2014 
+#hsi_rast_gen(date_start = c("2014-11-01"), date_end = c("2015-01-31"), season = "FW", output_name = "EN_FW_Nov2014_Jan2015")
+agi_250m_2014 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015", fig_pos = 3)
+ggsave(here("figs/ms/fig2_agi/250_2014.png"), agi_250m_2014, height = 7, width = 7, units = c("in"))
 
 
 # Figure 3: predictor relative importance ####
@@ -478,8 +480,9 @@ enso_LN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F
 #ggsave(here("figs/ms/fig7_enso_diet/LN_panel.png"), enso_LN, width = 3, height = 8, units = c("in"))
 
 #EN year
-enso_EN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_2009_2010", enso = "EN")
+enso_EN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", enso = "EN")
 #ggsave(here("figs/ms/fig7_enso_diet/EN_panel.png"), enso_EN, width = 3, height = 8, units = c("in"))
+
 
 #diet data 
 source(here("scripts/7a_diet_data.R"))
