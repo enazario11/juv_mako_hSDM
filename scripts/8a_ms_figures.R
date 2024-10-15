@@ -108,7 +108,6 @@ ggsave(here("figs/ms/fig2_agi/250_2010.png"), agi_250m_2010, height = 7, width =
 agi_250m_2014 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015", fig_pos = 3)
 ggsave(here("figs/ms/fig2_agi/250_2014.png"), agi_250m_2014, height = 7, width = 7, units = c("in"))
 
-
 # Figure 3: predictor relative importance ####
 #list models
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))

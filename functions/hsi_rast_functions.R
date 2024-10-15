@@ -978,7 +978,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = perc_base), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -1012,7 +1012,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1)+
+    scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1)+
     geom_text(aes(x = Inf, y = Inf, 
                   label = perc_do), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -1046,7 +1046,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = perc_agi), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -1079,7 +1079,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = perc_combo), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
