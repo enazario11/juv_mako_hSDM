@@ -518,7 +518,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "deep", direction = -1) +
     ggtitle("Base model") +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_base$area[1], 2), "%")), 
@@ -542,7 +542,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "deep", direction = -1) +
     ggtitle("DO model") + 
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_do$area[1], 2), "%")), 
@@ -569,7 +569,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted")  +
+    scale_fill_whitebox_c(palette = "deep", direction = -1)  +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_agi$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
@@ -604,7 +604,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "deep", direction = -1) +
     ggtitle("DO, AGI combo model") +
     theme_map() +
     geom_text(aes(x = Inf, y = Inf, 
@@ -718,7 +718,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "deep", direction = -1) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_base$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -744,7 +744,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted")+
+    scale_fill_whitebox_c(palette = "deep", direction = -1)+
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_do$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -770,7 +770,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "deep", direction = -1) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_agi$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -807,7 +807,7 @@ hsi_maps_enso <- function(rast_folder, enso){
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted") +
+    scale_fill_whitebox_c(palette = "deep", direction = -1) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_combo$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
@@ -847,7 +847,22 @@ hsi_maps_enso <- function(rast_folder, enso){
                                                                                                                                                                                                                                                                       axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
   } 
   if(enso == "LN"){
+    
     all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)
+  }
+  if(enso == "diff"){
+    all_maps <- (base_map+
+                   theme(axis.text.y = element_text(size = 14, color = "black"), 
+                         axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(do_map+
+                                                                                                               theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                     axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map+
+                                                                                                                                                                                                           theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                 axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(combo_map+
+                                                                                                                                                                                                                                                                                                       theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                                                                                                             axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
+    
+    all_maps <- all_maps+
+      plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
   }
   
   return(all_maps)
@@ -855,7 +870,238 @@ hsi_maps_enso <- function(rast_folder, enso){
   #end function  
 }
 
+# hsi map function ENSO 
+hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
 
+  ### NEUTRAL
+  #load raster files -----------------------------------------------------------------------------------------------
+  base_rast_file <- list.files(here(neut_rast_folder), pattern = "base", full.names = TRUE)
+  do_rast_file <- list.files(here(neut_rast_folder), pattern = "do", full.names = TRUE)
+  agi_rast_file <- list.files(here(neut_rast_folder), pattern = "agi", full.names = TRUE)
+  do_agi_file <- list.files(here(neut_rast_folder), pattern = "comb", full.names = TRUE)
+  
+  base_rast <- rast(base_rast_file)
+  names(base_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+  
+  do_rast <- rast(do_rast_file)
+  names(do_rast) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+  
+  agi_rast <- rast(agi_rast_file)
+  names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+  
+  do_agi_rast <- rast(do_agi_file)
+  names(do_agi_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
+  
+  extent <- c(-153, -103, 1 , 49)
+  
+  #creating map dfs -------------------------------------------------------------------------------------------------
+  #predict
+  base_pred <- predict(base_rast, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+  base_pred <- crop(base_pred, extent)
+  
+  do_pred <- predict(do_rast, do_mod_fin, type = "response", n.tress = do_mod_fin$gbm.call$best.trees, na.rm = FALSE)
+  do_pred <- crop(do_pred, extent)
+  
+  agi_pred <- predict(agi_rast, agi_mod_fin, type = "response", n.tress = agi_mod_fin$gbm.call$best.trees, na.rm = FALSE)
+  agi_pred <- crop(agi_pred, extent)
+  
+  #agi_back <- predict(agi_rast, agi_mod_back, type = "response", n.tress = agi_mod_back$gbm.call$best.trees, na.rm = FALSE)
+  #agi_back <- crop(agi_back, extent)
+  
+  do_agi_pred <- predict(do_agi_rast, do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
+  do_agi_pred <- crop(do_agi_pred, extent)
+  
+  ### ENSO
+  #load raster files -----------------------------------------------------------------------------------------------
+  base_rast_file_enso <- list.files(here(enso_rast_folder), pattern = "base", full.names = TRUE)
+  do_rast_file_enso  <- list.files(here(enso_rast_folder), pattern = "do", full.names = TRUE)
+  agi_rast_file_enso  <- list.files(here(enso_rast_folder), pattern = "agi", full.names = TRUE)
+  do_agi_file_enso  <- list.files(here(enso_rast_folder), pattern = "comb", full.names = TRUE)
+  
+  base_rast_enso  <- rast(base_rast_file_enso )
+  names(base_rast_enso ) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+  
+  do_rast_enso  <- rast(do_rast_file_enso )
+  names(do_rast_enso ) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+  
+  agi_rast_enso  <- rast(agi_rast_file_enso )
+  names(agi_rast_enso ) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+  
+  do_agi_rast_enso  <- rast(do_agi_file_enso )
+  names(do_agi_rast_enso ) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
+  
+  #creating map dfs -------------------------------------------------------------------------------------------------
+  #predict
+  base_pred_enso  <- predict(base_rast_enso , base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+  base_pred_enso  <- crop(base_pred_enso , extent)
+  
+  do_pred_enso  <- predict(do_rast_enso , do_mod_fin, type = "response", n.tress = do_mod_fin$gbm.call$best.trees, na.rm = FALSE)
+  do_pred_enso  <- crop(do_pred_enso , extent)
+  
+  agi_pred_enso  <- predict(agi_rast_enso , agi_mod_fin, type = "response", n.tress = agi_mod_fin$gbm.call$best.trees, na.rm = FALSE)
+  agi_pred_enso  <- crop(agi_pred_enso , extent)
+  
+  do_agi_pred_enso  <- predict(do_agi_rast_enso , do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
+  do_agi_pred_enso  <- crop(do_agi_combo_enso , extent)
+  
+ # create difference rasters ------------------------------------------------------------------------------------------
+  #make difference maps
+  diff_base <- diff(c(base_pred, base_pred_enso))*100
+  diff_agi <- diff(c(agi_pred, agi_pred_enso))*100
+  diff_do <- diff(c(do_pred, do_pred_enso))*100
+  diff_do_agi_combo <- diff(c(do_agi_pred, do_agi_pred_enso))*100
+  
+  #plot maps --------------------------------------------------------------------------------------------------------
+  #land files
+  map.world = map_data(map="world")
+  testt = map.world %>% filter(long <= 180)
+  
+  #base map
+  #calculate percent area polygon takes up of raster 
+  base_hsi <- raster::clamp(base_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  hsi_area_base <- expanse(base_hsi)
+  rast_area_base <- expanse(base_pred)
+  perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
+  
+  #enso area
+  base_hsi_enso <- raster::clamp(base_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  hsi_area_base_enso <- expanse(base_hsi_enso)
+  rast_area_base_enso <- expanse(base_pred_enso)
+  perc_area_base_enso <- (hsi_area_base_enso/rast_area_base_enso$area[1])*100
+  
+  #calculate difference
+  perc_base <- paste0(round(perc_area_base_enso$area[1] - perc_area_base$area[1], 2), "%")
+  
+  #plot
+  base_map <- ggplot() +
+    geom_spatraster(data = diff_base) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1) +
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = perc_base), 
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
+    theme_map() +
+    theme(axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none", 
+          axis.title.x = element_blank())
+  
+  
+  #do map
+  #calculate percent area polygon takes up of raster 
+  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  
+  hsi_area_do <- expanse(do_hsi)
+  rast_area_do <- expanse(do_pred)
+  perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
+
+  #enso area
+  do_hsi_enso <- raster::clamp(do_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  hsi_area_do_enso <- expanse(do_hsi_enso)
+  rast_area_do_enso <- expanse(do_pred_enso)
+  perc_area_do_enso <- (hsi_area_do_enso/rast_area_do_enso$area[1])*100
+  
+  #calculate difference
+  perc_do <- paste0(round(perc_area_do_enso$area[1] - perc_area_do$area[1], 2), "%")
+  
+  do_map <- ggplot() +
+    geom_spatraster(data = diff_do) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1)+
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = perc_do), 
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
+    theme_map() +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none")
+  
+  
+  #agi map
+  #calculate percent area polygon takes up of raster 
+  agi_hsi <- raster::clamp(agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  
+  hsi_area_agi <- expanse(agi_hsi)
+  rast_area_agi <- expanse(agi_pred)
+  perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
+  
+  #enso area
+  agi_hsi_enso <- raster::clamp(agi_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  hsi_area_agi_enso <- expanse(agi_hsi_enso)
+  rast_area_agi_enso <- expanse(agi_pred_enso)
+  perc_area_agi_enso <- (hsi_area_agi_enso/rast_area_agi_enso$area[1])*100
+  
+  #calculate difference
+  perc_agi <- paste0(round(perc_area_agi_enso$area[1] - perc_area_agi$area[1], 2), "%")
+  
+  agi_map <- ggplot() +
+    geom_spatraster(data = diff_agi) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1) +
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = perc_agi), 
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
+    theme_map() +
+    theme(axis.text.x = element_blank(), 
+          axis.title.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none")
+  
+  #do agi combo map
+  #calculate percent area polygon takes up of raster 
+  combo_hsi <- raster::clamp(do_agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  
+  hsi_area_combo <- expanse(combo_hsi)
+  rast_area_combo <- expanse(do_agi_pred)
+  perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
+
+  #enso area
+  combo_hsi_enso <- raster::clamp(do_agi_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  hsi_area_combo_enso <- expanse(combo_hsi_enso)
+  rast_area_combo_enso <- expanse(do_agi_pred_enso)
+  perc_area_combo_enso <- (hsi_area_combo_enso/rast_area_combo_enso$area[1])*100
+  
+  #calculate difference
+  perc_combo <- paste0(round(perc_area_combo_enso$area[1] - perc_area_combo$area[1], 2), "%")
+  
+  combo_map <- ggplot() +
+    geom_spatraster(data = diff_do_agi_combo) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(-80, 50), direction = -1) +
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = perc_combo), 
+              hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
+    theme_map() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none")
+  
+  #combine and return maps ------------------------------------------------------------------------------------------------------
+  if(enso == "EN"){
+    all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)+
+      plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "% change")
+  } 
+  if(enso == "LN"){
+    all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)
+  }
+  
+  return(all_maps)
+  
+  #end function  
+}
 
 
 ### hsi difference map function ####

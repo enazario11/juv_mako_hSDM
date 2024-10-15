@@ -385,8 +385,8 @@ SOO_eval <- function(df, gbm.x, gbm.y, lr = 0.05, tc = 3, family = "bernoulli"){
   for (y in min(DataInput$Year):max(DataInput$Year)) {
     print(y)
     
-    DataInput_train <- DataInput[DataInput$Year!=y,]
-    DataInput_test <- DataInput[DataInput$Year==y,]
+    DataInput_train <- DataInput[DataInput$Year != y,]
+    DataInput_test <- DataInput[DataInput$Year == y,]
     
     DataInput.loo <- gbm.step(data = DataInput_train, gbm.x = gbm.x, gbm.y = gbm.y, 
                                 family = family, tree.complexity = tc,
@@ -450,28 +450,4 @@ soo_year_combo <- SOO_eval(df = dat_do_agi_all, gbm.x = gbm_do_agi, gbm.y = "PA"
 saveRDS(soo_year_combo, here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds"))
 year_do_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds")) %>% mutate(model = 'DO-AGI combo')
 
-#### LOO year explore ####
-year_all <- rbind(year_base, year_do, year_agi, year_do_agi) %>% mutate(Year = as.factor(Year), model = fct_relevel(model,  c("Base", "AGI", "DO", "DO-AGI combo")))
-
-TSS <- ggplot(year_all, aes(x = model, y = TSS, group = Year)) +
-  geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
-  scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
-  tidyquant::theme_tq()+
-  xlab("")
-
-AUC <- ggplot(year_all, aes(x = model, y = AUC, group = Year)) +
-  geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
-  scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
-  tidyquant::theme_tq()+
-  xlab("")
-
-dev <- ggplot(year_all, aes(x = model, y = Deviance, group = Year)) +
-  geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
-  scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
-  tidyquant::theme_tq()+
-  ylab("Deviance explained (%)")+
-  xlab("")
-
-all <- ggpubr::ggarrange(TSS, AUC, dev, common.legend = TRUE, nrow = 3, ncol = 1, legend = "bottom")
-ggsave(here("figs/ms/supp_figs/loo_metrics_year.png"), all, height = 7, width = 4, units = c("in"))
 

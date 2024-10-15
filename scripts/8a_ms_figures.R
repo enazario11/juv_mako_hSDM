@@ -1,5 +1,5 @@
 ### libraries ####
-{library(here)
+{library(here);here <- here::here #plyr's here function masks here::here
   library(MetBrewer)
   library(terra)
   library(ggBRT)
@@ -469,19 +469,16 @@ all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_De
 ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
 ### Figure 7: ENSO HSI maps ####
-#have to save using export button otherwise adds border, using width of 750 and height 350 (200 for LN panel)
+#have to save using export button otherwise adds border, using height of 750 and width 350 (200 for LN panel)
 
 #base year
-enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "base")
-#ggsave(here("figs/ms/fig7_enso_diet/base_panel.png"), enso_base, width = 3, height = 8, units = c("in"))
+enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff")
 
 #LN year 
-enso_LN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", enso = "LN")
-#ggsave(here("figs/ms/fig7_enso_diet/LN_panel.png"), enso_LN, width = 3, height = 8, units = c("in"))
+enso_LN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN")
 
 #EN year
-enso_EN <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", enso = "EN")
-#ggsave(here("figs/ms/fig7_enso_diet/EN_panel.png"), enso_EN, width = 3, height = 8, units = c("in"))
+enso_EN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN")
 
 
 #diet data 
@@ -1020,3 +1017,58 @@ for(i in 1:nrow(do_agi_comb$contributions)){
 
 do_agi_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
 ggsave(here("figs/ms/supp_figs/par_plot_do_agi.png"), do_agi_plots, height = 7, width = 11, units = c("in"))
+
+#### SF 5: LOO CV ####
+year_base <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_base.rds")) %>% mutate(model = "Base")
+year_do <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_do.rds")) %>% mutate(model = "DO")
+year_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_agi.rds")) %>% mutate(model = "AGI")
+year_do_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds")) %>% mutate(model = 'DO-AGI combo')
+
+year_all <- rbind(year_base, year_do, year_agi, year_do_agi) %>% mutate(Year = as.factor(Year), model = fct_relevel(model,  c("Base", "AGI", "DO", "DO-AGI combo")))
+dodger = position_dodge(width = 0.9)
+
+  TSS <- ggplot(year_all, aes(x = model, y = TSS, group = Year)) +
+    geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
+    scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
+    theme_bls_map()+
+    xlab("")+
+    theme(legend.justification = "center", 
+          legend.title = element_text(size = 20), 
+          legend.text = element_text(size = 16))+
+    guides(fill = guide_legend(nrow = 1, ncol = 15))
+  
+  AUC <- ggplot(year_all, aes(x = model, y = AUC, group = Year)) +
+    geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
+    scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
+    theme_bls_map()+
+    xlab("")+
+    theme(legend.justification = "center", 
+          legend.title = element_text(size = 20), 
+          legend.text = element_text(size = 16))+
+    guides(fill = guide_legend(nrow = 1, ncol = 15))
+  
+  dev <- ggplot(year_all, aes(x = model, y = Deviance, group = Year)) +
+    geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
+    scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
+    ylab("Deviance explained (%)")+
+    theme_bls_map()+
+    xlab("")+
+    theme(legend.justification = "center", 
+          legend.title = element_text(size = 20), 
+          legend.text = element_text(size = 16))+
+    guides(fill = guide_legend(nrow = 1, ncol = 15))
+
+all <- ggpubr::ggarrange(TSS, AUC, dev, common.legend = TRUE, nrow = 3, ncol = 1, legend = "bottom"); all
+ggsave(here("figs/ms/supp_figs/loo_metrics_year.png"), all, height = 9, width = 13, units = c("in"))
+
+year_df <- year_all %>%
+  subset(select = c("Year", "N. test points")) %>%
+  rename("Number of test points" = "N. test points") %>%
+  dplyr::distinct() %>%
+  pivot_wider(names_from = Year, values_from = "Number of test points") %>%
+  as.data.frame()
+rownames(year_df) <- "Number of test points"
+
+year_df %>%
+  gt(rownames_to_stub = TRUE) %>%
+  tab_header(title = "LOO Test Year") 

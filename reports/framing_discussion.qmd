@@ -146,8 +146,6 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
 ![AGI at 250m across ENSO phases. Percent areas represent the proportion of area with AGI values \< 1 and are outlined in black.](images/agi_maps-03.png){fig-align="center"}
 
--   ***Question***: Change color scale because inverse of HSI map scales? Wanted red to represent low-DO areas, but in other maps, red represents high suitability habitats. Thoughts on modifying this?
-
 -   Large portions of area at 250m have AGI \< 1, especially around the NEC. Could indicate that while this area is a sought after foraging zone for many sharks, including larger/adult makos, it may be metabolically stressful. This region overlaps with areas of strong habitat compression over the OMZ where DO concentrations at 100m are 3 ml/L or less, and contains areas known to be avoided by makos [@byrne2024]. This area is also near part of the western warm pool of the Pacific, an area with high SSTs (\>28 degree), low salinity, and low dissolved oxygen, which may further compress metabolically sustainable habitats through the water column near these coastal low latitude regions [@obrien2014; @griffiths2019].
 
     -   Sharp thermocline and low DO areas (i.e., metabolically stressful habitat) have been targeted for foraging as prey items are concentrated towards the surface, which can explain the trips out to this region [@polovina2004];[@stewart2019];[@logan2023];[@ryan2017].
@@ -162,13 +160,11 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
         -   Reference papers that have observed low DO waters or OMZ depth shaping habitat use of high-DO demand species: [@humphries2024, @waller2024, @carlisle2017, @gilly2013, etc.]
 
-            ![HSI maps across ENSO phases for each model selected for this analysis. Percentages represent the percent area where the HSI \> 0.75. The "neutral year" presents HSI averages from Jan. 2013 - Dec. 2013, the "La Niña year" presents averages from Sept. 2010 - Nov. 2010", and the "El Niño year" presents averages from Nov. 2014 - Jan. 2015. These windows were selected to capture the most extreme conditions for the respective La Niña or El Niño conditions. Prey items at the top are listed in order of importance and GII values were calculated following the methods described in Preti et al., 2012.](images/enso_hsi-04.png){fig-align="center"}
+            ![HSI maps across ENSO phases for each model selected for this analysis. Percentages during the neutral year represent the percent area where the HSI \> 0.75, while percentages for the La Niña and El Niño year represent the percent change in HSI \> 0.75 area relative to the neutral year. The "neutral year" presents HSI averages from Jan. 2013 - Dec. 2013, the "La Niña year" presents averages from Sept. 2010 - Nov. 2010", and the "El Niño year" presents averages from Nov. 2014 - Jan. 2015. These windows were selected to capture the most extreme conditions for the respective La Niña or El Niño conditions. The fill for the La Niña and El Niño years represent change in HSI values relative to the neutral year. Prey items at the top are listed in order of importance and GII values were calculated following the methods described in Preti et al., 2012.](images/enso_hsi-05.png){fig-align="center"}
 
 <!-- -->
 
 -   **Note:** Please see figure caption for how ENSO rasters were averaged. I would love feedback if there is a more recommended way for going about this!
-
--   ***Question***: Thoughts on including difference maps instead for the LN and EN years to better show changes in habitat suitability relative to the neutral year?
 
 -   Different ENSO phases have also altered habitat suitability and species distributions in the CCS. Here, metabolically unsuitable habitat (AGI \< 1) expanded by 2.5% when comparing a normal to LN year, and as these phases are anticipated to become more extreme with climate change, may result in bigger sways of habitat contractions. Additionally, AGI reductions during LN conditions were observed, providing a preview of possible habitat loss as ocean deoxygenation intensifies under anticipated climate change scenarios.
 
