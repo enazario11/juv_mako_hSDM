@@ -430,20 +430,48 @@ SOO_eval <- function(df, gbm.x, gbm.y, lr = 0.05, tc = 3, family = "bernoulli"){
 gbm_base = colnames(dat_base_d[, c(8:10, 15:18)])
 soo_year_base <- SOO_eval(df = dat_base_d, gbm.x = gbm_base, gbm.y = "PA")
 saveRDS(soo_year_base, here("data/brt/mod_outputs/crw/evaluation/soo_year_base.rds"))
+year_base <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_base.rds")) %>% mutate(model = "Base")
 
 #### do model ####
 gbm_do = colnames(dat_do_all[, c(8:11, 16:19, 22, 24, 26, 27, 29)])
 soo_year_do <- SOO_eval(df = dat_do_all, gbm.x = gbm_do, gbm.y = "PA")
 saveRDS(soo_year_do, here("data/brt/mod_outputs/crw/evaluation/soo_year_do.rds"))
+year_do <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_do.rds")) %>% mutate(model = "DO")
 
 #### agi model ####
 gbm_agi = colnames(dat_agi_all[, c(8:10, 15:19, 22, 24, 26, 27, 29)])
 soo_year_agi <- SOO_eval(df = dat_agi_all, gbm.x = gbm_agi, gbm.y = "PA")
 saveRDS(soo_year_agi, here("data/brt/mod_outputs/crw/evaluation/soo_year_agi.rds"))
+year_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_agi.rds")) %>% mutate(model = "AGI")
 
 #### do,agi combo model ####
 gbm_do_agi = colnames(dat_do_agi_all[, c(8:11, 16:19, 24, 27, 31,33, 35)])
 soo_year_combo <- SOO_eval(df = dat_do_agi_all, gbm.x = gbm_do_agi, gbm.y = "PA")
 saveRDS(soo_year_combo, here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds"))
+year_do_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds")) %>% mutate(model = 'DO-AGI combo')
 
+#### LOO year explore ####
+year_all <- rbind(year_base, year_do, year_agi, year_do_agi) %>% mutate(Year = as.factor(Year), model = fct_relevel(model,  c("Base", "AGI", "DO", "DO-AGI combo")))
+
+TSS <- ggplot(year_all, aes(x = model, y = TSS, group = Year)) +
+  geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
+  scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
+  tidyquant::theme_tq()+
+  xlab("")
+
+AUC <- ggplot(year_all, aes(x = model, y = AUC, group = Year)) +
+  geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
+  scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
+  tidyquant::theme_tq()+
+  xlab("")
+
+dev <- ggplot(year_all, aes(x = model, y = Deviance, group = Year)) +
+  geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
+  scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
+  tidyquant::theme_tq()+
+  ylab("Deviance explained (%)")+
+  xlab("")
+
+all <- ggpubr::ggarrange(TSS, AUC, dev, common.legend = TRUE, nrow = 3, ncol = 1, legend = "bottom")
+ggsave(here("figs/ms/supp_figs/loo_metrics_year.png"), all, height = 7, width = 4, units = c("in"))
 
