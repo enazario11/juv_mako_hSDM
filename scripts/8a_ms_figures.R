@@ -1071,3 +1071,27 @@ rownames(year_df) <- "Number of test points"
 year_df %>%
   gt(rownames_to_stub = TRUE) %>%
   tab_header(title = "LOO Test Year") 
+
+#### SF: spatial figs (DO, temp, lat/lon)
+##### Number of points by season ####
+dat_base_d <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% mutate(tag = as.factor(tag), date = as.Date(date))
+dat_locs <- dat_base_d %>% filter(PA == 1)
+dat_locs$month <- month(dat_locs$date)
+
+locs_mo <- ggplot(dat_locs, aes(x = as.factor(month))) + 
+  geom_bar(fill = "#92351e")+
+  xlab("Month")+
+  ylab("Number of locations")+
+  tidyquant::theme_tq()+
+  theme(axis.text = element_text(size = 16, color = "black"), 
+        axis.title= element_text(size = 20, color = "black"))
+
+ggsave(here("figs/ms/supp_figs/locs_by_mo.png"), height = 5, width = 7, units = c("in"))
+
+##### Map of DO at surface and depth across study domain averaged across study period ####
+
+
+##### Temp vs. DO by season and spatially #####
+
+
+
