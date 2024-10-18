@@ -1089,9 +1089,298 @@ locs_mo <- ggplot(dat_locs, aes(x = as.factor(month))) +
 ggsave(here("figs/ms/supp_figs/locs_by_mo.png"), height = 5, width = 7, units = c("in"))
 
 ##### Map of DO at surface and depth across study domain averaged across study period ####
+#create averaged rasters
+rast_0m <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_CHL_Temp_SO_UO_UOSTR_VO_VOSTR_SSH_MLD_0m_Jan2003_Dec2015_0.25_D.nc"))
+rast_do_0m <- rast_0m["o2"]
+rast_do_0m_mean <- mean(rast_do_0m)
 
+rast_250m <- rast(here("data/enviro/psat_spot_all/all_processed/CMEM_DO_Temp_SO_250m_Jan2003_Dec2015_0.25_D.nc"))
+rast_do_250m <- rast_250m["o2"]
+rast_do_250m_mean <- mean(rast_do_250m)
+
+#plot
+do_0m_map <- ggplot() +
+  geom_spatraster(data = rast_do_0m_mean) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+  
+ggsave(here("figs/ms/supp_figs/do_2003_2015_0m.png"), do_0m_map, height = 3, width = 6, units = c("in"))
+
+do_250m_map <- ggplot() +
+  geom_spatraster(data = rast_do_250m_mean) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+theme_map() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+ggsave(here("figs/ms/supp_figs/do_2003_2015_250m.png"), do_250m_map, height = 3, width = 6, units = c("in"))
 
 ##### Temp vs. DO by season and spatially #####
+#get observed location + covariate data
+dat_do_d <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% mutate(tag = as.factor(tag), date = as.Date(date))
+dat_agi_d <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% mutate(tag = as.factor(tag), date = as.Date(date))
+
+dat_locs_do <- dat_do_d %>% filter(PA == 1)
+dat_locs_do$month <- month(dat_locs_do$date)
+
+dat_locs_agi <- dat_agi_d %>% filter(PA == 1)
+dat_locs_agi$month <- month(dat_locs_agi$date)
+
+#plot DO vs. temp by month
+dat_do_sum <- dat_locs_do %>%
+  group_by(as.factor(month)) %>%
+  summarise(mean_do_0m = mean(o2_mean_0m, na.rm = TRUE), 
+            sd_do_0m = sd(o2_mean_0m, na.rm = TRUE), 
+            mean_do_250m = mean(o2_mean_250m, na.rm = TRUE),
+            sd_do_250m = sd(o2_mean_250m, na.rm = TRUE),
+            mean_temp = mean(temp_mean, na.rm = TRUE), 
+            sd_temp = sd(temp_mean, na.rm = TRUE))
+colnames(dat_do_sum) <- c("month", "mean_do_0m", "sd_do_0m", "mean_do_250m", "sd_do_250m", "mean_temp", "sd_temp")
+
+do_0m_month <- ggplot(dat_do_sum, aes(x = month, y = mean_do_0m))+
+  geom_bar(fill = "#92351e", stat = "identity", position = "dodge")+
+  geom_errorbar(aes(ymin = mean_do_0m - sd_do_0m, ymax = mean_do_0m + sd_do_0m), size =  1, color = "black", width = 0.4)+
+  xlab("Month")+
+  ylab("Dissolved oxygen (mmol/m^3)")+
+  tidyquant::theme_tq()+
+  theme(axis.title = element_text(size = 20, color = "black"), 
+        axis.text = element_text(size = 16, color = "black"))
+
+do_250m_month <- ggplot(dat_do_sum, aes(x = month, y = mean_do_250m))+
+  geom_bar(fill = "#92351e", stat = "identity", position = "dodge")+
+  geom_errorbar(aes(ymin = mean_do_250m - sd_do_250m, ymax = mean_do_250m + sd_do_0m), size =  1, color = "black", width = 0.4)+
+  xlab("Month")+
+  ylab("Dissolved oxygen (mmol/m^3)")+
+  tidyquant::theme_tq()+
+  theme(axis.title = element_text(size = 20, color = "black"), 
+        axis.text = element_text(size = 16, color = "black"))
+
+temp_0m_month <- ggplot(dat_do_sum, aes(x = month, y = mean_temp))+
+  geom_bar(fill = "#92351e", stat = "identity", position = "dodge")+
+  geom_errorbar(aes(ymin = mean_temp - sd_temp, ymax = mean_temp + sd_temp), size =  1, color = "black", width = 0.4)+
+  xlab("Month")+
+  ylab("Temperature (C)")+
+  tidyquant::theme_tq()+
+  theme(axis.title = element_text(size = 20, color = "black"), 
+        axis.text = element_text(size = 16, color = "black"))
+
+ggsave(here("figs/ms/supp_figs/do_0m_month.png"),  do_0m_month, height = 5, width = 5, units = c("in"))
+ggsave(here("figs/ms/supp_figs/do_250m_month.png"),  do_250m_month, height = 5, width = 5, units = c("in"))
+ggsave(here("figs/ms/supp_figs/temp_0m_month.png"), temp_0m_month,  height = 5, width = 5, units = c("in"))
 
 
+#seasonal maps of DO (0m and 250m) and temp
+rast_0m_seas <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_0m_season.nc"))
+
+  #winter Do 0m
+rast_seas_0m_subW <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 12)
+rast_seas_0m_do_W <- rast_seas_0m_subW["o2_1"]
+
+do_0m_W <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_do_W) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(150, 350)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Winter, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+  #spring DO 0m 
+rast_seas_0m_subSp <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 3)
+rast_seas_0m_do_Sp <- rast_seas_0m_subSp["o2_2"]
+
+do_0m_Sp <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_do_Sp) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(150, 350)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Spring, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+  #summer DO 0m
+rast_seas_0m_subSu <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 6)
+rast_seas_0m_do_Su <- rast_seas_0m_subSu["o2_3"]
+
+do_0m_Su <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_do_Su) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(150, 350)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Summer, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+  #fall DO 0m 
+rast_seas_0m_subF <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 9)
+rast_seas_0m_do_F <- rast_seas_0m_subF["o2_4"]
+
+do_0m_F <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_do_F) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(150, 350)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Fall, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+
+all_do_0m <- (do_0m_W|do_0m_Sp)/(do_0m_Su|do_0m_F)+
+  plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "Dissolved oxygen (mmol/m^3)")
+
+ggsave(here("figs/ms/supp_figs/do_0m_seasonal.png"), all_do_0m, height = 8, width = 10, units = c("in"))
+
+#DO 250m
+rast_250m_seas <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_250m_season.nc"))
+
+#winter Do 250m
+rast_seas_250m_subW <- subset(rast_250m_seas, month(time(rast_250m_seas)) == 12)
+rast_seas_250m_do_W <- rast_seas_250m_subW["o2_1"]
+
+do_250m_W <- ggplot() +
+  geom_spatraster(data = rast_seas_250m_do_W) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(0, 250)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Winter, 250m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+#spring DO 250m 
+rast_seas_250m_subSp <- subset(rast_250m_seas, month(time(rast_250m_seas)) == 3)
+rast_seas_250m_do_Sp <- rast_seas_250m_subSp["o2_2"]
+
+do_250m_Sp <- ggplot() +
+  geom_spatraster(data = rast_seas_250m_do_Sp) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(0, 250)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Spring, 250m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+#summer DO 250m
+rast_seas_250m_subSu <- subset(rast_250m_seas, month(time(rast_250m_seas)) == 6)
+rast_seas_250m_do_Su <- rast_seas_250m_subSu["o2_3"]
+
+do_250m_Su <- ggplot() +
+  geom_spatraster(data = rast_seas_250m_do_Su) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(0, 250)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Summer, 250m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+#fall DO 250m 
+rast_seas_250m_subF <- subset(rast_250m_seas, month(time(rast_250m_seas)) == 9)
+rast_seas_250m_do_F <- rast_seas_250m_subF["o2_4"]
+
+do_250m_F <- ggplot() +
+  geom_spatraster(data = rast_seas_250m_do_F) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(0, 250)) +
+  labs(fill = "Dissolved oxygen (mmol/m^3)")+
+  ggtitle("Fall, 250m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+
+all_do_250m <- (do_250m_W|do_250m_Sp)/(do_250m_Su|do_250m_F)+
+  plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "Dissolved oxygen (mmol/m^3)")
+
+ggsave(here("figs/ms/supp_figs/do_250m_seasonal.png"), all_do_250m, height = 8, width = 10, units = c("in"))
+
+#temperature, 0m, seasonal
+rast_0m_seas <- rast(here("data/enviro/psat_spot_all/all_processed/season_res/dat_0m_season.nc"))
+
+#winter temp 0m
+rast_seas_0m_subW <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 12)
+rast_seas_0m_temp_W <- rast_seas_0m_subW["votemper_1"]
+
+temp_0m_W <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_temp_W) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = 1, limits = c(0, 35)) +
+  labs(fill = "Temperature (C)")+
+  ggtitle("Winter, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+#spring temp 0m 
+rast_seas_0m_subSp <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 3)
+rast_seas_0m_temp_Sp <- rast_seas_0m_subSp["votemper_2"]
+
+temp_0m_Sp <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_temp_Sp) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = 1, limits = c(0, 35)) +
+  labs(fill = "Temperature (C)")+
+  ggtitle("Spring, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+#summer temp 0m
+rast_seas_0m_subSu <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 6)
+rast_seas_0m_temp_Su <- rast_seas_0m_subSu["votemper_3"]
+
+temp_0m_Su <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_temp_Su) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = 1, limits = c(0, 35)) +
+  labs(fill = "Temperature")+
+  ggtitle("Summer, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+#fall temp 250m 
+rast_seas_0m_subF <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 9)
+rast_seas_0m_temp_F <- rast_seas_0m_subF["votemper_4"]
+
+temp_0m_F <- ggplot() +
+  geom_spatraster(data = rast_seas_0m_temp_F) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = 1, limits = c(0, 35)) +
+  labs(fill = "Temperature (C)")+
+  ggtitle("Fall, 0m")+
+  theme_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
+
+
+all_temp_0m <- (temp_0m_W|temp_0m_Sp)/(temp_0m_Su|temp_0m_F)+
+  plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "Temperature (C)")
+
+ggsave(here("figs/ms/supp_figs/temp_0m_seasonal.png"), all_temp_0m, height = 8, width = 10, units = c("in"))
 
