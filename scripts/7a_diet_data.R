@@ -142,11 +142,25 @@ rmpq_prey_year2 <- rmpq_prey_year %>%
          perc_GII = (perc_N + perc_W + perc_F)/3)
 
 #plot all prey data across years in my study
-# rmpq_prey_year2 %>%
-#   filter(GII > 0.50 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
-#   ggplot(aes(x = reorder(Common_Name, -GII), y = GII)) +
-#   geom_bar(stat = "identity") +
-#   theme_tq() + 
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95)) +
-#   xlab('') +
-#   facet_wrap(~Year, scales = "free_x")
+#per year
+by_year <- rmpq_prey_year2 %>%
+  filter(GII > 0.50 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
+  ggplot(aes(x = reorder(Common_Name, -GII), y = GII)) +
+  geom_bar(stat = "identity") +
+  theme_tq() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95)) +
+  xlab('') 
+
+#pooled years
+all_years <- rmpq_prey %>%
+  filter(perc_GII >= 1) %>% 
+  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
+  geom_bar(stat = "identity", fill = "#92351e") +
+  theme_tq() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95), 
+        axis.text=element_text(size=14), 
+        axis.title=element_text(size=14)) +
+  xlab('')+
+  ylab('% GII')
+
+#ggsave(here("figs/ms/supp_figs/diet_years.png"), height = 7, width = 9, units = c("in"))

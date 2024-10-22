@@ -470,16 +470,16 @@ all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_De
 ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
 ### Figure 7: ENSO HSI maps ####
-#have to save using export button otherwise adds border, using height of 750 and width 350 (200 for LN panel)
+#have to save using export button otherwise adds border, using height of 750 and width 450 (LN width 300)
 
 #base year
-enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff")
+enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff", main_text = TRUE)
 
 #LN year 
-enso_LN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN")
+enso_LN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN", main_text = TRUE)
 
 #EN year
-enso_EN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN")
+enso_EN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = TRUE)
 
 
 #diet data 
@@ -1397,4 +1397,28 @@ fl_histo <- ggplot(fl_dat, aes(Fork.length..cm.))+
   tidyquant::theme_tq()
 
 ggsave(here("figs/ms/supp_figs/fl_histo.png"), fl_histo, width = 5, height = 4, units = c("in"))
+
+
+#### SF 7: ENSO HSI maps ####
+#have to save using export button otherwise adds border, using height of 750 and width 350 (200 for LN panel)
+
+#base year
+enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff", main_text = FALSE)
+
+#LN year 
+enso_LN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN", main_text = FALSE)
+
+#EN year
+enso_EN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = FALSE)
+
+
+#### SF 8: diet across study period ####
+source(here("scripts/7a_diet_data.R"))
+all_years
+
+ggsave(here("figs/ms/supp_figs/diet_years.png"), all_years, height = 7, width = 9, units = c("in"))
+
+
+
+
 

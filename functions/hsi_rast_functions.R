@@ -639,7 +639,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
 }
 
 # hsi map function ENSO 
-hsi_maps_enso <- function(rast_folder, enso){
+hsi_maps_enso <- function(rast_folder, enso, main_text = TRUE){
   #only makes maps from base model and the final DO and AGI models. Does not include maps from overfit DO and AGI models. 
   
   #load raster files -----------------------------------------------------------------------------------------------
@@ -739,6 +739,7 @@ hsi_maps_enso <- function(rast_folder, enso){
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
   print(paste0("DO hsi > 0.50:", " ", round(perc_area_do$area[1], 2), "%"))
   
+  if(main_text == FALSE){
   do_map <- ggplot() +
     geom_spatraster(data = do_pred) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -754,7 +755,25 @@ hsi_maps_enso <- function(rast_folder, enso){
           axis.text.y = element_blank(),
           axis.title.y = element_blank(),
           legend.position = "none")
+  }
   
+  if(main_text == TRUE){
+    do_map <- ggplot() +
+      geom_spatraster(data = do_pred) +
+      geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+      scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+      scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+      scale_fill_whitebox_c(palette = "deep", direction = -1)+
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = paste0(round(perc_area_do$area[1], 2), "%")), 
+                hjust = 1.1, vjust = 2, size = 8, color = "black")+
+      theme_map() +
+      theme(axis.title.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.title.y = element_blank(),
+            legend.position = "none")
+  }
 
   #agi map
   #calculate percent area polygon takes up of raster 
@@ -765,6 +784,7 @@ hsi_maps_enso <- function(rast_folder, enso){
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
   print(paste0("agi hsi > 0.50:", " ", round(perc_area_agi$area[1], 2), "%"))
   
+  if(main_text == FALSE){
   agi_map <- ggplot() +
     geom_spatraster(data = agi_pred) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -780,7 +800,28 @@ hsi_maps_enso <- function(rast_folder, enso){
           axis.text.y = element_blank(),
           axis.title.y = element_blank(),
       legend.position = "none")
+  }
   
+  if(main_text == TRUE){
+    agi_map <- ggplot() +
+      geom_spatraster(data = agi_pred) +
+      geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+      scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+      scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+      scale_fill_whitebox_c(palette = "deep", direction = -1) +
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = paste0(round(perc_area_agi$area[1], 2), "%")), 
+                hjust = 1.1, vjust = 2, size = 8, color = "black")+
+      theme_map() +
+      theme(axis.text.x = element_blank(), 
+            axis.title.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.title.y = element_blank(),
+            legend.position = "none")   
+    
+    
+    
+  }
 
   #agi map background PA
   # agi_map_back <- ggplot() +
@@ -831,38 +872,64 @@ hsi_maps_enso <- function(rast_folder, enso){
   
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
-  if(enso == "EN"){
-  all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)+
-    plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
-  } 
-  if(enso == "base"){
-    all_maps <- (base_map+
-                   theme(axis.text.y = element_text(size = 14, color = "black"), 
-                         axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(do_map+
-                                                                                                  theme(axis.text.y = element_text(size = 14, color = "black"), 
-                                                                                                        axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map+
-                                                                                                                                                                                 theme(axis.text.y = element_text(size = 14, color = "black"), 
-                                                                                                                                                                                       axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(combo_map+
-                                                                                                                                                                                                                                                                theme(axis.text.y = element_text(size = 14, color = "black"), 
-                                                                                                                                                                                                                                                                      axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
-  } 
-  if(enso == "LN"){
+  if(main_text == FALSE){
+        if(enso == "EN"){
+        all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)+
+          plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
+        } 
+        if(enso == "base"){
+          all_maps <- (base_map+
+                         theme(axis.text.y = element_text(size = 14, color = "black"), 
+                               axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(do_map+
+                                                                                                        theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                              axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map+
+                                                                                                                                                                                       theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                             axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(combo_map+
+                                                                                                                                                                                                                                                                      theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                                                                            axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
+        } 
+        if(enso == "LN"){
+          
+          all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)
+        }
+        if(enso == "diff"){
+          all_maps <- (base_map+
+                         theme(axis.text.y = element_text(size = 14, color = "black"), 
+                               axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(do_map+
+                                                                                                                     theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                           axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map+
+                                                                                                                                                                                                                 theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                       axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(combo_map+
+                                                                                                                                                                                                                                                                                                             theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                                                                                                                   axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
+          
+          all_maps <- all_maps+
+            plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
+        }
+        }
+  
+  if(main_text == TRUE){
     
-    all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)
-  }
-  if(enso == "diff"){
-    all_maps <- (base_map+
-                   theme(axis.text.y = element_text(size = 14, color = "black"), 
-                         axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(do_map+
-                                                                                                               theme(axis.text.y = element_text(size = 14, color = "black"), 
-                                                                                                                     axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map+
-                                                                                                                                                                                                           theme(axis.text.y = element_text(size = 14, color = "black"), 
-                                                                                                                                                                                                                 axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(combo_map+
-                                                                                                                                                                                                                                                                                                       theme(axis.text.y = element_text(size = 14, color = "black"), 
-                                                                                                                                                                                                                                                                                                             axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))
+          if(enso == "EN"){
+            all_maps <- (do_map)/(agi_map)+
+              plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
+          } 
+          if(enso == "base"){
+            all_maps <- (do_map+theme(axis.text.y = element_text(size = 14, color = "black"), axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3)))/(agi_map + axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 0.3))
+          } 
+          if(enso == "LN"){
+            
+            all_maps <- (do_map)/(agi_map)
+          }
+          if(enso == "diff"){
+            all_maps <- (do_map+theme(axis.text.y = element_text(size = 14, color = "black"), axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 1)))/(agi_map+theme(axis.text.y = element_text(size = 14, color = "black"), 
+                                                                                                                                                                                                                         axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 1), 
+                                                                                                                                                                                                axis.text.x = element_text(size = 14, color = "black", angle = 45, hjust = 0.5), 
+                                                                                                                                                                                                axis.title.x = element_text(size = 16, color = "black", vjust = 1)))
+            all_maps <- all_maps+
+              plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
+          }
     
-    all_maps <- all_maps+
-      plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
   }
   
   return(all_maps)
@@ -871,7 +938,7 @@ hsi_maps_enso <- function(rast_folder, enso){
 }
 
 # hsi map function ENSO 
-hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
+hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso, main_text = TRUE){
 
   ### NEUTRAL
   #load raster files -----------------------------------------------------------------------------------------------
@@ -942,7 +1009,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
   agi_pred_enso  <- crop(agi_pred_enso , extent)
   
   do_agi_pred_enso  <- predict(do_agi_rast_enso , do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
-  do_agi_pred_enso  <- crop(do_agi_combo_enso , extent)
+  do_agi_pred_enso  <- crop(do_agi_pred_enso , extent)
   
  # create difference rasters ------------------------------------------------------------------------------------------
   #make difference maps
@@ -1007,6 +1074,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
   #calculate difference
   perc_do <- paste0(round(perc_area_do_enso$area[1] - perc_area_do$area[1], 2), "%")
   
+  if(main_text == FALSE){
   do_map <- ggplot() +
     geom_spatraster(data = diff_do) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -1022,7 +1090,26 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
           axis.text.y = element_blank(),
           axis.title.y = element_blank(),
           legend.position = "none")
+  }
   
+  if(main_text == TRUE){
+    do_map <- ggplot() +
+      geom_spatraster(data = diff_do) +
+      geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+      scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+      scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+      scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1)+
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = perc_do), 
+                hjust = 1.1, vjust = 2, size = 8, color = "black")+
+      theme_map() +
+      theme(axis.title.x = element_blank(),
+            axis.text.y = element_blank(), 
+            axis.title.y = element_blank(),
+            axis.text.x = element_blank(),
+            legend.position = "none")
+
+  }
   
   #agi map
   #calculate percent area polygon takes up of raster 
@@ -1041,6 +1128,7 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
   #calculate difference
   perc_agi <- paste0(round(perc_area_agi_enso$area[1] - perc_area_agi$area[1], 2), "%")
   
+  if(main_text == FALSE){
   agi_map <- ggplot() +
     geom_spatraster(data = diff_agi) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -1056,6 +1144,26 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
           axis.text.y = element_blank(),
           axis.title.y = element_blank(),
           legend.position = "none")
+  }
+  
+  if(main_text == TRUE){
+    agi_map <- ggplot() +
+      geom_spatraster(data = diff_agi) +
+      geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+      scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+      scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+      scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = perc_agi), 
+                hjust = 1.1, vjust = 2, size = 8, color = "black")+
+      theme_map() +
+      theme(legend.position = "none", 
+            axis.text.y = element_blank(), 
+            axis.title.y = element_blank(),
+            axis.text.x = element_text(color = "black", angle = 45, hjust = 0.5, size = 14), 
+            axis.title.x = element_text(size = 16, color = "black", vjust = 1))
+
+  }
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
@@ -1090,6 +1198,8 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
           legend.position = "none")
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
+  
+  if(main_text == FALSE){
   if(enso == "EN"){
     all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)+
       plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "% change")
@@ -1097,7 +1207,20 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso){
   if(enso == "LN"){
     all_maps <- (base_map)/(do_map)/(agi_map)/(combo_map)
   }
+  }
   
+  if(main_text == TRUE){
+    if(enso == "EN"){
+      all_maps <- (do_map)/(agi_map)+
+        plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "% change")
+    } 
+    if(enso == "LN"){
+      all_maps <- (do_map)/(agi_map)
+    } 
+    
+  }
+    
+    
   return(all_maps)
   
   #end function  
