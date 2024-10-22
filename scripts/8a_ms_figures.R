@@ -94,19 +94,21 @@ ggsave(here("figs/ms/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 ### Figure 2: AGI maps ####
 #neutral year
 #hsi_rast_gen(date_start = c("2013-09-01"), date_end = c("2014-01-31"), season = "FW", output_name = "neut_FW_Sept2013_Jan2014")
-agi_250m_2013 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13", fig_pos = 1)
-ggsave(here("figs/ms/fig2_agi/250_2013.png"), agi_250m_2013, height = 7, width = 7, units = c("in"))
 
 #La Niña
 #hsi_rast_gen(date_start = c("2010-09-01"), date_end = c("2010-11-30"), season = "F", output_name = "LN_F_2010")
-agi_250m_2010 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010", fig_pos = 2)
-ggsave(here("figs/ms/fig2_agi/250_2010.png"), agi_250m_2010, height = 7, width = 7, units = c("in"))
+
 
 #EL Niño
 #2014 
 #hsi_rast_gen(date_start = c("2014-11-01"), date_end = c("2015-01-31"), season = "FW", output_name = "EN_FW_Nov2014_Jan2015")
-agi_250m_2014 <- agi_maps_ms(get_rast = "Y", rast_folder = "data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015", fig_pos = 3)
-ggsave(here("figs/ms/fig2_agi/250_2014.png"), agi_250m_2014, height = 7, width = 7, units = c("in"))
+
+
+agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13"), 
+                                    rast_folder_LN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010"), 
+                                    rast_folder_EN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015"))
+
+ggsave(here("figs/ms/fig2_agi/agi_250m_layered.png"), agi_250m_layered, height = 8, width = 8, units = c("in"))
 
 # Figure 3: predictor relative importance ####
 #list models
@@ -1383,4 +1385,16 @@ all_temp_0m <- (temp_0m_W|temp_0m_Sp)/(temp_0m_Su|temp_0m_F)+
   plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "Temperature (C)")
 
 ggsave(here("figs/ms/supp_figs/temp_0m_seasonal.png"), all_temp_0m, height = 8, width = 10, units = c("in"))
+
+#### SF 6: Histos of FL by sex ####
+fl_dat <- read.csv(here("data/presence_locs/metadata_csv.csv"))
+
+fl_histo <- ggplot(fl_dat, aes(Fork.length..cm.))+
+  geom_histogram(bins = 10, color = "black", fill = "#92351e", alpha = 0.9)+
+  facet_wrap(~Sex)+
+  ylab("Count")+
+  xlab("Fork length (cm)")+
+  tidyquant::theme_tq()
+
+ggsave(here("figs/ms/supp_figs/fl_histo.png"), fl_histo, width = 5, height = 4, units = c("in"))
 

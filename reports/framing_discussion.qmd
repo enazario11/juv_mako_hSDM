@@ -98,7 +98,7 @@ do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_da
 
 *Study objective:* Which model performs the best and presents the best predictions (i.e., best predictive performance scores, most ecologically realistic suitability maps)?
 
-**H2:** The inclusion ofdissolved oxygen and the AGI at deeper depths will result in better performing/more ecologically realistic habitat suitability predictions relative to the respective models considering surface values alone.
+**H2:** The inclusion of dissolved oxygen and the AGI at deeper depths will result in better performing/more ecologically realistic habitat suitability predictions relative to the respective models considering surface values alone.
 
 *Study objective:* How does dissolved oxygen/AGI at different depths influence habitat suitability predictions relative to oxygen/AGI at the surface? How does the relative importance of each depth layer differ?
 
@@ -144,7 +144,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
         -   This could have concerning conservation implications as these coastal and low latitude regions in the CCS may be some of the most metabolically vulnerable under future climate scenarios [@deutsch2015].
 
-![AGI at 250m across ENSO phases. Percent areas represent the proportion of area with AGI values \< 1 and are outlined in black.](images/agi_maps-03.png){fig-align="center"}
+![AGI at 250m across ENSO phases. Percent area represents the total area with AGI \< 1, and the percent gain or loss by ENSO phase. La Niña areas of AGI \< 1 are outlined in blue and El Niño areas of AGI \< 1 are outlined in white..](images/agi_250m_layered.png){fig-align="center" width="5in"}
 
 -   Large portions of area at 250m have AGI \< 1, especially around the NEC. Could indicate that while this area is a sought after foraging zone for many sharks, including larger/adult makos, it may be metabolically stressful. This region overlaps with areas of strong habitat compression over the OMZ where DO concentrations at 100m are 3 ml/L or less, and contains areas known to be avoided by makos [@byrne2024]. This area is also near part of the western warm pool of the Pacific, an area with high SSTs (\>28 degree), low salinity, and low dissolved oxygen, which may further compress metabolically sustainable habitats through the water column near these coastal low latitude regions [@obrien2014; @griffiths2019].
 

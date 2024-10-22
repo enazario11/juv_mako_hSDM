@@ -1401,3 +1401,87 @@ agi_maps_ms <- function(rast_folder = NULL, get_rast = c("Y", "N"), agi_0m_rast 
   
   #end function 
 }
+
+agi_maps_layerd <- function(rast_folder_base = NULL, rast_folder_LN = NULL, rast_folder_EN = NULL){
+#load rasters
+  #base agi
+    agi_250m_base <- rast(list.files(here(rast_folder_base), full.names = TRUE, pattern = "250m"))
+    
+  #LN agi
+    agi_250m_LN <- rast(list.files(here(rast_folder_LN), full.names = TRUE, pattern = "250m"))
+    
+  #EN agi
+    agi_250m_EN <- rast(list.files(here(rast_folder_EN), full.names = TRUE, pattern = "250m"))
+  
+  #create shape file of areas surrounding AGI < 1
+    #base
+  one_250m_base <- raster::clamp(agi_250m_base, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_250m_base <- as.polygons(ext(one_250m_base))
+  one_poly_250m_base <- as.polygons(one_250m_base > -Inf) 
+  
+    #LN
+  one_250m_LN <- raster::clamp(agi_250m_LN, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_250m_LN <- as.polygons(ext(one_250m_LN))
+  one_poly_250m_LN <- as.polygons(one_250m_LN > -Inf)
+  
+    #EN
+  one_250m_EN <- raster::clamp(agi_250m_EN, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_250m_EN <- as.polygons(ext(one_250m_EN))
+  one_poly_250m_EN <- as.polygons(one_250m_EN > -Inf)
+  
+  #calculate percent area polygon takes up of raster 
+    #base
+  poly_area_250m_base <- expanse(one_poly_250m_base)
+  rast_area_base <- expanse(agi_250m_base)
+  perc_area_250m_base <- (poly_area_250m_base/rast_area_base$area[1])*100
+  
+    #LN
+  poly_area_250m_LN <- expanse(one_poly_250m_LN)
+  rast_area_LN <- expanse(agi_250m_LN)
+  perc_area_250m_LN <- (poly_area_250m_LN/rast_area_LN$area[1])*100
+  
+    #EN
+  poly_area_250m_EN <- expanse(one_poly_250m_EN)
+  rast_area_EN <- expanse(agi_250m_EN)
+  perc_area_250m_EN <- (poly_area_250m_EN/rast_area_EN$area[1])*100
+  
+  #land shapes
+  map.world = map_data(map="world")
+  testt=map.world %>% filter(long<=180)
+  
+  #map
+    agi_one_250m <- ggplot() + 
+      geom_spatraster(data = agi_250m_base) + 
+      geom_spatvector(data = one_poly_250m_base, color = "black", fill = NA, linewidth = 0.8) +
+      geom_spatvector(data = one_poly_250m_LN, color = "lightskyblue1", fill = NA, linewidth = 0.8) +
+      geom_spatvector(data = one_poly_250m_EN, color = "white", fill = NA, linewidth = 0.8) +
+      geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+      scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+      scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+      scale_fill_whitebox_c(palette = "muted", direction = -1)+
+      labs(fill = "AGI")+
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = paste0("Area: ", round(perc_area_250m_base, 2), "%")), 
+                hjust = 1.1, vjust = 2, size = 8, color = "black")+
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = paste0("La Niña: +", round(perc_area_250m_LN - perc_area_250m_base, 2), "%")), 
+                hjust = 1.05, vjust = 4, size = 8, color = "black")+
+      geom_text(aes(x = Inf, y = Inf, 
+                    label = paste0("El Niño: -", round(perc_area_250m_base - perc_area_250m_EN, 2), "%")), 
+                hjust = 1.05, vjust = 6, size = 8, color = "black")+
+      theme_map()+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 18, color = "black"),
+            axis.text.y = element_text(color = "black", size = 18),
+            axis.title =element_text(size = 20, color = "black"), 
+            legend.text = element_text(size = 18), 
+            legend.title = element_text(size = 20), 
+            legend.position = "right", 
+            legend.justification = "center",
+            legend.background = element_blank(), 
+            legend.box.background = element_blank())
+    
+  return(agi_one_250m)
+  
+  #end function 
+}
+
