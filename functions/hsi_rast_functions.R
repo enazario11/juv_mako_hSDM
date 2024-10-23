@@ -605,7 +605,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
     scale_fill_whitebox_c(palette = "deep", direction = -1) +
-    ggtitle("DO, AGI combo model") +
+    ggtitle("DO + AGI combo model") +
     theme_map() +
     geom_text(aes(x = Inf, y = Inf, 
                   label = paste0(round(perc_area_combo$area[1], 2), "%")), 
@@ -924,8 +924,8 @@ hsi_maps_enso <- function(rast_folder, enso, main_text = TRUE){
           if(enso == "diff"){
             all_maps <- (do_map+theme(axis.text.y = element_text(size = 14, color = "black"), axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 1)))/(agi_map+theme(axis.text.y = element_text(size = 14, color = "black"), 
                                                                                                                                                                                                                          axis.title.y = element_text(size = 16, color = "black", angle = 90, vjust = 1), 
-                                                                                                                                                                                                axis.text.x = element_text(size = 14, color = "black", angle = 45, hjust = 0.5), 
-                                                                                                                                                                                                axis.title.x = element_text(size = 16, color = "black", vjust = 1)))
+                                                                                                                                                                                              axis.text.x = element_text(color = "black", angle = 45, hjust = 0.5, size = 14), 
+                                                                                                                                                                                              axis.title.x = element_text(size = 16, color = "black", vjust = -1)))
             all_maps <- all_maps+
               plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
           }
