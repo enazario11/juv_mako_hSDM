@@ -341,7 +341,7 @@ combo_file <- readRDS(mod_metric_files[3])
 base_file$mod_type <- "Base model"
 agi_file$mod_type <- "AGI model"
 do_file$mod_type <- "DO model"
-combo_file$mod_type <- "DO, AGI combo model"
+combo_file$mod_type <- "DO+AGI combo model"
 
 mod_metrics <- rbind(base_file, agi_file, do_file, combo_file)
 mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
@@ -365,7 +365,7 @@ cld <- as.data.frame.list(cld$mod_type)
 dt_tss$cld <- cld$Letters
 
 TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_tss)) +
   geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
   geom_errorbar(aes(ymin = mean_tss - sd, ymax = mean_tss + sd), size =  1, color = "black", width = 0.4)+
@@ -379,11 +379,11 @@ TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type),
   ) +
   xlab("") +
   ylab("TSS") + 
-  ylim(0, 0.75)+
+  coord_cartesian(ylim = c(0.5, 0.8))+
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14)) +
-  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5) 
+  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
 
 
 # analysis of variance
@@ -405,7 +405,7 @@ cld <- as.data.frame.list(cld$mod_type)
 dt_auc$cld <- cld$Letters
 
 AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_auc)) +
   geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
   geom_errorbar(aes(ymin = mean_auc - sd, ymax = mean_auc + sd), size =  1, color = "black", width = 0.4)+
@@ -417,7 +417,7 @@ AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type),
   ) +
   xlab("") +
   ylab("AUC") + 
-  ylim(0, 1) +
+  coord_cartesian(ylim = c(0.8, 1))+
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14)) +
@@ -443,7 +443,7 @@ cld <- as.data.frame.list(cld$mod_type)
 dt_dev$cld <- cld$Letters
 
 perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
-                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO, AGI combo model"))) %>%
+                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_dev)) +
   geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
   geom_errorbar(aes(ymin = mean_dev - sd, ymax = mean_dev + sd), size =  1, color = "black", width = 0.4)+
@@ -458,7 +458,7 @@ perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type),
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14))+
-  ylim(0, 70)+
+  coord_cartesian(ylim = c(20, 60))+
   geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
 
 all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
@@ -1021,7 +1021,7 @@ ggsave(here("figs/ms/supp_figs/par_plot_do_agi.png"), do_agi_plots, height = 7, 
 year_base <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_base.rds")) %>% mutate(model = "Base")
 year_do <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_do.rds")) %>% mutate(model = "DO")
 year_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_agi.rds")) %>% mutate(model = "AGI")
-year_do_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds")) %>% mutate(model = 'DO-AGI combo')
+year_do_agi <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_combo.rds")) %>% mutate(model = 'DO+AGI combo')
 
 year_all <- rbind(year_base, year_do, year_agi, year_do_agi) %>% mutate(Year = as.factor(Year), model = fct_relevel(model,  c("Base", "AGI", "DO", "DO-AGI combo")))
 dodger = position_dodge(width = 0.9)

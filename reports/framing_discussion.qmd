@@ -214,6 +214,8 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
     ![The effect of DO and AGI on the probability of mako shark presence at 0m and 250m, and at daily, seasonal, and annual temporal resolutions. The red line is the mean and the grey bars represent the 25% CIs. These values were calculated by running 20 iterations of the DO and AGI models. Grey bars at the top of the plot represent data availability at each DO/AGI value.](images/partial_plots.png){width="100%"}
 
+-   **Note:** Figure will be moved to supplement.
+
 -   Low DO at surface at short time scales negatively correlated with species presence, while at depth, higher DO values had negative correlations with species presence. At depth, high oxygenation is found offshore and at higher latitudes, and thus this pattern may not be based on the species physiological preferences, and more on where the species were actually found when pooling locations across the region and study domain. Future studies may seek to look at DO/AGI patterns at a finer spatial scale across different latitudes, regions (e.g., near vs. offshore) and seasons (e.g., upwelling) as the relationships may be more physiologically meaningful. Could also provide different insights into the use of these variables.
 
     -   Similar patterns observed for the AGI at depth, and at the surface, a more narrow band of AGI values between 4-5 were observed as being the most optimal at daily/seasonal resolutions. Indicates that oxygen supply at the surface should be about 4-5x greater than demand.
@@ -222,7 +224,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
     -   *Note:* Figure got horizontally squished, so axis text appearing smaller than expected.
 
-![The performance metrics listed for each model included in this analysis. Post-hoc Tukey Tests were performed to compare metrics between models. Values represent the means which were calculated by running 20 iterations of each model type, and black error bars represent +/- 1 SD.](images/perform_metrics-01.png){fig-align="center"}
+![The performance metrics listed for each model included in this analysis. Post-hoc Tukey Tests were performed to compare metrics between models. Values represent the means which were calculated by running 20 iterations of each model type, and black error bars represent +/- 1 SD.](images/perform_metrics-02.png){fig-align="center"}
 
 -   **Note:** Unsure if I should include the significance results here given previously published concerns about statistical tests comparing model results given arbitrary sample sizes [@white2014]. Happy to hear thoughts!
 
