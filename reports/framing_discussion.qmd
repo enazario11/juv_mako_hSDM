@@ -200,7 +200,7 @@ hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "
 
 **Overarching Result 2:** Inclusion of DO/AGI into habitat models
 
-![The relative importance of each predictor variable for each model.](images/all_preds-01.png){fig-align="center"}
+![The relative importance of each predictor variable for each model.](images/bar_pred.png){fig-align="center"}
 
 -   DO/AGI at 0m daily resolution and at 250m annual resolution consistently appeared in the top 3 most important predictors. Could be capturing different physiological processes/mechanisms at these scales and depth layers.
 

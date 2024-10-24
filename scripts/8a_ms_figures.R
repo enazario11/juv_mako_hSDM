@@ -128,35 +128,39 @@ base_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", base_inf$Predictor_varia
 base_inf$Predictor_variable <- gsub("ssh_mean", "SSH", base_inf$Predictor_variable)
 base_inf$Predictor_variable <- gsub("mld_mean", "MLD", base_inf$Predictor_variable)
 
-base_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(base_inf$Predictor_variable))+6, direction = -1)
+inf_df <- data.frame(model = c("Base", "Base", "Base", "Base", "Base", "Base", "Base"), 
+                     var = base_inf$Predictor_variable, 
+                     inf_val = base_inf$relative_influence)
 
-base_inf2 <- base_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-                                    ymax = cumsum(fraction),
-                                    ymin = c(0, head(ymax, n=-1)),
-                                    labelPosition = (ymax + ymin)/2)
+#base_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(base_inf$Predictor_variable))+6, direction = -1)
 
-base_pred <- ggplot(base_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-  geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-  geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-                   fill = alpha(c("white"),0),
-                   label.size = NA,
-                   size = 4.5, hjust = .5,
-                   nudge_x = 0.3, direction = "x",
-                   segment.color = "transparent"
-                   #segment.curvature = -0.1,
-                   #segment.ncp = 3,
-                   #segment.angle = 20, seed = 123
-  ) +
-  coord_polar(theta = "y", clip = "off") +
-  xlim(c(2, 5)) +
-  scale_fill_manual(values = base_cols) +
-  theme(legend.position = "none", 
-        plot.margin =  margin(-1,-1,-1,-1)) +
-  theme_void() +
-  guides(
-    fill = "none"
-  )
+# base_inf2 <- base_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
+#                                     ymax = cumsum(fraction),
+#                                     ymin = c(0, head(ymax, n=-1)),
+#                                     labelPosition = (ymax + ymin)/2)
+
+# base_pred <- ggplot(base_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
+#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
+#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
+#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
+#                    fill = alpha(c("white"),0),
+#                    label.size = NA,
+#                    size = 4.5, hjust = .5,
+#                    nudge_x = 0.3, direction = "x",
+#                    segment.color = "transparent"
+#                    #segment.curvature = -0.1,
+#                    #segment.ncp = 3,
+#                    #segment.angle = 20, seed = 123
+#   ) +
+#   coord_polar(theta = "y", clip = "off") +
+#   xlim(c(2, 5)) +
+#   scale_fill_manual(values = base_cols) +
+#   theme(legend.position = "none", 
+#         plot.margin =  margin(-1,-1,-1,-1)) +
+#   theme_void() +
+#   guides(
+#     fill = "none"
+#   )
 
 #do model
 do_inf <- as.data.frame(ggBRT::ggInfluence(do_mod_fin, plot = FALSE)) %>% rownames_to_column()
@@ -175,35 +179,39 @@ do_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_inf$Predictor_variable)
 do_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_inf$Predictor_variable)
 do_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_inf$Predictor_variable)
 
-do_cols <- NatParksPalettes::natparks.pals("Acadia", n = length(unique(do_inf$Predictor_variable))+20, direction = -1)
+do_inf <- do_inf %>% mutate(model = "DO") 
+colnames(do_inf) <- c("var", "inf_val", "model")
+inf_df <- rbind(inf_df, do_inf)
 
-do_inf2 <- do_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-                                 ymax = cumsum(fraction),
-                                 ymin = c(0, head(ymax, n=-1)),
-                                 labelPosition = (ymax + ymin)/2)
+#do_cols <- NatParksPalettes::natparks.pals("Acadia", n = length(unique(do_inf$Predictor_variable))+20, direction = -1)
 
-do_pred <- ggplot(do_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-  geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-  geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-                   fill = alpha(c("white"),0),
-                   label.size = NA,
-                   size = 4.5, hjust = .5,
-                   nudge_x = 0.63, direction = "x",
-                   segment.color = "transparent"
-                   #segment.curvature = -0.1,
-                   #segment.ncp = 3,
-                   #segment.angle = 20, seed = 123
-  ) +
-  coord_polar(theta = "y", clip = "off") +
-  xlim(c(2, 5)) +
-  scale_fill_manual(values = do_cols) +
-  theme(legend.position = "none", 
-        plot.margin =  margin(-1,-1,-1,-1)) +
-  theme_void() +
-  guides(
-    fill = "none"
-  )
+# do_inf2 <- do_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
+#                                  ymax = cumsum(fraction),
+#                                  ymin = c(0, head(ymax, n=-1)),
+#                                  labelPosition = (ymax + ymin)/2)
+# 
+# do_pred <- ggplot(do_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
+#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
+#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
+#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
+#                    fill = alpha(c("white"),0),
+#                    label.size = NA,
+#                    size = 4.5, hjust = .5,
+#                    nudge_x = 0.63, direction = "x",
+#                    segment.color = "transparent"
+#                    #segment.curvature = -0.1,
+#                    #segment.ncp = 3,
+#                    #segment.angle = 20, seed = 123
+#   ) +
+#   coord_polar(theta = "y", clip = "off") +
+#   xlim(c(2, 5)) +
+#   scale_fill_manual(values = do_cols) +
+#   theme(legend.position = "none", 
+#         plot.margin =  margin(-1,-1,-1,-1)) +
+#   theme_void() +
+#   guides(
+#     fill = "none"
+#   )
 
 
 #agi model
@@ -223,34 +231,38 @@ agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", agi_inf$Predictor_variable
 agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", agi_inf$Predictor_variable)
 agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", agi_inf$Predictor_variable)
 
-agi_inf2 <- agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-                                 ymax = cumsum(fraction),
-                                 ymin = c(0, head(ymax, n=-1)),
-                                 labelPosition = (ymax + ymin)/2)
-agi_cols <- MetBrewer::met.brewer("Greek", n = length(unique(agi_inf$Predictor_variable))+5)
+agi_inf <- agi_inf %>% mutate(model = "AGI") 
+colnames(agi_inf) <- c("var", "inf_val", "model")
+inf_df <- rbind(inf_df, agi_inf)
 
-agi_pred <- ggplot(agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-  geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-  geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-                   fill = alpha(c("white"),0),
-                   label.size = NA,
-                   size = 4.5, hjust = .5,
-                   nudge_x = 0.7, direction = "x",
-                   segment.color = "transparent"
-                   #segment.curvature = -0.1,
-                   #segment.ncp = 3,
-                   #segment.angle = 20, seed = 123
-  ) +
-  coord_polar(theta = "y", clip = "off") +
-  xlim(c(2, 5)) +
-  scale_fill_manual(values = agi_cols) +
-  theme(legend.position = "none", 
-        plot.margin =  margin(-1,-1,-1,-1)) +
-  theme_void() +
-  guides(
-    fill = "none"
-  )
+# agi_inf2 <- agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
+#                                  ymax = cumsum(fraction),
+#                                  ymin = c(0, head(ymax, n=-1)),
+#                                  labelPosition = (ymax + ymin)/2)
+# agi_cols <- MetBrewer::met.brewer("Greek", n = length(unique(agi_inf$Predictor_variable))+5)
+# 
+# agi_pred <- ggplot(agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
+#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
+#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
+#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
+#                    fill = alpha(c("white"),0),
+#                    label.size = NA,
+#                    size = 4.5, hjust = .5,
+#                    nudge_x = 0.7, direction = "x",
+#                    segment.color = "transparent"
+#                    #segment.curvature = -0.1,
+#                    #segment.ncp = 3,
+#                    #segment.angle = 20, seed = 123
+#   ) +
+#   coord_polar(theta = "y", clip = "off") +
+#   xlim(c(2, 5)) +
+#   scale_fill_manual(values = agi_cols) +
+#   theme(legend.position = "none", 
+#         plot.margin =  margin(-1,-1,-1,-1)) +
+#   theme_void() +
+#   guides(
+#     fill = "none"
+#   )
 
 #combo model
 do_agi_inf <- as.data.frame(ggBRT::ggInfluence(do_agi_comb, plot = FALSE)) %>% rownames_to_column()
@@ -269,36 +281,103 @@ do_agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_agi_inf$Predictor_va
 do_agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_agi_inf$Predictor_variable)
 do_agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_agi_inf$Predictor_variable)
 
-comb_cols <- NatParksPalettes::natparks.pals("BryceCanyon", n = length(unique(do_agi_inf$Predictor_variable))+30)
+do_agi_inf <- do_agi_inf %>% mutate(model = "DO+AGI combo") 
+colnames(do_agi_inf) <- c("var", "inf_val", "model")
+inf_df <- rbind(inf_df, do_agi_inf)
 
-do_agi_inf2 <- do_agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-                               ymax = cumsum(fraction),
-                               ymin = c(0, head(ymax, n=-1)),
-                               labelPosition = (ymax + ymin)/2)
+# comb_cols <- NatParksPalettes::natparks.pals("BryceCanyon", n = length(unique(do_agi_inf$Predictor_variable))+30)
+# 
+# do_agi_inf2 <- do_agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
+#                                ymax = cumsum(fraction),
+#                                ymin = c(0, head(ymax, n=-1)),
+#                                labelPosition = (ymax + ymin)/2)
+# 
+# do_agi_pred <- ggplot(do_agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
+#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
+#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
+#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
+#                    fill = alpha(c("white"),0),
+#                    label.size = NA,
+#                    size = 4.5, hjust = .5,
+#                    nudge_x = 0.7, direction = "x",
+#                    segment.color = "transparent"
+#                    #segment.curvature = -0.1,
+#                    #segment.ncp = 3,
+#                    #segment.angle = 20, seed = 123
+#   ) +
+#   coord_polar(theta = "y", clip = "off") +
+#   xlim(c(2, 5)) +
+#   scale_fill_manual(values = comb_cols) +
+#   theme(legend.position = "none", 
+#         plot.margin = margin(-1,-1,-1,-1)) +
+#   theme_void() +
+#   guides(
+#     fill = "none"
+#   )
 
-do_agi_pred <- ggplot(do_agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-  geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-  geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-  geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-                   fill = alpha(c("white"),0),
-                   label.size = NA,
-                   size = 4.5, hjust = .5,
-                   nudge_x = 0.7, direction = "x",
-                   segment.color = "transparent"
-                   #segment.curvature = -0.1,
-                   #segment.ncp = 3,
-                   #segment.angle = 20, seed = 123
-  ) +
-  coord_polar(theta = "y", clip = "off") +
-  xlim(c(2, 5)) +
-  scale_fill_manual(values = comb_cols) +
-  theme(legend.position = "none", 
-        plot.margin = margin(-1,-1,-1,-1)) +
-  theme_void() +
-  guides(
-    fill = "none"
-  )
+##### revised plot  #####
+for(i in 1:nrow(inf_df)){
+  if(str_detect(inf_df$var[i], "AGI")){
+    inf_df$var_type[i] = "AGI predictor"
+  }
+  
+  if(str_detect(inf_df$var[i], "DO")){
+    inf_df$var_type[i] = "DO predictor"
+  }
+  
+  if(!str_detect(inf_df$var[i], "DO")&!str_detect(inf_df$var[i], "AGI")){
+    inf_df$var_type[i] = "Environmental predictor"
+  }
+}
 
+inf_df <- inf_df %>% 
+  mutate(model = as.factor(model), 
+         model= fct_relevel(model, c("Base", "DO", "AGI", "DO+AGI combo")))
+
+do_agi <- inf_df %>% 
+  filter(var_type != "Environmental predictor") %>% 
+  mutate(var = as.factor(var)) %>%
+  mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
+  ggplot(aes(x = var, y = inf_val))+
+  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "black")+
+  scale_fill_manual(values = c( "#AD4323", "#C5682B", "#CF932C"))+
+  xlab("")+
+  ylab("Relative importance (%)")+
+  labs(fill = "Model")+
+  facet_wrap(~var_type, scales = "free_x")
+ tidyquant::theme_tq()+
+  theme(axis.text.y = element_text(size = 14, color = "black"), 
+        axis.text.x = element_text(size = 14, color = "black", angle = 45, hjust = 1),
+        axis.title = element_text(size = 16, color = "black"),
+        strip.text = element_text(size = 16), 
+        legend.title = element_text(size = 16), 
+        legend.text = element_text(size = 14),
+        legend.position = "none")
+
+enviro <- inf_df %>%
+  filter(var_type == "Environmental predictor") %>% 
+  mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
+  ggplot(aes(x = var, y = inf_val))+
+  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "black")+
+  scale_fill_manual(values = NatParksPalettes::natparks.pals("BryceCanyon", n = 10))+
+  xlab("")+
+  ylab("Relative importance (%)")+
+  scale_y_continuous(limits = c(0, 40), breaks = seq(0, 30, by = 10)) +
+  labs(fill = "Model")+
+  annotate(geom = "rect", fill = "#2c3e50", color = "#2c3e50", xmin = -Inf, xmax = +Inf, ymin = 33, ymax = +Inf)+
+  annotate(label = "Environmental predictor", geom = "text", color = "white", x = 4, y = 37.5, size = 6)+
+  tidyquant::theme_tq()+
+  theme(axis.text = element_text(size = 14, color = "black"), 
+        axis.title = element_text(size = 16, color = "black"),
+        strip.text = element_text(size = 16), 
+        legend.title = element_text(size = 16), 
+        legend.text = element_text(size = 14), 
+        legend.position = "top", 
+        legend.justification = "left")
+
+pred_fig <- enviro/do_agi
+ggsave(here("figs/ms/fig3_pred/bar_pred.png"), pred_fig, width = 11, height = 8, units = c("in"))
+  
 #ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
 ggsave(here("figs/ms/fig3_pred/base_pred.png"), base_pred, height = 7, width = 7, units = c("in"))
 ggsave(here("figs/ms/fig3_pred/do_pred.png"), do_pred, height = 7, width = 7, units = c("in"))
