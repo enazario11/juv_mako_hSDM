@@ -339,12 +339,12 @@ do_agi <- inf_df %>%
   mutate(var = as.factor(var)) %>%
   mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
   ggplot(aes(x = var, y = inf_val))+
-  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "black")+
-  scale_fill_manual(values = c( "#AD4323", "#C5682B", "#CF932C"))+
+  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white")+
+  scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15)[2:4])+
   xlab("")+
   ylab("Relative importance (%)")+
   labs(fill = "Model")+
-  facet_wrap(~var_type, scales = "free_x")
+  facet_wrap(~var_type, scales = "free_x")+
  tidyquant::theme_tq()+
   theme(axis.text.y = element_text(size = 14, color = "black"), 
         axis.text.x = element_text(size = 14, color = "black", angle = 45, hjust = 1),
@@ -358,8 +358,8 @@ enviro <- inf_df %>%
   filter(var_type == "Environmental predictor") %>% 
   mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
   ggplot(aes(x = var, y = inf_val))+
-  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "black")+
-  scale_fill_manual(values = NatParksPalettes::natparks.pals("BryceCanyon", n = 10))+
+  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white")+
+  scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15))+
   xlab("")+
   ylab("Relative importance (%)")+
   scale_y_continuous(limits = c(0, 40), breaks = seq(0, 30, by = 10)) +
@@ -376,6 +376,8 @@ enviro <- inf_df %>%
         legend.justification = "left")
 
 pred_fig <- enviro/do_agi
+pred_fig
+
 ggsave(here("figs/ms/fig3_pred/bar_pred.png"), pred_fig, width = 11, height = 8, units = c("in"))
   
 #ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
@@ -446,7 +448,7 @@ dt_tss$cld <- cld$Letters
 TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
   geom_errorbar(aes(ymin = mean_tss - sd, ymax = mean_tss + sd), size =  1, color = "black", width = 0.4)+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
@@ -486,7 +488,7 @@ dt_auc$cld <- cld$Letters
 AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
   geom_errorbar(aes(ymin = mean_auc - sd, ymax = mean_auc + sd), size =  1, color = "black", width = 0.4)+
   theme_light() +
   theme(
@@ -524,7 +526,7 @@ dt_dev$cld <- cld$Letters
 perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
                                    mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
   ggplot(aes(x = mod_type, y=mean_dev)) +
-  geom_bar(stat = "identity", fill = "#92351e", width = 0.7)+
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
   geom_errorbar(aes(ymin = mean_dev - sd, ymax = mean_dev + sd), size =  1, color = "black", width = 0.4)+
   theme_light() +
   theme(
@@ -569,7 +571,7 @@ diet_neutral <- rmpq_prey_year2 %>% ungroup() %>%
   filter(perc_GII >= 1 & Year == 2013) %>% 
   top_n(3) %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
-  geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
+  geom_bar(stat = "identity", fill = "#224B5E", alpha = 0.85) +
   theme_minimal() + 
   theme(axis.text.y=element_text(size=20, color = "black"), 
         axis.title=element_text(size=22, color = "black"), 
@@ -586,7 +588,7 @@ diet_LN <- rmpq_prey_year2 %>% ungroup() %>%
   filter(perc_GII >= 1 & Year == 2010) %>% 
   top_n(3) %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
-  geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
+  geom_bar(stat = "identity", fill = "#224B5E", alpha = 0.85) +
   theme_minimal() + 
   theme(axis.text=element_blank(), 
         axis.title=element_blank(), 
@@ -601,15 +603,15 @@ ggsave(here("figs/ms/fig7_enso_diet/diet_LN.png"), diet_LN, height = 4, width = 
 
 #EN year 
 diet_EN <- rmpq_prey_year2 %>%
-  filter(perc_GII >= 1 & Year == 2009) %>% 
+  filter(perc_GII >= 1 & Year == 2014) %>% 
   top_n(3) %>%
   ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
-  geom_bar(stat = "identity", fill = "#92351e", alpha = 0.85) +
+  geom_bar(stat = "identity", fill = "#224B5E", alpha = 0.85) +
   theme_minimal() + 
   theme(axis.text=element_blank(), 
         axis.title=element_blank(), 
         #axis.text.y = element_blank(), 
-        #axis.text.x = element_blank(),
+        #axis.text.x = element_text(),
         panel.grid = element_blank()) +
   xlab('')+
   ylab('% GII')+
