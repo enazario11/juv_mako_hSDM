@@ -339,7 +339,7 @@ do_agi <- inf_df %>%
   mutate(var = as.factor(var)) %>%
   mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
   ggplot(aes(x = var, y = inf_val))+
-  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white")+
+  geom_bar(aes(fill = model), stat = "identity", position = position_dodge2(width = 0.8, preserve = "single"), color = "white")+
   scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15)[2:4])+
   xlab("")+
   ylab("Relative importance (%)")+
@@ -358,14 +358,14 @@ enviro <- inf_df %>%
   filter(var_type == "Environmental predictor") %>% 
   mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
   ggplot(aes(x = var, y = inf_val))+
-  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white")+
+  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white", width = 0.8)+
   scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15))+
   xlab("")+
   ylab("Relative importance (%)")+
   scale_y_continuous(limits = c(0, 40), breaks = seq(0, 30, by = 10)) +
   labs(fill = "Model")+
-  annotate(geom = "rect", fill = "#2c3e50", color = "#2c3e50", xmin = -Inf, xmax = +Inf, ymin = 33, ymax = +Inf)+
-  annotate(label = "Environmental predictor", geom = "text", color = "white", x = 4, y = 37.5, size = 6)+
+  annotate(geom = "rect", fill = "#2c3e50", color = "#2c3e50", xmin = -Inf, xmax = +Inf, ymin = 34, ymax = +Inf)+
+  annotate(label = "Environmental predictor", geom = "text", color = "white", x = 4, y = 38, size = 6)+
   tidyquant::theme_tq()+
   theme(axis.text = element_text(size = 14, color = "black"), 
         axis.title = element_text(size = 16, color = "black"),
@@ -549,6 +549,12 @@ ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6
 ### Figure 6: HSI maps study period ####
 all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
+
+source(here("functions/avg_map_functions.R"))
+
+all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
+ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 7, width = 7, units = c("in"))
+
 
 ### Figure 7: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
@@ -1180,6 +1186,10 @@ rast_do_250m <- rast_250m["o2"]
 rast_do_250m_mean <- mean(rast_do_250m)
 
 #plot
+#land files
+map.world = map_data(map="world")
+testt = map.world %>% filter(long <= 180)
+
 do_0m_map <- ggplot() +
   geom_spatraster(data = rast_do_0m_mean) +
   geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -1203,6 +1213,27 @@ theme_map() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
 
 ggsave(here("figs/ms/supp_figs/do_2003_2015_250m.png"), do_250m_map, height = 3, width = 6, units = c("in"))
+
+# temp 0m 
+rast_temp_0m <- rast_0m["votemper"]
+rast_temp_0m_mean <- mean(rast_temp_0m)
+
+#plot
+temp_0m_map <- ggplot() +
+  geom_spatraster(data = rast_temp_0m_mean) +
+  geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", direction = -1) +
+  labs(fill = "Temperature (C)")+
+  theme_bls_map()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
+        legend.position = "right", 
+        legend.title =element_text(size = 16, color = "black"), 
+        legend.text = element_text(size = 14, color = "black"))
+
+ggsave(here("figs/ms/supp_figs/temp_2003_2015_0m.png"), temp_0m_map, height = 3, width = 6, units = c("in"))
+
 
 ##### Temp vs. DO by season and spatially #####
 #get observed location + covariate data
@@ -1444,7 +1475,7 @@ temp_0m_Su <- ggplot() +
   theme_map()+
   theme(axis.text.x = element_text(angle = 45, hjust = 0.5))
 
-#fall temp 250m 
+#fall temp 0m 
 rast_seas_0m_subF <- subset(rast_0m_seas, month(time(rast_0m_seas)) == 9)
 rast_seas_0m_temp_F <- rast_seas_0m_subF["votemper_4"]
 
