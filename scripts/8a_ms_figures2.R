@@ -315,26 +315,37 @@ inf_df <- rbind(inf_df, do_agi_inf)
 #     fill = "none"
 #   )
 
+avg_inf_df <- avg_pred(base_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE),
+                       do_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE), 
+                       agi_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE), 
+                       combo_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE))
+
 ##### revised plot  #####
-for(i in 1:nrow(inf_df)){
-  if(str_detect(inf_df$var[i], "AGI")){
-    inf_df$var_type[i] = "AGI predictor"
+avg_inf_sum <- avg_inf_df %>% 
+  group_by(model, var) %>%
+  summarise(inf_val = mean(inf_val))
+
+for(i in 1:nrow(avg_inf_sum)){
+  if(str_detect(avg_inf_sum$var[i], "AGI")){
+    avg_inf_sum$var_type[i] = "AGI predictor"
   }
   
-  if(str_detect(inf_df$var[i], "DO")){
-    inf_df$var_type[i] = "DO predictor"
+  if(str_detect(avg_inf_sum$var[i], "DO")){
+    avg_inf_sum$var_type[i] = "DO predictor"
   }
   
-  if(!str_detect(inf_df$var[i], "DO")&!str_detect(inf_df$var[i], "AGI")){
-    inf_df$var_type[i] = "Environmental predictor"
+  if(!str_detect(avg_inf_sum$var[i], "DO")&!str_detect(avg_inf_sum$var[i], "AGI")){
+    avg_inf_sum$var_type[i] = "Environmental predictor"
   }
 }
 
-inf_df <- inf_df %>% 
+avg_inf_sum <- avg_inf_sum %>% 
   mutate(model = as.factor(model), 
-         model= fct_relevel(model, c("Base", "DO", "AGI", "DO+AGI combo")))
+         model= fct_relevel(model, c("Base", "DO", "AGI", "DO+AGI combo")), 
+         var = as.factor(var), 
+         var = fct_relevel(var, c("AGI, annual, 250m", "AGI, daily, 0m", "AGI, seasonal, 0m", "AGI, seasonal, 250m","AGI, annual, 0m", "AGI, daily, 250m")))
 
-do_agi <- inf_df %>% 
+do_agi <- avg_inf_sum %>% 
   filter(var_type != "Environmental predictor") %>% 
   mutate(var = as.factor(var)) %>%
   mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
@@ -354,7 +365,7 @@ do_agi <- inf_df %>%
         legend.text = element_text(size = 14),
         legend.position = "none")
 
-enviro <- inf_df %>%
+enviro <- avg_inf_sum %>%
   filter(var_type == "Environmental predictor") %>% 
   mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
   ggplot(aes(x = var, y = inf_val))+
@@ -550,7 +561,7 @@ ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6
 all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
-source(here("functions/avg_map_functions.R"))
+source(here("functions/avg_functions.R"))
 
 all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 7, width = 7, units = c("in"))
@@ -567,7 +578,6 @@ enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spo
 
 #EN year
 enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = TRUE)
-
 
 #diet data 
 source(here("scripts/7a_diet_data.R"))
@@ -1513,13 +1523,13 @@ ggsave(here("figs/ms/supp_figs/fl_histo.png"), fl_histo, width = 5, height = 4, 
 #have to save using export button otherwise adds border, using height of 750 and width 350 (200 for LN panel)
 
 #base year
-enso_base <- hsi_maps_enso(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff", main_text = FALSE)
+enso_base <- hsi_maps_enso_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff", main_text = FALSE)
 
 #LN year 
-enso_LN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN", main_text = FALSE)
+enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN", main_text = FALSE)
 
 #EN year
-enso_EN <- hsi_maps_difference_enso(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = FALSE)
+enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = FALSE)
 
 
 #### SF 8: diet across study period ####
