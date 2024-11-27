@@ -6,10 +6,17 @@
   library(patchwork)
   library(ggrepel)
   library(tidyverse)
-  set.seed(1004)}
+  set.seed(1004)
+  source(here("functions/hsi_rast_functions.R"))
+  source(here("functions/BRT_evaluation_functions.R"))
+  source(here("functions/oxy_demand_functions.R"))
+  source(here("functions/avg_functions.R"))
+  source(here("functions/partial_plot.R"))
+  source(here("scripts/7a_diet_data.R"))
+}
 
 ### saved custom themes ####
-theme_bls_map <- function(){ 
+theme_ms_map <- function(){ 
   font <- "Arial"   #assign font family up front
   
   theme_minimal() %+replace%    #replace elements we want to change
@@ -48,7 +55,22 @@ theme_bls_map <- function(){
     )
 }
 
-### Figure 1: locs over study area bathymetry ####
+### Figure 1: Conceptual fig of hypotheses ###
+#coastline data
+north_map = map_data("world") %>% group_by(group)
+shore     = north_map[north_map$region=="Canada" 
+                      | north_map$region=="USA"
+                      | north_map$region=="Mexico",]
+
+ggplot(shore, aes(long, lat)) +
+  #plot coastline
+  coord_map("mercator", xlim = c(-153, -103), ylim = c(1, 49))+
+  geom_polygon(aes(group=group), fill="grey75",lwd=1)+
+  theme_ms_map()
+
+ggsave(here("figs/ms/fig1_concept_hyp/coast.png"), height = 7 , width = 5, units = c("in"))
+
+### Figure 2: locs over study area bathymetry ####
 #### presence location data ####
 #shark data
 ani_locs <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spot_animotum.RDS")) %>% 
@@ -56,12 +78,6 @@ ani_locs <- readRDS(here("data/presence_locs/psat_spot_domain/processed/psat_spo
   subset(select = -c(geometry))
 
 names(ani_locs) <- c("tag", "date", "lon", "lat", "PA", "rep")
-
-#coastline data
-north_map = map_data("world") %>% group_by(group)
-shore     = north_map[north_map$region=="Canada" 
-                      | north_map$region=="USA"
-                      | north_map$region=="Mexico",]
 
 #bathy data
 r = rast(here("data/enviro/psat_spot_all/bathy_gebco/processed/gebco_bathy_0.25deg2.nc"))
@@ -82,16 +98,16 @@ ggplot(shore, aes(long, lat)) +
   #plot shark locations
   geom_path(data=ani_locs, aes(lon, lat, colour=as.factor(tag)), size = 0.5) +
   scale_color_manual(values = met.brewer("OKeeffe2", 73)) +
-theme_bls_map() +
+theme_ms_map() +
   xlim(-153, -103)+
   ylim(1, 49) +
-  theme(legend.position = "right") + 
+  theme(legend.position = "none") + 
   guides(fill = guide_legend(title = "Bathymetry (m)", reverse = TRUE), 
          color = FALSE)
 
-ggsave(here("figs/ms/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
+ggsave(here("figs/ms/fig1_tracks_bathy/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 
-### Figure 2: AGI maps ####
+### Figure 4: AGI maps ####
 #neutral year
 #hsi_rast_gen(date_start = c("2013-09-01"), date_end = c("2014-01-31"), season = "FW", output_name = "neut_FW_Sept2013_Jan2014")
 
@@ -110,7 +126,145 @@ agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_sp
 
 ggsave(here("figs/ms/fig2_agi/agi_250m_layered.png"), agi_250m_layered, height = 8, width = 8, units = c("in"))
 
-# Figure 3: predictor relative importance ####
+
+### Figure 5: model performance ####
+mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
+
+base_file <- readRDS(mod_metric_files[2])
+do_file <- readRDS(mod_metric_files[4])
+agi_file <- readRDS(mod_metric_files[1])
+combo_file <- readRDS(mod_metric_files[3])
+
+base_file$mod_type <- "Base model"
+agi_file$mod_type <- "AGI model"
+do_file$mod_type <- "DO model"
+combo_file$mod_type <- "DO+AGI combo model"
+
+mod_metrics <- rbind(base_file, agi_file, do_file, combo_file)
+mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
+
+# analysis of variance
+anova <- aov(TSS ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_tss <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
+  arrange(desc(mean_tss))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_tss$cld <- cld$Letters
+
+TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_tss)) +
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_tss - sd, ymax = mean_tss + sd), size =  1, color = "black", width = 0.4)+
+  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
+  #geom_point(color="orange", size=6) +
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("TSS") + 
+  coord_cartesian(ylim = c(0.5, 0.8))+
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14)) +
+  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
+
+
+# analysis of variance
+anova <- aov(AUC ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_auc <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
+  arrange(desc(mean_auc))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_auc$cld <- cld$Letters
+
+AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_auc)) +
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_auc - sd, ymax = mean_auc + sd), size =  1, color = "black", width = 0.4)+
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("AUC") + 
+  coord_cartesian(ylim = c(0.8, 1))+
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14)) +
+  geom_text(aes(label = cld, y = mean_auc + 0.015), vjust = -0.5, size = 5) 
+
+
+# analysis of variance
+anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+tukey <- TukeyHSD(anova)
+
+# compact letter display
+cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+dt_dev <- mod_metrics %>%
+  group_by(mod_type) %>%
+  summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
+  arrange(desc(mean_dev))
+
+# extracting the compact letter display and adding to the Tk table
+cld <- as.data.frame.list(cld$mod_type)
+dt_dev$cld <- cld$Letters
+
+perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
+                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_dev)) +
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_dev - sd, ymax = mean_dev + sd), size =  1, color = "black", width = 0.4)+
+  theme_light() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("Deviance explained (%)") + 
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14))+
+  coord_cartesian(ylim = c(20, 60))+
+  geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
+
+all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
+
+ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6, width = 12, units = c("in"))
+
+
+
+# Figure 6: predictor relative importance ####
 #list models
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
@@ -397,177 +551,15 @@ ggsave(here("figs/ms/fig3_pred/do_pred.png"), do_pred, height = 7, width = 7, un
 ggsave(here("figs/ms/fig3_pred/agi_pred.png"), agi_pred, height = 7, width = 7, units = c("in"))
 ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width = 7, units = c("in"))
 
-### Figure 4: Partial plots ####
-source(here("functions/partial_plot.R"))
-
-#DO, 0m
-do_0m <- par_plot_func(do_mod_fin, vars = c("o2_mean_0m", "o2_mean_0m_seas", "o2_mean_0m_ann"), vars_type = "o2_0m")
-ggsave(here("figs/ms/fig3/do_0m.png"), do_0m, height = 5, width = 7, units = c("in"))
-
-#DO, 250m 
-do_250m <- par_plot_func(do_mod_fin, vars = c("o2_mean_250m", "o2_mean_250m_seas", "o2_mean_250m_ann"), vars_type = "o2_250m")
-ggsave(here("figs/ms/fig3/do_250m.png"), do_250m, height = 5, width = 7, units = c("in"))
-
-#AGI, 0m
-agi_0m <- par_plot_func(agi_mod_fin, vars = c("AGI_0m", "AGI_0m_seas", "AGI_0m_ann"), vars_type = "AGI_0m")
-ggsave(here("figs/ms/fig3/agi_0m.png"), agi_0m, height = 5, width = 9, units = c("in"))
-
-#AGI, 250m
-agi_250m <- par_plot_func(agi_mod_fin, vars = c("AGI_250m", "AGI_250m_seas", "AGI_250m_ann"), vars_type = "AGI_250m")
-ggsave(here("figs/ms/fig3/agi_250m.png"), agi_250m, height = 5, width = 7, units = c("in"))
-
-all_do <- ggarrange(do_0m, do_250m, nrow = 2, ncol = 1, common.legend = TRUE)
-ggsave(here("figs/ms/fig3/all_do.png"), all_do, height = 8, width = 7, units = c("in"))
-
-all_agi <- ggarrange(agi_0m, agi_250m, nrow = 2, ncol = 1, common.legend = TRUE)
-ggsave(here("figs/ms/fig3/all_agi.png"), all_agi, height = 8, width = 7, units = c("in"))
-
-### Figure 5: model performance ####
-mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
-
-base_file <- readRDS(mod_metric_files[2])
-do_file <- readRDS(mod_metric_files[4])
-agi_file <- readRDS(mod_metric_files[1])
-combo_file <- readRDS(mod_metric_files[3])
-
-base_file$mod_type <- "Base model"
-agi_file$mod_type <- "AGI model"
-do_file$mod_type <- "DO model"
-combo_file$mod_type <- "DO+AGI combo model"
-
-mod_metrics <- rbind(base_file, agi_file, do_file, combo_file)
-mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
-
-# analysis of variance
-anova <- aov(TSS ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-tukey <- TukeyHSD(anova)
-
-# compact letter display
-cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-dt_tss <- mod_metrics %>%
-  group_by(mod_type) %>%
-  summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
-  arrange(desc(mean_tss))
-
-# extracting the compact letter display and adding to the Tk table
-cld <- as.data.frame.list(cld$mod_type)
-dt_tss$cld <- cld$Letters
-
-TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_tss - sd, ymax = mean_tss + sd), size =  1, color = "black", width = 0.4)+
-  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
-  #geom_point(color="orange", size=6) +
-  theme_light() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  xlab("") +
-  ylab("TSS") + 
-  coord_cartesian(ylim = c(0.5, 0.8))+
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14)) +
-  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
-
-
-# analysis of variance
-anova <- aov(AUC ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-tukey <- TukeyHSD(anova)
-
-# compact letter display
-cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-dt_auc <- mod_metrics %>%
-  group_by(mod_type) %>%
-  summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
-  arrange(desc(mean_auc))
-
-# extracting the compact letter display and adding to the Tk table
-cld <- as.data.frame.list(cld$mod_type)
-dt_auc$cld <- cld$Letters
-
-AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_auc - sd, ymax = mean_auc + sd), size =  1, color = "black", width = 0.4)+
-  theme_light() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  xlab("") +
-  ylab("AUC") + 
-  coord_cartesian(ylim = c(0.8, 1))+
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14)) +
-  geom_text(aes(label = cld, y = mean_auc + 0.015), vjust = -0.5, size = 5) 
-
-
-# analysis of variance
-anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-tukey <- TukeyHSD(anova)
-
-# compact letter display
-cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-dt_dev <- mod_metrics %>%
-  group_by(mod_type) %>%
-  summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
-  arrange(desc(mean_dev))
-
-# extracting the compact letter display and adding to the Tk table
-cld <- as.data.frame.list(cld$mod_type)
-dt_dev$cld <- cld$Letters
-
-perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
-                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_dev)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_dev - sd, ymax = mean_dev + sd), size =  1, color = "black", width = 0.4)+
-  theme_light() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  xlab("") +
-  ylab("Deviance explained (%)") + 
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14))+
-  coord_cartesian(ylim = c(20, 60))+
-  geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
-
-all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
-
-ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6, width = 12, units = c("in"))
-
-### Figure 6: HSI maps study period ####
+### Figure 7: HSI maps study period ####
 all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
-
-source(here("functions/avg_functions.R"))
 
 all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 7, width = 7, units = c("in"))
 
 
-### Figure 7: ENSO HSI maps ####
+### Figure 8: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
 
 #base year
@@ -580,8 +572,6 @@ enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spo
 enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = TRUE)
 
 #diet data 
-source(here("scripts/7a_diet_data.R"))
-
 #neutral year 
 diet_neutral <- rmpq_prey_year2 %>% ungroup() %>%
   filter(perc_GII >= 1 & Year == 2013) %>% 
@@ -634,8 +624,6 @@ diet_EN <- rmpq_prey_year2 %>%
   scale_x_discrete(position = "top") 
 
 ggsave(here("figs/ms/fig7_enso_diet/diet_EN.png"), diet_EN, height = 4, width = 6, units = c("in"))
-
-
 
 ### Supplementary files ####
 #### ST1: Shark metadata ####
@@ -1126,7 +1114,7 @@ dodger = position_dodge(width = 0.9)
   TSS <- ggplot(year_all, aes(x = model, y = TSS, group = Year)) +
     geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
     scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
-    theme_bls_map()+
+    theme_ms_map()+
     xlab("")+
     theme(legend.justification = "center", 
           legend.title = element_text(size = 20), 
@@ -1136,7 +1124,7 @@ dodger = position_dodge(width = 0.9)
   AUC <- ggplot(year_all, aes(x = model, y = AUC, group = Year)) +
     geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
     scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
-    theme_bls_map()+
+    theme_ms_map()+
     xlab("")+
     theme(legend.justification = "center", 
           legend.title = element_text(size = 20), 
@@ -1147,7 +1135,7 @@ dodger = position_dodge(width = 0.9)
     geom_bar(stat = "identity", aes(fill = Year), position = "dodge", color = "black") +
     scale_fill_manual(values = met.brewer("Greek", n = 20, direction = 1)) + 
     ylab("Deviance explained (%)")+
-    theme_bls_map()+
+    theme_ms_map()+
     xlab("")+
     theme(legend.justification = "center", 
           legend.title = element_text(size = 20), 
@@ -1236,7 +1224,7 @@ temp_0m_map <- ggplot() +
   scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
   scale_fill_whitebox_c(palette = "muted", direction = -1) +
   labs(fill = "Temperature (C)")+
-  theme_bls_map()+
+  theme_ms_map()+
   theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
         legend.position = "right", 
         legend.title =element_text(size = 16, color = "black"), 
@@ -1533,12 +1521,9 @@ enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spo
 
 
 #### SF 8: diet across study period ####
-source(here("scripts/7a_diet_data.R"))
 all_years
 
 ggsave(here("figs/ms/supp_figs/diet_years.png"), all_years, height = 7, width = 9, units = c("in"))
-
-
 
 
 
