@@ -6,6 +6,7 @@
   library(patchwork)
   library(ggrepel)
   library(tidyverse)
+  library(tidyr)
   set.seed(1004)
   source(here("functions/hsi_rast_functions.R"))
   source(here("functions/BRT_evaluation_functions.R"))
@@ -1507,7 +1508,7 @@ fl_histo <- ggplot(fl_dat, aes(Fork.length..cm.))+
 ggsave(here("figs/ms/supp_figs/fl_histo.png"), fl_histo, width = 5, height = 4, units = c("in"))
 
 
-#### SF 7: ENSO HSI maps ####
+#### SF 15: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 350 (200 for LN panel)
 
 #base year
@@ -1519,11 +1520,26 @@ enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spo
 #EN year
 enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = FALSE)
 
+#### SF 16: diet data time series ####
+#use functions to reorder the set of bars in each facet (from GitHub: dgrtwo/drlib)
+reorder_within <- function(x, by, within, fun = mean, sep = "___", ...) {
+  new_x <- paste(x, within, sep = sep)
+  stats::reorder(new_x, by, FUN = fun)
+}
 
-#### SF 8: diet across study period ####
-all_years
+scale_x_reordered <- function(..., sep = "___") {
+  reg <- paste0(sep, ".+$")
+  ggplot2::scale_x_discrete(labels = function(x) gsub(reg, "", x), ...)
+}
 
-ggsave(here("figs/ms/supp_figs/diet_years.png"), all_years, height = 7, width = 9, units = c("in"))
+by_year <- rmpq_prey_year2 %>%
+  filter(GII > 4.06 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
+  ggplot(aes(x = reorder_within(Common_Name, -GII, Year), y = GII)) +
+  geom_bar(stat = "identity", fill = "#92351e") +
+  scale_x_reordered()+
+  facet_wrap(~Year, scales = "free_x")+
+  theme_tq() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95)) +
+  xlab('') 
 
-
-
+ggsave(here("figs/ms/supp_figs/diet_data_by_year.png"), width = 8, height = 9, units = c("in"))

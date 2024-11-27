@@ -144,9 +144,10 @@ rmpq_prey_year2 <- rmpq_prey_year %>%
 #plot all prey data across years in my study
 #per year
 by_year <- rmpq_prey_year2 %>%
-  filter(GII > 0.50 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
+  filter(GII > 4.06 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
   ggplot(aes(x = reorder(Common_Name, -GII), y = GII)) +
-  geom_bar(stat = "identity") +
+  geom_bar(stat = "identity", fill = "#92351e") +
+  facet_wrap(~Year, scales = "free_x")+
   theme_tq() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95)) +
   xlab('') 
