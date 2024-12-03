@@ -97,16 +97,17 @@ ggplot(shore, aes(long, lat)) +
                       aes(x,y,z=gebco_bathy_0.25deg2)) +#breaks=seq(0,1,by=0.2)
   scale_fill_manual(values = mycolors)+
   #plot shark locations
-  geom_path(data=ani_locs, aes(lon, lat, colour=as.factor(tag)), size = 0.5) +
+  geom_path(data=test, aes(lon, lat, colour=as.factor(tag)), size = 0.5) +
   scale_color_manual(values = met.brewer("OKeeffe2", 73)) +
 theme_ms_map() +
   xlim(-153, -103)+
   ylim(1, 49) +
-  theme(legend.position = "none") + 
+  theme(legend.position = "none", 
+        axis.title = element_blank()) + 
   guides(fill = guide_legend(title = "Bathymetry (m)", reverse = TRUE), 
          color = FALSE)
 
-ggsave(here("figs/ms/fig1_tracks_bathy/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
+ggsave(here("figs/ms/fig2_tracks_bathy/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 
 ### Figure 4: AGI maps ####
 #neutral year

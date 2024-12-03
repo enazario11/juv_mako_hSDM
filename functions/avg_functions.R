@@ -95,8 +95,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_avg)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
-  #print(paste0("Base hsi > 0.50:", " ", round(perc_area_base$area[1], 2), "%"))
-  
+
   base_map <- ggplot() +
     geom_spatraster(data = base_avg) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -119,8 +118,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_avg)
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
-  #print(paste0("DO hsi > 0.50:", " ", round(perc_area_do$area[1], 2), "%"))
-  
+
   do_map <- ggplot() +
     geom_spatraster(data = do_avg) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -146,8 +144,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_avg)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
-  #print(paste0("agi hsi > 0.50:", " ", round(perc_area_agi$area[1], 2), "%"))
-  
+
   agi_map <- ggplot() +
     geom_spatraster(data = agi_avg) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -163,17 +160,6 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   
   if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/agi_avg_all.png"), agi_map, height = 5, width = 5)}
   
-  #agi map background PA
-  # agi_map_back <- ggplot() +
-  #   geom_spatraster(data = agi_back) +
-  #   geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-  #   scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-  #   scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-  #   scale_fill_whitebox_c(palette = "muted", direction = -1) +
-  #   ggtitle("AGI model (background PA)") +
-  #   theme_map() +
-  #   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
   #do agi combo map
   #calculate percent area polygon takes up of raster 
   combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
@@ -181,8 +167,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(combo_avg)
   perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
-  #print(paste0("combo hsi > 0.50:", " ", round(perc_area_combo$area[1], 2), "%"))
-  
+
   combo_map <- ggplot() +
     geom_spatraster(data = combo_avg) +
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
@@ -200,17 +185,6 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
           legend.position = "none")
   
   if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/combo_avg.png"), combo_map, height = 5, width = 5)}
-  
-  #ensemble map
-  # ensemb_map <- ggplot() +
-  #   geom_spatraster(data = ensemb_pred) +
-  #   geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-  #   scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-  #   scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-  #   scale_fill_whitebox_c(palette = "muted", direction = -1) +
-  #   ggtitle("DO, AGI ensemble model") +
-  #   theme_map() +
-  #   theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
@@ -291,7 +265,6 @@ hsi_maps_enso_avg <- function(rast_folder, enso, main_text = TRUE, iter = 20){
   agi_avg <- mean(agi_list)
   combo_avg <- mean(combo_list)
   
-  
   #plot maps --------------------------------------------------------------------------------------------------------
   #land files
   map.world = map_data(map="world")
@@ -303,7 +276,7 @@ hsi_maps_enso_avg <- function(rast_folder, enso, main_text = TRUE, iter = 20){
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_avg)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
-  print(paste0("Base hsi > 0.50:", " ", round(perc_area_base$area[1], 2), "%"))
+  print(paste0("Base hsi > 0.75:", " ", round(perc_area_base$area[1], 2), "%"))
   
   base_map <- ggplot() +
     geom_spatraster(data = base_avg) +
@@ -329,7 +302,7 @@ hsi_maps_enso_avg <- function(rast_folder, enso, main_text = TRUE, iter = 20){
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_avg)
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
-  print(paste0("DO hsi > 0.50:", " ", round(perc_area_do$area[1], 2), "%"))
+  print(paste0("DO hsi > 0.75:", " ", round(perc_area_do$area[1], 2), "%"))
   
   if(main_text == FALSE){
     do_map <- ggplot() +
@@ -374,7 +347,7 @@ hsi_maps_enso_avg <- function(rast_folder, enso, main_text = TRUE, iter = 20){
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_avg)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
-  print(paste0("agi hsi > 0.50:", " ", round(perc_area_agi$area[1], 2), "%"))
+  print(paste0("agi hsi > 0.75:", " ", round(perc_area_agi$area[1], 2), "%"))
   
   if(main_text == FALSE){
     agi_map <- ggplot() +
@@ -422,7 +395,7 @@ hsi_maps_enso_avg <- function(rast_folder, enso, main_text = TRUE, iter = 20){
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(combo_avg)
   perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
-  print(paste0("combo hsi > 0.50:", " ", round(perc_area_combo$area[1], 2), "%"))
+  print(paste0("combo hsi > 0.75:", " ", round(perc_area_combo$area[1], 2), "%"))
   
   combo_map <- ggplot() +
     geom_spatraster(data = combo_avg) +
