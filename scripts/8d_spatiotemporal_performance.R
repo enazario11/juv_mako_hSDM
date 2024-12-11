@@ -5,6 +5,8 @@
   library(here)
   library(gbm)
   library(dismo)
+  library(doParallel)
+  library(foreach)
   set.seed(1004)}
 
 ### load data ####
@@ -156,6 +158,10 @@ brt_st <- function(dat_file, n_iter = 20, mod_type, save_folder){
 } #end function
 
 #### run brts ####
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores-2)
+registerDoParallel(cluster)
+
 #base
 dat_base_st$row_id <- 1:nrow(dat_base_st)
 brt_st(dat_file = dat_base_st, mod_type = "base", save_folder = "data/brt/mod_outputs/perf_metric_iters/brts_st/")
@@ -172,7 +178,87 @@ brt_st(dat_file = dat_agi_st, mod_type = "agi", save_folder = "data/brt/mod_outp
 dat_do_agi_st$row_id <- 1:nrow(dat_do_agi_st)
 brt_st(dat_file = dat_do_agi_st, mod_type = "combo", save_folder = "data/brt/mod_outputs/perf_metric_iters/brts_st/")
 
+stopCluster(cl = cluster)
+
 ### performance metrics ####
+metric_by_model <- function(mod_file, test_file, iter){
+  
+  #calc performance metrics for each st_id
+  for(i in 1:length(unique(test_file$st_id))){
+    if(i == 1){
+    temp_df <- data.frame(matrix(ncol = 5, nrow = 9))
+    cols_names <- c("iteration", "AUC", "TSS", "dev_exp", "st_id")
+    colnames(temp_df) <- cols_names  
+    }
+    
+    st_id_temp <- unique(test_file$st_id)[i]
+    test_temp <- test_file %>% filter(st_id == st_id_temp)
+    
+    preds <- predict.gbm(mod_file, test_temp,
+                         n.trees = mod_file$gbm.call$best.trees,
+                         type = "response")
+    observed <- test_temp$PA
+    
+    ext.residual.deviance <- calc.deviance(obs = test_temp$PA, pred=preds, family="bernoulli", calc.mean=TRUE) #get % deviance
+    null.dev =  calc.deviance(test_temp$PA ,rep(mean(test_temp$PA),length(test_temp$PA)), family="bernoulli", calc.mean=T)
+    dev=(null.dev - ext.residual.deviance)/null.dev 
+    
+    dat_pred <- cbind(test_temp$PA, preds)
+    pres <- dat_pred[dat_pred[,1] == 1, 2]
+    abs <- dat_pred[dat_pred[,1] == 0, 2]
+    
+    #evaluate (AUC, TSS, TPR)
+    e = evaluate(p = pres, a = abs)
+    
+    #store metrics in performance metric df
+    temp_df$iteration[i] <- iter
+    temp_df$AUC[i] <- e@auc
+    temp_df$TSS[i] <- max((e@TPR + e@TNR - 1))
+    temp_df$dev_exp[i] <- dev
+    temp_df$st_id[i] <- st_id_temp
+  } #end metric for loop
+  
+  return(temp_df)
+}
+
+
+brt_perf_metric <- function(mod_files, test_files, mod_type, domain = "all"){
+  
+  #read in model and test file locations
+  mod_files = list.files(mod_files, full.names = TRUE, pattern = ".rds")
+  test_files = list.files(test_files, full.names = TRUE, pattern = ".rds")
+  perform_df <- NULL
+  
+  for(i in 1:length(mod_files)){
+    
+    #load model and test file
+    mod_file <- readRDS(mod_files[i])
+    test_file <- readRDS(test_files[i])
+    
+    iter = i
+    mod_iter_df <- metric_by_model(mod_file = mod_file, test_file = test_file, iter = iter)
+    perform_df <- rbind(perform_df, mod_iter_df)
+    
+  } #end loop per brt iteration
+  
+  saveRDS(perform_df, here(paste0("data/brt/mod_outputs/perf_metric_iters/brts_st/", mod_type, "_metrics.rds")))
+  return(perform_df)
+  
+} #end function
+
+#### get metrics ####
+#base
+base_metrics_st <- brt_perf_metric(mod_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/base/", test_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/base/test/", mod_type = "base")
+
+#do
+do_metrics_st <- brt_perf_metric(mod_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/do/", test_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/do/test/", mod_type = "do")
+
+#agi
+agi_metrics_st <- brt_perf_metric(mod_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/agi/", test_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/agi/test/", mod_type = "agi")
+
+#combo
+combo_metrics_st <- brt_perf_metric(mod_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/combo/", test_files = "data/brt/mod_outputs/perf_metric_iters/brts_st/combo/test/", mod_type = "combo")
+
 
 
 

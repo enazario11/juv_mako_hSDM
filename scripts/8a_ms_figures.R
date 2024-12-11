@@ -265,10 +265,44 @@ all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
 
 ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6, width = 12, units = c("in"))
 
-#### Spatial analysis (NEC and CCS) ####
+#### Spatio-temporal analysis ####
+base_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/base_metrics.rds")) %>% mutate(mod_type = "Base model")
+do_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/do_metrics.rds")) %>% mutate(mod_type = "DO model")
+agi_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/agi_metrics.rds")) %>% mutate(mod_type = "AGI model")
+combo_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/combo_metrics.rds")) %>% mutate(mod_type = "DO+AGI model")
 
+all_st <- rbind(base_st, do_st, agi_st, combo_st)
+all_sum_st <- all_st %>%
+  group_by(mod_type, st_id) %>%
+  summarise(mean_auc = mean(AUC), 
+            sd_auc = sd(AUC), 
+            mean_tss = mean(TSS), 
+            sd_tss = sd(TSS), 
+            mean_dev = mean(dev_exp),
+            sd_dev = sd(dev_exp)) %>%
+  ungroup()
 
-
+#deviance explained
+all_sum_st %>% 
+  mutate(mod_type = as.factor(mod_type), 
+         mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_dev)) +
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_dev - sd_dev, ymax = mean_dev + sd_dev), size =  1, color = "black", width = 0.4)+
+  facet_wrap(~st_id)+
+  theme_tq() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("Deviance explained (%)") + 
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14))
+  # coord_cartesian(ylim = c(20, 60))+
+  # geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
 
 
 # Figure 6: predictor relative importance ####
