@@ -1,5 +1,5 @@
 ### libraries ####
-library(tidyverse)
+{library(tidyverse)
 library(terra)
 library(sf)
 library(patchwork)
@@ -12,7 +12,7 @@ library(lessR)
 library(rstatix)
 library(ggpubr)
 
-set.seed(1004)
+set.seed(1004)}
 
 ### raster generation function ####
 hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "WSpSuF", output_name){

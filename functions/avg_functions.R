@@ -109,7 +109,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     theme_map() +
     theme(axis.text.x = element_blank(), legend.position = "none", axis.title.x = element_blank())
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/base_avg_all.png"), base_map, height = 5, width = 5)}
+  if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/base_avg_all.png"), base_map, height = 5, width = 5)}
   
   #do map
   #calculate percent area polygon takes up of raster 
@@ -135,7 +135,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
           axis.text.x = element_blank(),
           legend.position = "none")
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/do_avg_all.png"), do_map, height = 5, width = 5)}
+  if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/do_avg_all.png"), do_map, height = 5, width = 5)}
   
   #agi map
   #calculate percent area polygon takes up of raster 
@@ -158,7 +158,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     theme_map() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/agi_avg_all.png"), agi_map, height = 5, width = 5)}
+  if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/agi_avg_all.png"), agi_map, height = 5, width = 5)}
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
@@ -184,7 +184,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
           axis.title.y = element_blank(), 
           legend.position = "none")
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/combo_avg.png"), combo_map, height = 5, width = 5)}
+  if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/combo_avg.png"), combo_map, height = 5, width = 5)}
   
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
