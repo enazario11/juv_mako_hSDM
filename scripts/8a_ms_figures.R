@@ -179,7 +179,7 @@ TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type),
   ) +
   xlab("") +
   ylab("TSS") + 
-  coord_cartesian(ylim = c(0.5, 0.8))+
+  coord_cartesian(ylim = c(0.3, 0.65))+
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14)) +
@@ -258,7 +258,7 @@ perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type),
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
         axis.title = element_text(size = 14))+
-  coord_cartesian(ylim = c(20, 60))+
+  coord_cartesian(ylim = c(20, 50))+
   geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
 
 all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
@@ -282,13 +282,58 @@ all_sum_st <- all_st %>%
             sd_dev = sd(dev_exp)) %>%
   ungroup()
 
+#TSS
+all_sum_st %>% 
+  mutate(mod_type = as.factor(mod_type), 
+         mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_tss)) +
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_tss - sd_tss, ymax = mean_tss + sd_tss), size =  1, color = "black", width = 0.4)+
+  facet_wrap(~st_id)+
+  theme_tq() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("TSS") + 
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14))+
+coord_cartesian(ylim = c(0.25, 1))
+# geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
+
+#AUC
+all_sum_st %>% 
+  mutate(mod_type = as.factor(mod_type), 
+         mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
+  ggplot(aes(x = mod_type, y=mean_auc)) +
+  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
+  geom_errorbar(aes(ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc), size =  1, color = "black", width = 0.4)+
+  facet_wrap(~st_id)+
+  theme_tq() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  xlab("") +
+  ylab("AUC") + 
+  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14))+
+coord_cartesian(ylim = c(0.70, 1))
+# geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
+
+
 #deviance explained
 all_sum_st %>% 
   mutate(mod_type = as.factor(mod_type), 
          mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_dev)) +
+  ggplot(aes(x = mod_type, y=mean_dev*100)) +
   geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_dev - sd_dev, ymax = mean_dev + sd_dev), size =  1, color = "black", width = 0.4)+
+  geom_errorbar(aes(ymin = mean_dev*100 - sd_dev*100, ymax = mean_dev*100 + sd_dev*100), size =  1, color = "black", width = 0.4)+
   facet_wrap(~st_id)+
   theme_tq() +
   theme(
@@ -300,8 +345,8 @@ all_sum_st %>%
   ylab("Deviance explained (%)") + 
   theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
         axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14))
-  # coord_cartesian(ylim = c(20, 60))+
+        axis.title = element_text(size = 14))+
+  coord_cartesian(ylim = c(20, 60))
   # geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
 
 
