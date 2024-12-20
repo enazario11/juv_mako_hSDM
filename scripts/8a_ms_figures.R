@@ -126,11 +126,11 @@ agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_sp
                                     rast_folder_LN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010"), 
                                     rast_folder_EN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015"))
 
-ggsave(here("figs/ms/fig2_agi/agi_250m_layered.png"), agi_250m_layered, height = 8, width = 8, units = c("in"))
+ggsave(here("figs/ms/fig2_agi/agi_250m_layered.png"), agi_250m_layered, height = 7, width = 8, units = c("in"))
 
 
 ### Figure 5: model performance ####
-#### entire domain and study period ####
+#entire domain and study period
 mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
 
 base_file <- readRDS(mod_metric_files[2])
@@ -141,138 +141,20 @@ combo_file <- readRDS(mod_metric_files[3])
 base_file$mod_type <- "Base model"
 agi_file$mod_type <- "AGI model"
 do_file$mod_type <- "DO model"
-combo_file$mod_type <- "DO+AGI combo model"
+#combo_file$mod_type <- "DO+AGI combo model"
 
-mod_metrics <- rbind(base_file, agi_file, do_file, combo_file)
-mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
+mod_metrics <- rbind(base_file, agi_file, do_file)
+mod_metrics <- mod_metrics %>% mutate(st_id = "Overall")
 
-# analysis of variance
-anova <- aov(TSS ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-tukey <- TukeyHSD(anova)
-
-# compact letter display
-cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-dt_tss <- mod_metrics %>%
-  group_by(mod_type) %>%
-  summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
-  arrange(desc(mean_tss))
-
-# extracting the compact letter display and adding to the Tk table
-cld <- as.data.frame.list(cld$mod_type)
-dt_tss$cld <- cld$Letters
-
-TSS_plot <- dt_tss %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_tss - sd, ymax = mean_tss + sd), size =  1, color = "black", width = 0.4)+
-  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
-  #geom_point(color="orange", size=6) +
-  theme_light() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  xlab("") +
-  ylab("TSS") + 
-  coord_cartesian(ylim = c(0.3, 0.65))+
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14)) +
-  geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
-
-
-# analysis of variance
-anova <- aov(AUC ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-tukey <- TukeyHSD(anova)
-
-# compact letter display
-cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-dt_auc <- mod_metrics %>%
-  group_by(mod_type) %>%
-  summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
-  arrange(desc(mean_auc))
-
-# extracting the compact letter display and adding to the Tk table
-cld <- as.data.frame.list(cld$mod_type)
-dt_auc$cld <- cld$Letters
-
-AUC_plot <- dt_auc %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_auc - sd, ymax = mean_auc + sd), size =  1, color = "black", width = 0.4)+
-  theme_light() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  xlab("") +
-  ylab("AUC") + 
-  coord_cartesian(ylim = c(0.8, 1))+
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14)) +
-  geom_text(aes(label = cld, y = mean_auc + 0.015), vjust = -0.5, size = 5) 
-
-
-# analysis of variance
-anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-tukey <- TukeyHSD(anova)
-
-# compact letter display
-cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-dt_dev <- mod_metrics %>%
-  group_by(mod_type) %>%
-  summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
-  arrange(desc(mean_dev))
-
-# extracting the compact letter display and adding to the Tk table
-cld <- as.data.frame.list(cld$mod_type)
-dt_dev$cld <- cld$Letters
-
-perc_exp_plot <- dt_dev %>% mutate(mod_type = as.factor(mod_type), 
-                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model", "DO+AGI combo model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_dev)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_dev - sd, ymax = mean_dev + sd), size =  1, color = "black", width = 0.4)+
-  theme_light() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  xlab("") +
-  ylab("Deviance explained (%)") + 
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14))+
-  coord_cartesian(ylim = c(20, 50))+
-  geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5) 
-
-all_metrics <- TSS_plot|AUC_plot|perc_exp_plot
-
-ggsave(here("figs/ms/fig5_metrics/perform_metrics.png"), all_metrics, height = 6, width = 12, units = c("in"))
-
-#### Spatio-temporal analysis ####
+#spatiotemporal analysis
 base_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/base_metrics.rds")) %>% mutate(mod_type = "Base model")
 do_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/do_metrics.rds")) %>% mutate(mod_type = "DO model")
 agi_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/agi_metrics.rds")) %>% mutate(mod_type = "AGI model")
-combo_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/combo_metrics.rds")) %>% mutate(mod_type = "DO+AGI model")
+    #combo_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/combo_metrics.rds")) %>% mutate    (mod_type = "DO+AGI model")
 
-all_st <- rbind(base_st, do_st, agi_st, combo_st)
-all_sum_st <- all_st %>%
+#combine datasets
+all_metrics <- rbind(mod_metrics, base_st, do_st, agi_st) %>% mutate(dev_exp = dev_exp*100)
+all_sum <- all_metrics %>%
   group_by(mod_type, st_id) %>%
   summarise(mean_auc = mean(AUC), 
             sd_auc = sd(AUC), 
@@ -280,17 +162,63 @@ all_sum_st <- all_st %>%
             sd_tss = sd(TSS), 
             mean_dev = mean(dev_exp),
             sd_dev = sd(dev_exp)) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(region = NA, 
+         ENSO = NA)
 
-#TSS
-all_sum_st %>% 
-  mutate(mod_type = as.factor(mod_type), 
-         mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
+for(i in 1:nrow(all_sum)){
+if(grepl('ccs',all_sum$st_id[i])){
+  all_sum$region[i] = "CCS"
+} 
+if(grepl('nec',all_sum$st_id[i])){
+  all_sum$region[i] = "NEC"
+} 
+if(grepl('nep', all_sum$st_id[i])){
+  all_sum$region[i] = "NEP"
+}
+if(grepl('Overall',all_sum$st_id[i])){
+  all_sum$region[i] = "Overall"
+}  
+  if(grepl('en',all_sum$st_id[i])){
+    all_sum$ENSO[i] = "El Niño"
+  } 
+  if(grepl('ln',all_sum$st_id[i])){
+    all_sum$ENSO[i] = "La Niña"
+  } 
+  if(grepl('neut', all_sum$st_id[i])){
+    all_sum$ENSO[i] = "Neutral"
+  }
+  if(grepl('Overall',all_sum$st_id[i])){
+    all_sum$ENSO[i] = "Overall"}
+}
+  
+# analysis of variance
+#anova <- aov(TSS ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+#tukey <- TukeyHSD(anova)
+
+# compact letter display
+#cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+# dt_tss <- mod_metrics %>%
+#   group_by(mod_type) %>%
+#   summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
+#   arrange(desc(mean_tss))
+
+# extracting the compact letter display and adding to the Tk table
+#cld <- as.data.frame.list(cld$mod_type)
+#dt_tss$cld <- cld$Letters
+
+#overall plots
+TSS_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+                                  mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model"))) %>%
+  arrange(desc(mean_tss)) %>%
+  filter(region == "Overall" & ENSO == "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_tss - sd_tss, ymax = mean_tss + sd_tss), size =  1, color = "black", width = 0.4)+
-  facet_wrap(~st_id)+
-  theme_tq() +
+  geom_errorbar(aes(ymin = mean_tss - 2*sd_tss, ymax = mean_tss + 2*sd_tss), color = "black", size =  1, width = 0, linewidth = 1)+
+  geom_point(color = "black", size = 4)+
+  theme_light() +
   theme(
     panel.grid.major.x = element_blank(),
     panel.border = element_blank(),
@@ -298,21 +226,18 @@ all_sum_st %>%
   ) +
   xlab("") +
   ylab("TSS") + 
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14))+
-coord_cartesian(ylim = c(0.25, 1))
-# geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
+  #coord_cartesian(ylim = c(0.4, 0.65))+
+  theme(axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 16)) 
 
-#AUC
-all_sum_st %>% 
-  mutate(mod_type = as.factor(mod_type), 
-         mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
+AUC_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+                                  mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model"))) %>%
+  arrange(desc(mean_auc)) %>%
+  filter(region == "Overall" & ENSO == "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc), size =  1, color = "black", width = 0.4)+
-  facet_wrap(~st_id)+
-  theme_tq() +
+  geom_errorbar(aes(ymin = mean_auc - 2*sd_auc, ymax = mean_auc + 2*sd_auc), color = "black", size =  1, width = 0, linewidth = 1)+
+  geom_point(color = "black", size = 4)+
+  theme_light() +
   theme(
     panel.grid.major.x = element_blank(),
     panel.border = element_blank(),
@@ -320,35 +245,177 @@ all_sum_st %>%
   ) +
   xlab("") +
   ylab("AUC") + 
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14))+
-coord_cartesian(ylim = c(0.70, 1))
-# geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
+  #coord_cartesian(ylim = c(0.4, 0.65))+
+  theme(axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 16)) 
 
-
-#deviance explained
-all_sum_st %>% 
-  mutate(mod_type = as.factor(mod_type), 
-         mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model", "DO+AGI model"))) %>%
-  ggplot(aes(x = mod_type, y=mean_dev*100)) +
-  geom_bar(stat = "identity", fill = "#224B5E", width = 0.7)+
-  geom_errorbar(aes(ymin = mean_dev*100 - sd_dev*100, ymax = mean_dev*100 + sd_dev*100), size =  1, color = "black", width = 0.4)+
-  facet_wrap(~st_id)+
-  theme_tq() +
+dev_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+                                                 mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model"))) %>%
+  arrange(desc(mean_dev)) %>%
+  filter(region == "Overall" & ENSO == "Overall") %>%
+  ggplot(aes(x = mod_type, y=mean_dev)) +
+  geom_errorbar(aes(ymin = mean_dev - 2*sd_dev, ymax = mean_dev + 2*sd_dev), color = "black", size =  1, width = 0, linewidth = 1)+
+  geom_point(color = "black", size = 4)+
+  theme_light() +
   theme(
     panel.grid.major.x = element_blank(),
     panel.border = element_blank(),
     axis.ticks.x = element_blank()
   ) +
   xlab("") +
-  ylab("Deviance explained (%)") + 
-  theme(axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-        axis.text.y = element_text(size = 12),
-        axis.title = element_text(size = 14))+
-  coord_cartesian(ylim = c(20, 60))
-  # geom_text(aes(label = cld, y = mean_dev + 3), vjust = -0.5, size = 5)
+  ylab("% Deviance explained") + 
+  #coord_cartesian(ylim = c(0.4, 0.65))+
+  theme(axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 16)) 
 
+overall_metric_plots <- TSS_overall|AUC_overall|dev_overall
+
+ggsave(here("figs/ms/fig5_metrics/overall_metrics.png"), overall_metric_plots, height = 5, width = 13, units = c("in"))
+
+
+#spatiotemporal plots
+TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
+                              st_id = as.factor(st_id), 
+                              region = as.factor(region), 
+                              region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
+                              ENSO = as.factor(ENSO), 
+                              ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
+                        arrange(desc(mean_tss)) %>%
+                        filter(region != "Overall" & ENSO != "Overall") %>%
+  ggplot(aes(x = mod_type, y=mean_tss)) +
+  geom_errorbar(aes(ymin = mean_tss - 2*sd_tss, ymax = mean_tss + 2*sd_tss, color = ENSO), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  geom_point(aes(color = ENSO), size = 4, position=position_dodge(width=0.5))+
+  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
+  #geom_point(color="orange", size=6) +
+  theme_tq() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  facet_wrap(~region, scales = "free_y")+
+  xlab("") +
+  ylab("TSS") + 
+  scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
+  labs(color = "ENSO phase:")+
+  #coord_cartesian(ylim = c(0.4, 0.65))+
+  theme(axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 16), 
+        legend.title = element_text(size = 16, color = "black"), 
+        legend.text = element_text(size = 14, color = "black"),
+        legend.position = "top", 
+        legend.justification = "left", 
+        strip.text.x = element_text(size = 14)) 
+  #geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
+
+
+# analysis of variance
+#anova <- aov(AUC ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+#tukey <- TukeyHSD(anova)
+
+# compact letter display
+#cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+# dt_auc <- mod_metrics %>%
+#   group_by(mod_type) %>%
+#   summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
+#   arrange(desc(mean_auc))
+
+# extracting the compact letter display and adding to the Tk table
+#cld <- as.data.frame.list(cld$mod_type)
+#dt_auc$cld <- cld$Letters
+
+AUC_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
+                               st_id = as.factor(st_id), 
+                               region = as.factor(region), 
+                               region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
+                               ENSO = as.factor(ENSO), 
+                               ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
+  arrange(desc(mean_auc)) %>%
+  filter(region != "Overall" & ENSO != "Overall") %>%
+  ggplot(aes(x = mod_type, y=mean_auc)) +
+  geom_errorbar(aes(ymin = mean_auc - 2*sd_auc, ymax = mean_auc + 2*sd_auc, color = ENSO), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  geom_point(aes(color = ENSO), size = 4, position=position_dodge(width=0.5))+
+  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_auc), color="#92351e", linewidth = 1.5) +
+  #geom_point(color="orange", size=6) +
+  theme_tq() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  facet_wrap(~region, scales = "free_y")+
+  xlab("") +
+  ylab("AUC") + 
+  scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
+  #coord_cartesian(ylim = c(0.4, 0.65))+
+  theme(axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 16), 
+        legend.title = element_text(size = 16, color = "black"), 
+        legend.text = element_text(size = 14, color = "black"),
+        legend.position = "none", 
+        strip.text.x = element_text(size = 14)) 
+#geom_text(aes(label = cld, y = mean_auc + 0.03), vjust = -0.5, size = 5)
+
+
+# analysis of variance
+#anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
+
+# Tukey's test
+#tukey <- TukeyHSD(anova)
+
+# compact letter display
+#cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
+
+# dt_dev <- mod_metrics %>%
+#   group_by(mod_type) %>%
+#   summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
+#   arrange(desc(mean_dev))
+
+# extracting the compact letter display and adding to the Tk table
+#cld <- as.data.frame.list(cld$mod_type)
+#dt_dev$cld <- cld$Letters
+
+perc_exp_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+                                    mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
+                                    st_id = as.factor(st_id), 
+                                    region = as.factor(region), 
+                                    region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
+                                    ENSO = as.factor(ENSO), 
+                                    ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
+  arrange(desc(mean_dev)) %>%
+  filter(region != "Overall" & ENSO != "Overall") %>%
+  ggplot(aes(x = mod_type, y=mean_dev)) +
+  geom_errorbar(aes(ymin = mean_dev - 2*sd_dev, ymax = mean_dev + 2*sd_dev, color = ENSO), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  geom_point(aes(color = ENSO), size = 4, position=position_dodge(width=0.5))+
+  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_dev), color="#92351e", linewidth = 1.5) +
+  #geom_point(color="orange", size=6) +
+  theme_tq() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  facet_wrap(~region, scales = "free_y")+
+  xlab("") +
+  ylab("% Deviance explained") + 
+  scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
+  #coord_cartesian(ylim = c(0.4, 0.65))+
+  theme(axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 16), 
+        legend.title = element_text(size = 16, color = "black"), 
+        legend.text = element_text(size = 14, color = "black"),
+        legend.position = "none", 
+        strip.text.x = element_text(size = 14)) 
+#geom_text(aes(label = cld, y = mean_dev + 0.03), vjust = -0.5, size = 5)
+
+all_metric_plots <- TSS_plot/AUC_plot/perc_exp_plot
+
+ggsave(here("figs/ms/fig5_metrics/perform_metrics_st.png"), all_metric_plots, height = 10, width = 13, units = c("in"))
 
 # Figure 6: predictor relative importance ####
 #list models
@@ -557,8 +624,8 @@ inf_df <- rbind(inf_df, do_agi_inf)
 
 avg_inf_df <- avg_pred(base_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE),
                        do_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE), 
-                       agi_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE), 
-                       combo_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE))
+                       agi_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE)) 
+                       #combo_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE))
 
 ##### revised plot  #####
 avg_inf_sum <- avg_inf_df %>% 
@@ -581,7 +648,7 @@ for(i in 1:nrow(avg_inf_sum)){
 
 avg_inf_sum <- avg_inf_sum %>% 
   mutate(model = as.factor(model), 
-         model= fct_relevel(model, c("Base", "DO", "AGI", "DO+AGI combo")), 
+         model= fct_relevel(model, c("Base", "DO", "AGI")), 
          var = as.factor(var), 
          var = fct_relevel(var, c("AGI, annual, 250m", "AGI, daily, 0m", "AGI, seasonal, 0m", "AGI, seasonal, 250m","AGI, annual, 0m", "AGI, daily, 250m")))
 
@@ -642,7 +709,7 @@ ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width
 #ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
 all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
-ggsave(here("figs/ms/fig7_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 7, width = 7, units = c("in"))
+ggsave(here("figs/ms/fig7_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 5, width = 8, units = c("in"))
 
 
 ### Figure 8: ENSO HSI maps ####

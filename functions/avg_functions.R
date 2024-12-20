@@ -22,7 +22,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   base_rast_file <- list.files(here(rast_folder), pattern = "base", full.names = TRUE)
   do_rast_file <- list.files(here(rast_folder), pattern = "do", full.names = TRUE)
   agi_rast_file <- list.files(here(rast_folder), pattern = "agi", full.names = TRUE)
-  do_agi_file <- list.files(here(rast_folder), pattern = "comb", full.names = TRUE)
+  #do_agi_file <- list.files(here(rast_folder), pattern = "comb", full.names = TRUE)
   
   base_rast <- rast(base_rast_file)
   names(base_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
@@ -33,21 +33,21 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   agi_rast <- rast(agi_rast_file)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
   
-  do_agi_rast <- rast(do_agi_file)
-  names(do_agi_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
-  
+  # do_agi_rast <- rast(do_agi_file)
+  # names(do_agi_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
+  # 
   extent <- c(-153, -103, 1 , 49)
   
   # load model locations ---------------------------------------------------------------------------------------------
   base_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE)
   do_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE)
   agi_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE)
-  combo_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE)
+  #combo_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE)
   
   base_list <- rast()
   do_list <- rast()
   agi_list <- rast()
-  combo_list <- rast()
+  #combo_list <- rast()
   
   #for loop to create raster for each model iteration
   for(i in 1:iter){
@@ -70,17 +70,17 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     agi_pred <- crop(agi_pred, extent)
     agi_list <- c(agi_list, agi_pred)
     
-    do_agi_comb <- readRDS(combo_mod_files[i])
-    do_agi_combo <- predict(do_agi_rast, do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
-    do_agi_combo <- crop(do_agi_combo, extent)
-    combo_list <- c(combo_list, do_agi_combo)
+    # do_agi_comb <- readRDS(combo_mod_files[i])
+    # do_agi_combo <- predict(do_agi_rast, do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
+    # do_agi_combo <- crop(do_agi_combo, extent)
+    # combo_list <- c(combo_list, do_agi_combo)
     
   }
   
   base_avg <- mean(base_list)
   do_avg <- mean(do_list)
   agi_avg <- mean(agi_list)
-  combo_avg <- mean(combo_list)
+  #combo_avg <- mean(combo_list)
   
   
   #plot maps--------------------------------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
                   label = paste0(round(perc_area_base$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     theme_map() +
-    theme(axis.text.x = element_blank(), legend.position = "none", axis.title.x = element_blank())
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
   
   if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/base_avg_all.png"), base_map, height = 5, width = 5)}
   
@@ -130,9 +130,9 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
                   label = paste0(round(perc_area_do$area[1], 2), "%")), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     theme_map() +
-    theme(axis.text = element_blank(), 
-          axis.title = element_blank(), 
-          axis.text.x = element_blank(),
+    theme(axis.text.y = element_blank(), 
+          axis.title.y = element_blank(), 
+          axis.text.x = element_text(angle = 45, hjust = 1),
           legend.position = "none")
   
   if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/do_avg_all.png"), do_map, height = 5, width = 5)}
@@ -156,39 +156,42 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     ggtitle("AGI model") +
     theme_map() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+          legend.position = "none", 
+          axis.text.y = element_blank(), 
+          axis.title.y = element_blank())
   
   if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/agi_avg_all.png"), agi_map, height = 5, width = 5)}
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
-  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  # combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  # 
+  # hsi_area_combo <- expanse(combo_hsi)
+  # rast_area_combo <- expanse(combo_avg)
+  # perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
+  # 
+  # combo_map <- ggplot() +
+  #   geom_spatraster(data = combo_avg) +
+  #   geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  #   scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  #   scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  #   scale_fill_whitebox_c(palette = "deep", direction = -1) +
+  #   ggtitle("DO + AGI combo model") +
+  #   theme_map() +
+  #   geom_text(aes(x = Inf, y = Inf, 
+  #                 label = paste0(round(perc_area_combo$area[1], 2), "%")), 
+  #             hjust = 1.1, vjust = 2, size = 6, color = "black")+
+  #   theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+  #         axis.text.y = element_blank(), 
+  #         axis.title.y = element_blank(), 
+  #         legend.position = "none")
   
-  hsi_area_combo <- expanse(combo_hsi)
-  rast_area_combo <- expanse(combo_avg)
-  perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
-
-  combo_map <- ggplot() +
-    geom_spatraster(data = combo_avg) +
-    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "deep", direction = -1) +
-    ggtitle("DO + AGI combo model") +
-    theme_map() +
-    geom_text(aes(x = Inf, y = Inf, 
-                  label = paste0(round(perc_area_combo$area[1], 2), "%")), 
-              hjust = 1.1, vjust = 2, size = 6, color = "black")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
-          axis.text.y = element_blank(), 
-          axis.title.y = element_blank(), 
-          legend.position = "none")
-  
-  if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/combo_avg.png"), combo_map, height = 5, width = 5)}
+  #if(ms == "Y"){ggsave(here("figs/ms/fig7_hsi_all/indiv_panels/combo_avg.png"), combo_map, height = 5, width = 5)}
   
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
-  all_maps <- (base_map|do_map)/(agi_map|combo_map)+
+  all_maps <- (base_map|do_map|agi_map)+
     plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI")
   
   return(all_maps)
@@ -823,13 +826,13 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
 
 
 # average predictor relative importance ####
-avg_pred <- function(base_mods, do_mods, agi_mods, combo_mods, iter = 20){
+avg_pred <- function(base_mods, do_mods, agi_mods, iter = 20){
   
   #list models
   base_mod_files <- base_mods
   do_mod_files <- do_mods
   agi_mod_files <- agi_mods
-  combo_mod_files <- combo_mods
+  #combo_mod_files <- combo_mods
   
   inf_df <- NULL
   for(i in 1:iter){
@@ -906,28 +909,28 @@ avg_pred <- function(base_mods, do_mods, agi_mods, combo_mods, iter = 20){
   }
   
   #combo model
-  for(i in 1:iter){
-  
-  do_agi_inf <- as.data.frame(ggBRT::ggInfluence(readRDS(combo_mod_files[i]), plot = FALSE)) %>% rownames_to_column()
-  colnames(do_agi_inf) <- c("var", "inf_val")
-  do_agi_inf$var <- gsub("\\<o2_mean_0m\\>", "DO, daily, 0m", do_agi_inf$var)
-  do_agi_inf$var <- gsub("AGI_250m_ann", "AGI, annual, 250m", do_agi_inf$var)
-  do_agi_inf$var <- gsub("o2_mean_0m_seas", "DO, seasonal, 0m", do_agi_inf$var)
-  do_agi_inf$var <- gsub("AGI_250m_seas", "AGI, seasonal, 250m", do_agi_inf$var)
-  do_agi_inf$var <- gsub("temp_mean", "temp", do_agi_inf$var)
-  do_agi_inf$var <- gsub("sal_mean", "sal", do_agi_inf$var)
-  do_agi_inf$var <- gsub("bathy_mean", "z", do_agi_inf$var)
-  do_agi_inf$var <- gsub("chl_mean", "chl-a", do_agi_inf$var)
-  do_agi_inf$var <- gsub("o2_mean_0m_ann", "DO, annual, 0m", do_agi_inf$var)
-  do_agi_inf$var <- gsub("AGI_250m", "AGI, daily, 250m", do_agi_inf$var)
-  do_agi_inf$var <- gsub("ssh_mean", "SSH", do_agi_inf$var)
-  do_agi_inf$var <- gsub("mld_mean", "MLD", do_agi_inf$var)
-  do_agi_inf$var <- gsub("bathy_sd", "z_sd", do_agi_inf$var)
-  
-  do_agi_inf <- do_agi_inf %>% mutate(model = "DO+AGI combo", iter = i) 
-  colnames(do_agi_inf) <- c("var", "inf_val", "model", "iter")
-  inf_df <- rbind(inf_df, do_agi_inf)
-  }
+  # for(i in 1:iter){
+  # 
+  # do_agi_inf <- as.data.frame(ggBRT::ggInfluence(readRDS(combo_mod_files[i]), plot = FALSE)) %>% rownames_to_column()
+  # colnames(do_agi_inf) <- c("var", "inf_val")
+  # do_agi_inf$var <- gsub("\\<o2_mean_0m\\>", "DO, daily, 0m", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("AGI_250m_ann", "AGI, annual, 250m", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("o2_mean_0m_seas", "DO, seasonal, 0m", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("AGI_250m_seas", "AGI, seasonal, 250m", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("temp_mean", "temp", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("sal_mean", "sal", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("bathy_mean", "z", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("chl_mean", "chl-a", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("o2_mean_0m_ann", "DO, annual, 0m", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("AGI_250m", "AGI, daily, 250m", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("ssh_mean", "SSH", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("mld_mean", "MLD", do_agi_inf$var)
+  # do_agi_inf$var <- gsub("bathy_sd", "z_sd", do_agi_inf$var)
+  # 
+  # do_agi_inf <- do_agi_inf %>% mutate(model = "DO+AGI combo", iter = i) 
+  # colnames(do_agi_inf) <- c("var", "inf_val", "model", "iter")
+  # inf_df <- rbind(inf_df, do_agi_inf)
+  # }
   
   return(inf_df)
   
