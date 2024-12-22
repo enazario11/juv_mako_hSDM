@@ -284,8 +284,8 @@ TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
                         arrange(desc(mean_tss)) %>%
                         filter(region != "Overall" & ENSO != "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_errorbar(aes(ymin = mean_tss - 2*sd_tss, ymax = mean_tss + 2*sd_tss, color = ENSO), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  geom_point(aes(color = ENSO), size = 4, position=position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin = mean_tss - sd_tss, ymax = mean_tss + sd_tss, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
   theme_tq() +
@@ -294,11 +294,11 @@ TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
     panel.border = element_blank(),
     axis.ticks.x = element_blank()
   ) +
-  facet_wrap(~region, scales = "free_y")+
+  facet_wrap(~ENSO)+
   xlab("") +
   ylab("TSS") + 
   scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  labs(color = "ENSO phase:")+
+  labs(color = "Region:")+
   #coord_cartesian(ylim = c(0.4, 0.65))+
   theme(axis.text = element_text(size = 14, color = "black"),
         axis.title = element_text(size = 16), 
@@ -338,8 +338,8 @@ AUC_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
   arrange(desc(mean_auc)) %>%
   filter(region != "Overall" & ENSO != "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_errorbar(aes(ymin = mean_auc - 2*sd_auc, ymax = mean_auc + 2*sd_auc, color = ENSO), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  geom_point(aes(color = ENSO), size = 4, position=position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_auc), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
   theme_tq() +
@@ -348,7 +348,7 @@ AUC_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
     panel.border = element_blank(),
     axis.ticks.x = element_blank()
   ) +
-  facet_wrap(~region, scales = "free_y")+
+  facet_wrap(~ENSO)+
   xlab("") +
   ylab("AUC") + 
   scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
@@ -390,8 +390,8 @@ perc_exp_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
   arrange(desc(mean_dev)) %>%
   filter(region != "Overall" & ENSO != "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_dev)) +
-  geom_errorbar(aes(ymin = mean_dev - 2*sd_dev, ymax = mean_dev + 2*sd_dev, color = ENSO), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  geom_point(aes(color = ENSO), size = 4, position=position_dodge(width=0.5))+
+  geom_errorbar(aes(ymin = mean_dev - sd_dev, ymax = mean_dev + sd_dev, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_dev), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
   theme_tq() +
@@ -400,7 +400,7 @@ perc_exp_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
     panel.border = element_blank(),
     axis.ticks.x = element_blank()
   ) +
-  facet_wrap(~region, scales = "free_y")+
+  facet_wrap(~ENSO, scales = "free_y")+
   xlab("") +
   ylab("% Deviance explained") + 
   scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
@@ -716,13 +716,13 @@ ggsave(here("figs/ms/fig7_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
 
 #base year
-enso_base <- hsi_maps_enso_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff", main_text = TRUE)
+enso_base <- hsi_maps_enso_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff")
 
 #LN year 
-enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN", main_text = TRUE)
+enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN")
 
 #EN year
-enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = TRUE)
+enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN")
 
 #diet data 
 #neutral year 
