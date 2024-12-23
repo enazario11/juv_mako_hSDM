@@ -129,7 +129,7 @@ agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_sp
 ggsave(here("figs/ms/fig2_agi/agi_250m_layered.png"), agi_250m_layered, height = 7, width = 8, units = c("in"))
 
 
-### Figure 5: model performance ####
+### Figure 5: performance metrics overall ####
 #entire domain and study period
 mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
 
@@ -146,51 +146,17 @@ do_file$mod_type <- "DO model"
 mod_metrics <- rbind(base_file, agi_file, do_file)
 mod_metrics <- mod_metrics %>% mutate(st_id = "Overall")
 
-#spatiotemporal analysis
-base_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/base_metrics.rds")) %>% mutate(mod_type = "Base model")
-do_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/do_metrics.rds")) %>% mutate(mod_type = "DO model")
-agi_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/agi_metrics.rds")) %>% mutate(mod_type = "AGI model")
-    #combo_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/combo_metrics.rds")) %>% mutate    (mod_type = "DO+AGI model")
-
 #combine datasets
-all_metrics <- rbind(mod_metrics, base_st, do_st, agi_st) %>% mutate(dev_exp = dev_exp*100)
-all_sum <- all_metrics %>%
-  group_by(mod_type, st_id) %>%
+mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
+all_sum <- mod_metrics %>%
+  group_by(mod_type) %>%
   summarise(mean_auc = mean(AUC), 
             sd_auc = sd(AUC), 
             mean_tss = mean(TSS), 
             sd_tss = sd(TSS), 
             mean_dev = mean(dev_exp),
             sd_dev = sd(dev_exp)) %>%
-  ungroup() %>%
-  mutate(region = NA, 
-         ENSO = NA)
-
-for(i in 1:nrow(all_sum)){
-if(grepl('ccs',all_sum$st_id[i])){
-  all_sum$region[i] = "CCS"
-} 
-if(grepl('nec',all_sum$st_id[i])){
-  all_sum$region[i] = "NEC"
-} 
-if(grepl('nep', all_sum$st_id[i])){
-  all_sum$region[i] = "NEP"
-}
-if(grepl('Overall',all_sum$st_id[i])){
-  all_sum$region[i] = "Overall"
-}  
-  if(grepl('en',all_sum$st_id[i])){
-    all_sum$ENSO[i] = "El Niño"
-  } 
-  if(grepl('ln',all_sum$st_id[i])){
-    all_sum$ENSO[i] = "La Niña"
-  } 
-  if(grepl('neut', all_sum$st_id[i])){
-    all_sum$ENSO[i] = "Neutral"
-  }
-  if(grepl('Overall',all_sum$st_id[i])){
-    all_sum$ENSO[i] = "Overall"}
-}
+  ungroup() 
   
 # analysis of variance
 #anova <- aov(TSS ~ mod_type, data = mod_metrics)
@@ -214,7 +180,6 @@ if(grepl('Overall',all_sum$st_id[i])){
 TSS_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model"))) %>%
   arrange(desc(mean_tss)) %>%
-  filter(region == "Overall" & ENSO == "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_tss)) +
   geom_errorbar(aes(ymin = mean_tss - 2*sd_tss, ymax = mean_tss + 2*sd_tss), color = "black", size =  1, width = 0, linewidth = 1)+
   geom_point(color = "black", size = 4)+
@@ -227,13 +192,12 @@ TSS_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type),
   xlab("") +
   ylab("TSS") + 
   #coord_cartesian(ylim = c(0.4, 0.65))+
-  theme(axis.text = element_text(size = 14, color = "black"),
+  theme(axis.text = element_text(size = 16, color = "black"),
         axis.title = element_text(size = 16)) 
 
 AUC_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
                                   mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model"))) %>%
   arrange(desc(mean_auc)) %>%
-  filter(region == "Overall" & ENSO == "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_auc)) +
   geom_errorbar(aes(ymin = mean_auc - 2*sd_auc, ymax = mean_auc + 2*sd_auc), color = "black", size =  1, width = 0, linewidth = 1)+
   geom_point(color = "black", size = 4)+
@@ -246,13 +210,12 @@ AUC_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type),
   xlab("") +
   ylab("AUC") + 
   #coord_cartesian(ylim = c(0.4, 0.65))+
-  theme(axis.text = element_text(size = 14, color = "black"),
+  theme(axis.text = element_text(size = 16, color = "black"),
         axis.title = element_text(size = 16)) 
 
 dev_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
                                                  mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model"))) %>%
   arrange(desc(mean_dev)) %>%
-  filter(region == "Overall" & ENSO == "Overall") %>%
   ggplot(aes(x = mod_type, y=mean_dev)) +
   geom_errorbar(aes(ymin = mean_dev - 2*sd_dev, ymax = mean_dev + 2*sd_dev), color = "black", size =  1, width = 0, linewidth = 1)+
   geom_point(color = "black", size = 4)+
@@ -265,27 +228,63 @@ dev_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type),
   xlab("") +
   ylab("% Deviance explained") + 
   #coord_cartesian(ylim = c(0.4, 0.65))+
-  theme(axis.text = element_text(size = 14, color = "black"),
+  theme(axis.text = element_text(size = 16, color = "black"),
         axis.title = element_text(size = 16)) 
 
-overall_metric_plots <- TSS_overall|AUC_overall|dev_overall
+overall_metric_plots <- TSS_overall/AUC_overall/dev_overall
 
-ggsave(here("figs/ms/fig5_metrics/overall_metrics.png"), overall_metric_plots, height = 5, width = 13, units = c("in"))
+ggsave(here("figs/ms/fig5_metrics_all/overall_metrics.png"), overall_metric_plots, height = 13, width = 5, units = c("in"))
 
+#Figure 6: performance metrics st ####
+#spatiotemporal analysis
+base_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/base_metrics.rds")) %>% mutate(mod_type = "Base model")
+do_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/do_metrics.rds")) %>% mutate(mod_type = "DO model")
+agi_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/agi_metrics.rds")) %>% mutate(mod_type = "AGI model")
+#combo_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/combo_metrics.rds")) %>% mutate    (mod_type = "DO+AGI model")
+
+all_st <- rbind(base_st, do_st, agi_st) %>%
+  mutate(region = NA, 
+         ENSO = NA, 
+         dev_exp = dev_exp*100)
+
+for(i in 1:nrow(all_st)){
+  if(grepl('ccs',all_st$st_id[i])){
+    all_st$region[i] = "CCS"
+  } 
+  if(grepl('nec',all_st$st_id[i])){
+    all_st$region[i] = "NEC"
+  } 
+  if(grepl('nep', all_st$st_id[i])){
+    all_st$region[i] = "NEP"
+  }
+  if(grepl('Overall',all_st$st_id[i])){
+    all_st$region[i] = "Overall"
+  }  
+  if(grepl('en',all_st$st_id[i])){
+    all_st$ENSO[i] = "El Niño"
+  } 
+  if(grepl('ln',all_st$st_id[i])){
+    all_st$ENSO[i] = "La Niña"
+  } 
+  if(grepl('neut', all_st$st_id[i])){
+    all_st$ENSO[i] = "Neutral"
+  }
+  if(grepl('Overall',all_st$st_id[i])){
+    all_st$ENSO[i] = "Overall"}
+}
 
 #spatiotemporal plots
-TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
-                              mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
-                              st_id = as.factor(st_id), 
-                              region = as.factor(region), 
-                              region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
-                              ENSO = as.factor(ENSO), 
-                              ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
-                        arrange(desc(mean_tss)) %>%
-                        filter(region != "Overall" & ENSO != "Overall") %>%
-  ggplot(aes(x = mod_type, y=mean_tss)) +
-  geom_errorbar(aes(ymin = mean_tss - sd_tss, ymax = mean_tss + sd_tss, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
+TSS_plot <- all_st %>% mutate(mod_type = as.factor(mod_type), 
+                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
+                               st_id = as.factor(st_id), 
+                               region = as.factor(region), 
+                               region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
+                               ENSO = as.factor(ENSO), 
+                               ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
+  ggplot(aes(x = mod_type, y=TSS)) +
+  geom_boxplot(aes(fill = region, color = region), position = position_dodge(width = 1), lwd = 1, alpha = 0.55)+
+  #geom_errorbar(aes(ymin = mean_tss - 2*sd_tss, ymax = mean_tss + 2*sd_tss, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  #geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
   theme_tq() +
@@ -294,11 +293,13 @@ TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
     panel.border = element_blank(),
     axis.ticks.x = element_blank()
   ) +
-  facet_wrap(~ENSO)+
+  facet_wrap(~ENSO, scales = "free_y")+
   xlab("") +
   ylab("TSS") + 
+  scale_fill_manual(values = c("#224B5E", "#527875", "#83A58C"))+
   scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  labs(color = "Region:")+
+  labs(fill = "Region:")+
+  guides(color = "none")+
   #coord_cartesian(ylim = c(0.4, 0.65))+
   theme(axis.text = element_text(size = 14, color = "black"),
         axis.title = element_text(size = 16), 
@@ -307,7 +308,7 @@ TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
         legend.position = "top", 
         legend.justification = "left", 
         strip.text.x = element_text(size = 14)) 
-  #geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
+#geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
 
 
 # analysis of variance
@@ -328,18 +329,17 @@ TSS_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
 #cld <- as.data.frame.list(cld$mod_type)
 #dt_auc$cld <- cld$Letters
 
-AUC_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+AUC_plot <- all_st %>% mutate(mod_type = as.factor(mod_type), 
                                mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
                                st_id = as.factor(st_id), 
                                region = as.factor(region), 
                                region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
                                ENSO = as.factor(ENSO), 
                                ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
-  arrange(desc(mean_auc)) %>%
-  filter(region != "Overall" & ENSO != "Overall") %>%
-  ggplot(aes(x = mod_type, y=mean_auc)) +
-  geom_errorbar(aes(ymin = mean_auc - sd_auc, ymax = mean_auc + sd_auc, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
+  ggplot(aes(x = mod_type, y=AUC)) +
+  geom_boxplot(aes(fill = region, color = region), position = position_dodge(width = 1), lwd = 1, alpha = 0.55)+
+  #geom_errorbar(aes(ymin = mean_auc - 2*sd_auc, ymax = mean_auc + 2*sd_auc, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  #geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_auc), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
   theme_tq() +
@@ -348,10 +348,11 @@ AUC_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
     panel.border = element_blank(),
     axis.ticks.x = element_blank()
   ) +
-  facet_wrap(~ENSO)+
+  facet_wrap(~ENSO, scales = "free_y")+
   xlab("") +
   ylab("AUC") + 
   scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
+  scale_fill_manual(values = c("#224B5E", "#527875", "#83A58C"))+
   #coord_cartesian(ylim = c(0.4, 0.65))+
   theme(axis.text = element_text(size = 14, color = "black"),
         axis.title = element_text(size = 16), 
@@ -380,18 +381,17 @@ AUC_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
 #cld <- as.data.frame.list(cld$mod_type)
 #dt_dev$cld <- cld$Letters
 
-perc_exp_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
+perc_exp_plot <- all_st %>% mutate(mod_type = as.factor(mod_type), 
                                     mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
                                     st_id = as.factor(st_id), 
                                     region = as.factor(region), 
                                     region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
                                     ENSO = as.factor(ENSO), 
                                     ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
-  arrange(desc(mean_dev)) %>%
-  filter(region != "Overall" & ENSO != "Overall") %>%
-  ggplot(aes(x = mod_type, y=mean_dev)) +
-  geom_errorbar(aes(ymin = mean_dev - sd_dev, ymax = mean_dev + sd_dev, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
+  ggplot(aes(x = mod_type, y=dev_exp)) +
+  geom_boxplot(aes(fill = region, color = region), position = position_dodge(width = 1), lwd = 1, alpha = 0.55)+
+  #geom_errorbar(aes(ymin = mean_dev - 2*sd_dev, ymax = mean_dev + 2*sd_dev, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
+  #geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
   #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_dev), color="#92351e", linewidth = 1.5) +
   #geom_point(color="orange", size=6) +
   theme_tq() +
@@ -404,6 +404,7 @@ perc_exp_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
   xlab("") +
   ylab("% Deviance explained") + 
   scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
+  scale_fill_manual(values = c("#224B5E", "#527875", "#83A58C"))+
   #coord_cartesian(ylim = c(0.4, 0.65))+
   theme(axis.text = element_text(size = 14, color = "black"),
         axis.title = element_text(size = 16), 
@@ -415,9 +416,9 @@ perc_exp_plot <- all_sum %>% mutate(mod_type = as.factor(mod_type),
 
 all_metric_plots <- TSS_plot/AUC_plot/perc_exp_plot
 
-ggsave(here("figs/ms/fig5_metrics/perform_metrics_st.png"), all_metric_plots, height = 10, width = 13, units = c("in"))
+ggsave(here("figs/ms/fig6_metrics_st/Figure_6_Metrics_st.png"), all_metric_plots, height = 10, width = 13, units = c("in"))
 
-# Figure 6: predictor relative importance ####
+# Figure 7: predictor relative importance ####
 #list models
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
@@ -704,7 +705,7 @@ ggsave(here("figs/ms/fig3_pred/do_pred.png"), do_pred, height = 7, width = 7, un
 ggsave(here("figs/ms/fig3_pred/agi_pred.png"), agi_pred, height = 7, width = 7, units = c("in"))
 ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width = 7, units = c("in"))
 
-### Figure 7: HSI maps study period ####
+### Figure 8: HSI maps study period ####
 #all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 #ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
@@ -712,7 +713,7 @@ all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/
 ggsave(here("figs/ms/fig7_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 5, width = 8, units = c("in"))
 
 
-### Figure 8: ENSO HSI maps ####
+### Figure 9: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
 
 #base year
