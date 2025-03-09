@@ -1696,3 +1696,49 @@ by_year <- rmpq_prey_year2 %>%
   xlab('') 
 
 ggsave(here("figs/ms/supp_figs/diet_data_by_year.png"), width = 8, height = 9, units = c("in"))
+
+
+### SF: DO difference plots ####
+map.world = map_data(map="world")
+testt = map.world %>% filter(long <= 180)
+
+#neutral rast: 2013
+test_n <- rast(here("data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13/Jan13_Dec13_do_rast.nc"))
+names(test_n) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+
+#LN rast: 2010
+test_l <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_do_rast.nc"))
+names(test_l) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+
+#plot
+plot(test_n$o2_mean_0m)
+plot(test_l$o2_mean_0m)
+diff_0m <- diff(c(test_n$o2_mean_0m, test_l$o2_mean_0m))
+
+plot(test_n$o2_mean_250m)
+plot(test_l$o2_mean_250m)
+diff_250m <- diff(c(test_n$o2_mean_250m, test_l$o2_mean_250m))
+
+#map
+diff_map_0m <- ggplot() +
+  geom_spatraster(data = diff_0m) +
+  geom_map(data = testt, map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", limits = c(-20, 20), direction = -1) +
+  theme_ms_map() +
+  ggtitle("Difference in DO at 0m")+
+  theme(legend.position = "right")
+
+diff_map_250m <- ggplot() +
+  geom_spatraster(data = diff_250m) +
+  geom_map(data = testt, map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+  scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+  scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+  scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
+  theme_ms_map() +
+  ggtitle("Difference in DO at 250m")+
+  theme(legend.position = "right")
+
+all_diff <- diff_map_0m|diff_map_250m
+ggsave(here("figs/ms/supp_figs/change_do.png"), all_diff, width = 12, height = 5, units = c("in"))

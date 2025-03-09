@@ -23,7 +23,7 @@ dat_base_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_base_ann.rds")) %>% m
 dat_do_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_do_ann.rds")) %>% mutate(tag = as.factor(tag))
 dat_agi_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_agi_ann.rds")) %>% mutate(tag = as.factor(tag))
 
-#### Add seasonal and annual data to daily data df 
+#### Add seasonal and annual data to daily data df for DO and AGI
 dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
 dat_do_all <- dat_do_all %>%
   dplyr::rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
@@ -44,29 +44,6 @@ dat_agi_all <- dat_agi_all %>%
 
 ### combined DO and AGI df 
 dat_do_agi_all <- cbind(dat_do_all, dat_agi_all[,c(22, 25, 28)])
-
-### split data ####
-#### entire domain and study period ####
-# split into test and train daily data 75/25
-#base
-dat_base_temp <- floor((nrow(dat_base_d)/4)*3) #define % of training and test set
-dat_train_base_d <- dat_base_d[sample(nrow(dat_base_d),dat_base_temp),]
-dat_test_base_d <- dat_base_d[sample(nrow(dat_base_d),nrow(dat_base_d)-dat_base_temp),]
-
-#do
-dat_do_temp_all <- floor((nrow(dat_do_all)/4)*3) #define % of training and test set
-dat_train_do_all <- dat_do_all[sample(nrow(dat_do_all),dat_do_temp_all),]
-dat_test_do_all <- dat_do_all[sample(nrow(dat_do_all),nrow(dat_do_all)-dat_do_temp_all),]
-
-#agi
-dat_agi_temp_all <- floor((nrow(dat_agi_all)/4)*3) #define % of training and test set
-dat_train_agi_all <- dat_agi_all[sample(nrow(dat_agi_all),dat_agi_temp_all),]
-dat_test_agi_all <- dat_agi_all[sample(nrow(dat_agi_all),nrow(dat_agi_all)-dat_agi_temp_all),]
-
-#do and agi 
-dat_do_agi_temp_all <- floor((nrow(dat_do_agi_all)/4)*3) #define % of training and test set
-dat_train_do_agi_all <- dat_do_agi_all[sample(nrow(dat_do_agi_all),dat_do_agi_temp_all),]
-dat_test_do_agi_all <- dat_do_agi_all[sample(nrow(dat_do_agi_all),nrow(dat_do_agi_all)-dat_do_agi_temp_all),]
 
 ### function to run for loop across cores to run model simulations ####
 n_cores <- detectCores()
@@ -123,7 +100,7 @@ brt_run_sims <- function(dat_file, n_iter = 20, mod_type, save_folder){
 
 ### run brt iterations ####
 #### entire domain and study period 
-#### base model ####
+# base model
 dat_base_d$row_id <- 1:nrow(dat_base_d)
 brt_run_sims(dat_file = dat_base_d, mod_type = "base", save_folder = "data/brt/mod_outputs/perf_metric_iters/")
 
@@ -189,7 +166,6 @@ brt_perf_metric <- function(mod_files, test_files, mod_type, domain = "all"){
   
 } #end function
 
-### run brt iterations ####
 #performance metrics entire domain and study period
 #base model
 base_metrics <- brt_perf_metric(mod_type = "base", mod_files = "data/brt/mod_outputs/perf_metric_iters/base", test_files = "data/brt/mod_outputs/perf_metric_iters/base/test")
