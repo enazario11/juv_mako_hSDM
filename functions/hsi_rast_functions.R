@@ -526,7 +526,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
     theme_map() +
     theme(axis.text.x = element_blank(), legend.position = "none", axis.title.x = element_blank())
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig6_hsi_all/indiv_panels/base_pred_all.png"), base_map, height = 5, width = 5)}
+  if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/base_pred_all.png"), base_map, height = 5, width = 5)}
   
     #do map
   #calculate percent area polygon takes up of raster 

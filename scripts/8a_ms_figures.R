@@ -233,7 +233,7 @@ dev_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type),
 
 overall_metric_plots <- TSS_overall/AUC_overall/dev_overall
 
-ggsave(here("figs/ms/fig5_metrics_all/overall_metrics.png"), overall_metric_plots, height = 13, width = 5, units = c("in"))
+ggsave(here("figs/ms/fig5_metrics_all/overall_metrics.svg"), overall_metric_plots, height = 13, width = 5, units = c("in"))
 
 #Figure 6: performance metrics st ####
 #spatiotemporal analysis
@@ -710,7 +710,7 @@ ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width
 #ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
 
 all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
-ggsave(here("figs/ms/fig7_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 5, width = 8, units = c("in"))
+ggsave(here("figs/ms/fig8_hsi_all/all_maps_avg_20.svg"), all_maps_avg, height = 5, width = 8, units = c("in"))
 
 
 ### Figure 9: ENSO HSI maps ####
