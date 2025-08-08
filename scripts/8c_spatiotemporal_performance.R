@@ -103,7 +103,7 @@ sample_cols <- function(dat_file){
 dat_base_st <- sample_cols(dat_base_d)
 dat_do_st <- sample_cols(dat_do_all)
 dat_agi_st <- sample_cols(dat_agi_all)
-dat_do_agi_st <- sample_cols(dat_do_agi_all)
+#dat_do_agi_st <- sample_cols(dat_do_agi_all)
 
 dat_base_st %>% group_by(st_id) %>% summarise(count = n())
 

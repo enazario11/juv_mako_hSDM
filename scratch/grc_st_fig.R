@@ -246,4 +246,57 @@ ggsave(here("figs/grc/tss_neut.svg"), all_neut, width = 10, height = 5, units = 
 all_stress <- ggarrange(TSS_stress_r, TSS_stress_e, common.legend = TRUE)
 ggsave(here("figs/grc/tss_stress.svg"), all_stress, width = 10, height = 5, units = c("in"))
 
+### agi map ####
+agi_maps_layerd_grc <- function(rast_folder_base = NULL){
+  
+  #load rasters
+  #base agi
+  agi_250m_base <- rast(list.files(here(rast_folder_base), full.names = TRUE, pattern = "250m"))
+  
+  #create shape file of areas surrounding AGI < 1
+  #base
+  one_250m_base <- raster::clamp(agi_250m_base, upper = 1, values = FALSE) #create raster of values below 1
+  one_poly_250m_base <- as.polygons(ext(one_250m_base))
+  one_poly_250m_base <- as.polygons(one_250m_base > -Inf) 
+  
+  #calculate percent area polygon takes up of raster 
+  #base
+  poly_area_250m_base <- expanse(one_poly_250m_base)
+  rast_area_base <- expanse(agi_250m_base)
+  perc_area_250m_base <- (poly_area_250m_base/rast_area_base$area[1])*100
+  
+  #land shapes
+  map.world = map_data(map="world")
+  testt=map.world %>% filter(long<=180)
+  
+  #map
+  agi_one_250m <- ggplot() + 
+    geom_spatraster(data = agi_250m_base) + 
+    geom_spatvector(data = one_poly_250m_base, color = "black", fill = NA, linewidth = 0.8) +
+    geom_map(data=testt,map=testt,aes(map_id=region,x=long,y=lat),fill="darkgrey",color="black")+
+    scale_x_continuous(expand=c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)+
+    labs(fill = "AGI")+
+    geom_text(aes(x = Inf, y = Inf, 
+                  label = paste0("Area: ", round(perc_area_250m_base, 2), "%")), 
+              hjust = 1.1, vjust = 2, size = 8, color = "black")+
+    theme_map()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 18, color = "white"),
+          axis.text.y = element_text(color = "white", size = 18),
+          axis.title =element_text(size = 20, color = "white"), 
+          legend.text = element_text(size = 18, color = "white"), 
+          legend.title = element_text(size = 20, color = "white"), 
+          legend.position = "right", 
+          legend.justification = "center",
+          legend.background = element_blank(), 
+          legend.box.background = element_blank())
+  
+  return(agi_one_250m)
+  
+  #end function 
+}
 
+agi_250m_layered_grc <- agi_maps_layerd_grc(rast_folder_base = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13"))
+
+ggsave(here("figs/grc/agi.svg"), height = 7, width = 8, units = c("in"))
