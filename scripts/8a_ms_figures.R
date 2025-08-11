@@ -126,7 +126,7 @@ agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_sp
                                     rast_folder_LN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010"), 
                                     rast_folder_EN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015"))
 
-ggsave(here("figs/ms/fig2_agi/agi_250m_layered.png"), agi_250m_layered, height = 7, width = 8, units = c("in"))
+ggsave(here("figs/ms/fig4_agi/agi_250m_layered.png"), agi_250m_layered, height = 8, width = 9, units = c("in"))
 
 ### Figure 5: performance metrics overall ####
 #entire domain and study period
