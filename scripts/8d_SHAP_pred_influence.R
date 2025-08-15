@@ -108,7 +108,7 @@ agi_baseline <- mean(predict(brt_agi, train_agi))
 
 # waterfall plot
 sv_agi <- shapviz(target_shap_agi, baseline = agi_baseline)
-waterfall_agi <- sv_waterfall(sv_agi, fill_colors = c("#224B5E", "#83A58C"))
+waterfall_agi <- sv_waterfall(sv_agi, fill_colors = c("#224B5E", "#83A58C")) + theme()
 waterfall_agi
 predict(brt_agi, target_env_agi) #make sure matches prediction from waterfall plot
 plogis(predict(brt_agi, target_env_agi)) #HSI prediction for this location
@@ -124,7 +124,7 @@ waterfall_do <- waterfall_do + xlim(min(do_rng, agi_rng), max(do_rng, agi_rng))
 waterfall_agi <- waterfall_agi + xlim(min(do_rng, agi_rng), max(do_rng, agi_rng))
 
 cowplot::plot_grid(waterfall_do, waterfall_agi, ncol = 1, align = "v")
-
+ggsave(here("figs/ms/supp_figs/shap.png"), height = 7, width = 8, units = c("in"))
 
 
 
