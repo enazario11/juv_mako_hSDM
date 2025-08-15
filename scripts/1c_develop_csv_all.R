@@ -83,9 +83,7 @@ shark.locs1 <- shark.locs %>%
 shark.locs.final <- rbind(shark.locs2, shark.locs1)
 
 #To save the CSV use below code -- shark_locs.csv generation
-write.csv(shark.locs.final, file = "data/shark_locs.csv", row.names = F)
-
-
+#write.csv(shark.locs.final, file = "data/shark_locs.csv", row.names = F)
 
 #-----------------------------
 # filter by FL to remove adults -- generate shark_AgeLocs.csv
@@ -102,7 +100,7 @@ shark_AgeLocs <- rbind(FL_female, FL_male)
 #write.csv(shark_AgeLocs, file = "data/shark_AgeLocs.csv", row.names = F)
 
 #Summary of deployment/animal
-dat_sum <- shark_Agelocs %>% 
+dat_sum <- shark_AgeLocs %>% 
   group_by(PTT) %>%
   summarise(start= first(posix),
             end = last(posix), 
@@ -121,10 +119,8 @@ day_locs <- shark_AgeLocs %>%
 #------------------------
 #Combining PDT and location data (already filtered for FL) -- generate tdl.csv
 #------------------------
-setwd("data/pdt")
-
 ### change date format across all PDT files, select matching columns, bind to single DF
-files = list.files("C:/Users/nazar/OneDrive/Documents/R/Projects/juv_mako_hSDM/data/pdt")
+files = list.files(here("data/og_tag_explore/tag_explore/pdt"), full.names = TRUE)
 files
 
 pdt.comb = NULL

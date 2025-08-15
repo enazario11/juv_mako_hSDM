@@ -1,10 +1,7 @@
 ### libraries ####
 {library(tidyverse)
- library(doParallel)
- library(foreach)
  library(here)
  library(gbm)
- library(dismo)
   set.seed(1004)}
 
 ### load data ####
