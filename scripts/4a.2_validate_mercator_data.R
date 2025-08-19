@@ -24,7 +24,6 @@ clim_tempWA <- rast(here("data/enviro/model_validate/Climatology/sst.mon.mean.nc
 
 calcofi_samp <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Bottle.csv"), check.names = FALSE)
 calcofi_met <- read.csv(here("data/enviro/model_validate/CalCofi_IMECOCAL/CAlCOFI/194903-202105_Cast.csv"), check.names = FALSE)
-#imecocal
 
 ### Mercator data ####
 #### oxygen (input: mmol/m^3, now: mmol/L) #### 
@@ -97,7 +96,6 @@ merc_do_Fa200 <- app(merc_do_Fa200, mean)
 #### temperature (C) #### 
 ##### 0m #####
 #combine all temp rasts into two rasters separated by depth layer
-
 merc_temp_all0 <- NULL
 for(i in 1:length(merc_temp0_raw)){
   # temp_nc <- nc_open(merc_temp0_raw[[i]])
@@ -319,8 +317,7 @@ clim_temp_Su0 <- app(clim_temp_Su0, mean)
 clim_temp_Fa0 <- subset(clim_temp_M0, c("m_9", "m_10", "m_11")) #Sep/Oct/Nov
 clim_temp_Fa0 <- app(clim_temp_Fa0, mean)
 
-### Station data ####
-#### CalCOFI ####
+### CalCOFI data ####
 #filter to correct dates
 calcofi_met_filt <- calcofi_met %>%
   filter(Year >= 2003 & Year <= 2015)
@@ -487,10 +484,6 @@ calcofi_samp200 %>%
   group_by(season) %>% 
   summarise(mean_temp0_C = mean(T_degC, na.rm = TRUE))
 
-#### IMECOCAL ####
-##### 0m #####
-
-##### 200m #####
 
 
 

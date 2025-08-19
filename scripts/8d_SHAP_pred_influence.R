@@ -83,6 +83,8 @@ waterfall_do
 predict(brt_do, target_env_do) #make sure matches prediction from waterfall plot
 plogis(predict(brt_do, target_env_do)) #HSI prediction for this location
 
+sv_importance(sv_do, kind = "bee") 
+
 # AGI ---------------------------------------------------------------------
 # Training data
 test_agi <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/agi/test/agi_test1.rds")) 
@@ -113,6 +115,8 @@ waterfall_agi
 predict(brt_agi, target_env_agi) #make sure matches prediction from waterfall plot
 plogis(predict(brt_agi, target_env_agi)) #HSI prediction for this location
 
+
+sv_importance(sv_agi, kind = "bee")
 # Visualize ---------------------------------------------------------------
 
 # harmonize x-axes

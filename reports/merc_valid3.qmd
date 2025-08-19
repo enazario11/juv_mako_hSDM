@@ -11,6 +11,8 @@ toc-title: "On this page"
 theme: yeti
 fontcolor: "#134f5c"
 code-block-bg: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 On this document I compare the mean Mercator BIORYS4 and GLORYS4 dissolved oxygen (DO) and temperature (temp) data to values from climatology products (DO: World Ocean Atlas and CSIRO; temp: OISST (at 0m), CSIRO, and WOA) and CalCOFI stations. DO and temp values will be compared to the climatology products as averages across the study area (lat: 1 to 49 and lon: -153 to -104) at 0m and at 200m depth which represent two of the depth layers I will use for the shark models.
@@ -521,7 +523,7 @@ d_do1 <- ggplot() +
   geom_spatraster(data = diff_merc_clim) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (mmol/L)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.05, 0.05), breaks = c(-0.05, -0.025, 0, 0.025, 0.05))+
   theme_minimal()
 
 #Merc vs. CARS CSIRO
@@ -534,7 +536,7 @@ d_do1.5 <- ggplot() +
   geom_spatraster(data = diff_merc_cars) + 
   ggtitle("Comparing Mercator to CSIRO") +
   labs(fill = "Difference (mmol/L)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.05, 0.05), breaks = c(-0.05, -0.025, 0, 0.025, 0.05))+
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -546,13 +548,12 @@ diff_merc_cal <- merc_cal_extract$mean - df_cal_do0$mean_do0_mmol_L
 calcofi_sta0$merc_diff <- diff_merc_cal
 
 d_do2 <- ggplot()+
-  geom_sf(data = calcofi_sta0, aes(color = merc_diff), size = 3)+
-  scale_colour_gradientn(colours = matlab.like(30))+
+  geom_sf(data = calcofi_sta0, aes(color = merc_diff), size = 3)+ 
+  scale_color_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.05, 0.05), breaks = c(-0.05, -0.025, 0, 0.025, 0.05))+
   labs(color = "Difference (mmol/L)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
 
-ggpubr::ggarrange(d_do1, d_do1.5, d_do2)
 ```
 
 ### Mercator temporal variation vs. CalCOFI data 0m
@@ -634,6 +635,27 @@ ggplot(merc_vari0_off, aes(Date, mean_DO, color = data_source)) +
   ylab("Mean DO (mmol/L)") +
   theme_minimal()
 
+#Merc vs. CalCOFI correlation
+cor_do0 <- NULL
+for (i in 1:length(unique(merc_vari0_l$sta_geom))){
+  station <- unique(merc_vari0_l$sta_geom)[i]
+  temp_df <- filter(merc_vari0_l, sta_geom == station)
+  merc <- filter(temp_df, data_source == "merc_do_0m")
+  cal <- filter(temp_df, data_source == "calcofi_do_0m")
+
+  temp_df$cor_merc_cal <- cor(merc$DO_mmol_L, cal$DO_mmol_L, method = "pearson")
+  cor_do0 <- rbind(cor_do0, temp_df)
+}
+
+d_do3 <- ggplot()+
+  geom_sf(data = cor_do0, aes(color = cor_merc_cal), size = 3)+
+  scale_colour_gradient2(low = "navy", mid = "white", high = "red", limits =c(-1, 1), breaks = c(-1, -0.5, 0, 0.5, 1))+
+  labs(color = "Correlation") + 
+  ggtitle("Correlation Mercator and CalCOFI") +
+  theme_minimal()
+
+ggpubr::ggarrange(d_do1, d_do1.5, d_do2, d_do3) #save with export button: 
+ggsave(here("figs/merc_valid/diff_corr_do0.png"), height = 6, width = 9, units = c("in"))
 ```
 
 ## DO (mmol/L) at 200m
@@ -717,7 +739,7 @@ d_do1_200 <- ggplot() +
   geom_spatraster(data = diff_merc_clim200) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (mmol/L)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
+   scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.1, 0.1), breaks = c(-0.1, -0.05, 0, 0.05, 0.1))+
   theme_minimal()
 
 #Merc vs. CARS CSIRO
@@ -730,7 +752,7 @@ d_do1.5_200 <- ggplot() +
   geom_spatraster(data = diff_merc_cars200) + 
   ggtitle("Comparing Mercator to CSIRO") +
   labs(fill = "Difference (mmol/L)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
+   scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.1, 0.1), breaks = c(-0.1, -0.05, 0, 0.05, 0.1))+
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -743,12 +765,11 @@ calcofi_sta200$merc_diff200 <- diff_merc_cal200
 
 d_do2_200 <- ggplot()+
   geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
-  scale_colour_gradientn(colours = matlab.like(30))+
+   scale_color_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.1, 0.1), breaks = c(-0.1, -0.05, 0, 0.05, 0.1))+
   labs(color = "Difference (mmol/L)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
 
-ggpubr::ggarrange(d_do1_200, d_do1.5_200, d_do2_200)
 ```
 
 ### Mercator temporal variation vs. CalCOFI data 200m
@@ -828,6 +849,28 @@ ggplot(merc_vari200_off, aes(Date, mean_DO, color = data_source)) +
   ylab("Mean DO (mmol/L)") +
   labs(subtitle = "Offshore stations") + 
   theme_minimal()
+
+#Merc vs. CalCOFI correlation
+cor_do200 <- NULL
+for (i in 1:length(unique(merc_vari200_l$sta_geom))){
+  station <- unique(merc_vari200_l$sta_geom)[i]
+  temp_df <- filter(merc_vari200_l, sta_geom == station)
+  merc <- filter(temp_df, data_source == "merc_do_200m")
+  cal <- filter(temp_df, data_source == "calcofi_do_200m")
+
+  temp_df$cor_merc_cal <- cor(merc$DO_mmol_L, cal$DO_mmol_L, method = "pearson")
+  cor_do200 <- rbind(cor_do200, temp_df)
+}
+
+do3_200 <- ggplot()+
+  geom_sf(data = cor_do200, aes(color = cor_merc_cal), size = 3)+
+  scale_colour_gradient2(low = "navy", mid = "white", high = "red", limits =c(-1, 1), breaks = c(-1, -0.5, 0, 0.5, 1))+
+  labs(color = "Correlation") + 
+  ggtitle("Correlation Mercator and CalCOFI") +
+  theme_minimal()
+
+ggpubr::ggarrange(d_do1_200, d_do1.5_200, d_do2_200, do3_200)
+ggsave(here("figs/merc_valid/diff_corr_do200.png"), height = 6, width = 9, units = c("in"))
 ```
 
 ## Temp (C) at 0m
@@ -923,8 +966,9 @@ d_temp1_0 <- ggplot() +
   geom_spatraster(data = diff_merc_OISST0) + 
   ggtitle("Comparing Mercator to OISST") +
   labs(fill = "Difference (C)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
-  theme_minimal()
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-3, 3), breaks = c(-3, -1.5, 0, 1.5, 3))+
+  theme_minimal() + 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
 
 #Merc vs. WOA
 ext(temp_woa0) <- c(-153.75, -103.75, 0.377594, 51.37759)
@@ -939,8 +983,9 @@ d_temp2_0 <- ggplot() +
   geom_spatraster(data = diff_merc_WOA0) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (C)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
-  theme_minimal()
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-3, 3), breaks = c(-3, -1.5, 0, 1.5, 3))+
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
 
 #Merc vs. CARS CSIRO
 origin(merc_temp_Y0_cars) <- c(0,0)
@@ -952,8 +997,9 @@ d_temp2.5_0 <- ggplot() +
   geom_spatraster(data = diff_merc_cars_temp0) + 
   ggtitle("Comparing Mercator to CSIRO") +
   labs(fill = "Difference (C)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
-  theme_minimal()
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-3, 3), breaks = c(-3, -1.5, 0, 1.5, 3))+
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
 
 #Merc vs. CalCOFI
 vect_cal_temp0 <- vect(calcofi_sta0)
@@ -965,12 +1011,13 @@ calcofi_sta0$merc_diff0 <- diff_merc_cal0
 
 d_temp3_0 <- ggplot()+
   geom_sf(data = calcofi_sta0, aes(color = merc_diff0), size = 3)+
-  scale_colour_gradientn(colours = matlab.like(30))+
+  scale_color_gradient2(low = "navy", mid = "white", high = "red", limits =c(-3, 3), breaks = c(-3, -1.5, 0, 1.5, 3))+
   labs(color = "Difference (C)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
-  theme_minimal()
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
 
-ggpubr::ggarrange(d_temp2_0, d_temp1_0, d_temp2.5_0, d_temp3_0)
+
 ```
 
 ### Mercator temporal variation vs. CalCOFI data 0m
@@ -1053,6 +1100,31 @@ ggplot(merc_vari0_temp_off, aes(Date, mean_temp, color = data_source)) +
   ylab("Mean Temperature (C)") +
   theme_minimal()
 
+
+#Merc vs. CalCOFI correlation
+cor_temp0 <- NULL
+for (i in 1:length(unique(merc_vari0_temp_l$sta_geom))){
+  station <- unique(merc_vari0_temp_l$sta_geom)[i]
+  temp_df <- filter(merc_vari0_temp_l, sta_geom == station)
+  merc <- filter(temp_df, data_source == "merc_temp_0m")
+  cal <- filter(temp_df, data_source == "calcofi_temp_0m")
+
+  temp_df$cor_merc_cal <- cor(merc$Temp_C, cal$Temp_C, method = "pearson")
+  cor_temp0 <- rbind(cor_temp0, temp_df)
+}
+
+cor_temp4_0 <- ggplot()+
+  geom_sf(data = cor_temp0, aes(color = cor_merc_cal), size = 3)+
+  scale_colour_gradient2(low = "navy", mid = "white", high = "red", limits =c(-1, 1), breaks = c(-1, -0.5, 0, 0.5, 1))+
+  labs(color = "Correlation") + 
+  ggtitle("Correlation Mercator and CalCOFI") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45))
+
+ggpubr::ggarrange(d_temp2_0, d_temp1_0, d_temp2.5_0, d_temp3_0, cor_temp4_0)
+ggsave(here("figs/merc_valid/diff_corr_temp0.png"), height = 6, width = 10, units = c("in"))
+
+
 ```
 
 ## Temp (C) at 200m
@@ -1130,7 +1202,7 @@ d_temp1_200 <- ggplot() +
   geom_spatraster(data = diff_merc_WOA200) + 
   ggtitle("Comparing Mercator to WOA") +
   labs(fill = "Difference (C)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+ 
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-2, 2), breaks = c(-2, -1, 0, 1, 2))+
   theme_minimal()
 
 #Merc vs. CARS CSIRO
@@ -1142,8 +1214,8 @@ diff_merc_cars_temp200 <- diff(c(merc_temp_Y200_cars, cars_temp_resamp200))
 d_temp1.5_200 <- ggplot() + 
   geom_spatraster(data = diff_merc_cars_temp200) + 
   ggtitle("Comparing Mercator to CSIRO") +
-  labs(fill = "Difference (C)") + 
-  scale_fill_gradientn(colours = matlab.like(30))+
+  labs(fill = "Difference (C)") +  
+  scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-2, 2), breaks = c(-2, -1, 0, 1, 2))+
   theme_minimal()
 
 #Merc vs. CalCOFI
@@ -1155,13 +1227,12 @@ diff_merc_cal200 <- merc_cal_extract200$mean - df_cal_temp200$mean_temp200
 calcofi_sta200$merc_diff200 <- diff_merc_cal200
 
 d_temp2_200 <- ggplot()+
-  geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+
-  scale_colour_gradientn(colours = matlab.like(30))+
+  geom_sf(data = calcofi_sta200, aes(color = merc_diff200), size = 3)+ 
+  scale_colour_gradient2(low = "navy", mid = "white", high = "red", limits =c(-2, 2), breaks = c(-2, -1, 0, 1, 2))+
   labs(color = "Difference (C)") + 
   ggtitle("Comparing Mercator to CalCOFI") +
   theme_minimal()
 
-ggpubr::ggarrange(d_temp1_200, d_temp1.5_200, d_temp2_200)
 ```
 
 ### Mercator temporal variation vs. CalCOFI data 200m
@@ -1240,4 +1311,27 @@ ggplot(merc_vari200_temp_off, aes(Date, mean_temp, color = data_source)) +
   xlab("")+
   ylab("Mean Temperature (C)") + 
   theme_minimal()
+
+#Merc vs. CalCOFI correlation
+cor_temp200 <- NULL
+for (i in 1:length(unique(merc_vari200_temp_l$sta_geom))){
+  station <- unique(merc_vari200_temp_l$sta_geom)[i]
+  temp_df <- filter(merc_vari200_temp_l, sta_geom == station)
+  merc <- filter(temp_df, data_source == "merc_temp_200m")
+  cal <- filter(temp_df, data_source == "calcofi_temp_200m")
+
+  temp_df$cor_merc_cal <- cor(merc$Temp_C, cal$Temp_C, method = "pearson")
+  cor_temp200 <- rbind(cor_temp200, temp_df)
+}
+
+cor_temp4_200 <- ggplot()+
+  geom_sf(data = cor_temp200, aes(color = cor_merc_cal), size = 3)+
+  scale_colour_gradient2(low = "navy", mid = "white", high = "red", limits =c(-1, 1), breaks = c(-1, -0.5, 0, 0.5, 1))+
+  labs(color = "Correlation") + 
+  ggtitle("Correlation Mercator and CalCOFI") +
+  theme_minimal()
+
+ggpubr::ggarrange(d_temp1_200, d_temp1.5_200, d_temp2_200, cor_temp4_200)
+ggsave(here("figs/merc_valid/diff_corr_temp200.png"), height = 6, width = 9, units = c("in"))
+
 ```
