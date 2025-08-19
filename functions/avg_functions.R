@@ -156,8 +156,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     ggtitle("AGI model") +
     theme_map() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 0.3, color = "black"), 
-          legend.position = "none", 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, color = "black"), 
           axis.text.y = element_blank(), 
           axis.title.y = element_blank())
   
@@ -188,6 +187,29 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   #         legend.position = "none")
   
   #if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/combo_avg.png"), combo_map, height = 5, width = 5)}
+  
+  
+  #agi-do difference map
+  diff_rast <- diff(c(agi_avg, do_avg))
+  
+  agi_do_diff <- ggplot() +
+    geom_spatraster(data = diff_rast) +
+    geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
+    scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
+    scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
+    #scale_fill_gradient2(low = "navy", mid = "white", high = "red", limits =c(-0.5, 0.5), breaks = c(-0.5, -0.25, 0, 0.25, 0.5))+
+    scale_fill_whitebox_c(palette = "muted", direction = -1)  +
+    ggtitle("AGI, DO Difference") +
+    theme_map() +
+    labs(fill = "Difference") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, color = "black"), 
+          axis.text.y = element_blank(), 
+          axis.title.y = element_blank(), 
+          legend.position = 'right', 
+          legend.title = element_text(size = 16),
+          legend.text = element_text(size = 14))
+  
+  if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/diff_all.png"), agi_do_diff, height = 5, width = 5)}
   
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
