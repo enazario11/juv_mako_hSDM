@@ -422,7 +422,7 @@ ggsave(here("figs/ms/fig6_metrics_st/Figure_6_Metrics_st.png"), all_metric_plots
 base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
 do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
 agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
-do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_dail_seas_ann.rds"))
+#do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_dail_seas_ann.rds"))
 
 #base model 
 base_inf <- as.data.frame(ggBRT::ggInfluence(base_mod, plot = FALSE)) %>% rownames_to_column()
@@ -572,25 +572,25 @@ inf_df <- rbind(inf_df, agi_inf)
 #   )
 
 #combo model
-do_agi_inf <- as.data.frame(ggBRT::ggInfluence(do_agi_comb, plot = FALSE)) %>% rownames_to_column()
-colnames(do_agi_inf) <- c("Predictor_variable", "relative_influence")
-do_agi_inf$Predictor_variable <- gsub("\\<o2_mean_0m\\>", "DO, daily, 0m", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("AGI_250m_ann", "AGI, annual, 250m", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("o2_mean_0m_seas", "DO, seasonal, 0m", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("AGI_250m_seas", "AGI, seasonal, 250m", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("temp_mean", "temp", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("sal_mean", "sal", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("bathy_mean", "z", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("chl_mean", "chl-a", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("o2_mean_0m_ann", "DO, annual, 0m", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("AGI_250m", "AGI, daily, 250m", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_agi_inf$Predictor_variable)
-do_agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_agi_inf$Predictor_variable)
-
-do_agi_inf <- do_agi_inf %>% mutate(model = "DO+AGI combo") 
-colnames(do_agi_inf) <- c("var", "inf_val", "model")
-inf_df <- rbind(inf_df, do_agi_inf)
+# do_agi_inf <- as.data.frame(ggBRT::ggInfluence(do_agi_comb, plot = FALSE)) %>% rownames_to_column()
+# colnames(do_agi_inf) <- c("Predictor_variable", "relative_influence")
+# do_agi_inf$Predictor_variable <- gsub("\\<o2_mean_0m\\>", "DO, daily, 0m", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("AGI_250m_ann", "AGI, annual, 250m", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("o2_mean_0m_seas", "DO, seasonal, 0m", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("AGI_250m_seas", "AGI, seasonal, 250m", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("temp_mean", "temp", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("sal_mean", "sal", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("bathy_mean", "z", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("chl_mean", "chl-a", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("o2_mean_0m_ann", "DO, annual, 0m", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("AGI_250m", "AGI, daily, 250m", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_agi_inf$Predictor_variable)
+# do_agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_agi_inf$Predictor_variable)
+# 
+# do_agi_inf <- do_agi_inf %>% mutate(model = "DO+AGI combo") 
+# colnames(do_agi_inf) <- c("var", "inf_val", "model")
+# inf_df <- rbind(inf_df, do_agi_inf)
 
 # comb_cols <- NatParksPalettes::natparks.pals("BryceCanyon", n = length(unique(do_agi_inf$Predictor_variable))+30)
 # 
@@ -630,7 +630,8 @@ avg_inf_df <- avg_pred(base_mods = list.files(here("data/brt/mod_outputs/perf_me
 ##### revised plot  #####
 avg_inf_sum <- avg_inf_df %>% 
   group_by(model, var) %>%
-  summarise(inf_val = mean(inf_val))
+  summarise(inf_mean = mean(inf_val), 
+            inf_sd = sd(inf_val))
 
 for(i in 1:nrow(avg_inf_sum)){
   if(str_detect(avg_inf_sum$var[i], "AGI")){
@@ -655,8 +656,8 @@ avg_inf_sum <- avg_inf_sum %>%
 do_agi <- avg_inf_sum %>% 
   filter(var_type != "Environmental predictor") %>% 
   mutate(var = as.factor(var)) %>%
-  mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
-  ggplot(aes(x = var, y = inf_val))+
+  mutate(var = as.factor(var), var = fct_reorder(var, -inf_mean)) %>%
+  ggplot(aes(x = var, y = inf_mean))+
   geom_bar(aes(fill = model), stat = "identity", position = position_dodge2(width = 0.8, preserve = "single"), color = "white")+
   scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15)[2:4])+
   xlab("")+
@@ -674,8 +675,8 @@ do_agi <- avg_inf_sum %>%
 
 enviro <- avg_inf_sum %>%
   filter(var_type == "Environmental predictor") %>% 
-  mutate(var = as.factor(var), var = fct_reorder(var, -inf_val)) %>%
-  ggplot(aes(x = var, y = inf_val))+
+  mutate(var = as.factor(var), var = fct_reorder(var, -inf_mean)) %>%
+  ggplot(aes(x = var, y = inf_mean))+
   geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white", width = 0.8)+
   scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15))+
   xlab("")+
@@ -696,7 +697,56 @@ enviro <- avg_inf_sum %>%
 pred_fig <- enviro/do_agi
 pred_fig
 
-ggsave(here("figs/ms/fig6_pred/bar_pred.png"), pred_fig, width = 11, height = 8, units = c("in"))
+#### fiddle point-error bar plot ######
+avg_inf_sum$model <- factor(avg_inf_sum$model, levels=c('Base', 'DO', 'AGI'))
+
+# pred_fig <- avg_inf_sum %>%
+#   ungroup() %>%
+#   mutate(var = as.factor(var), 
+#          var = fct_reorder(var, inf_mean)) %>%
+#   ggplot(aes(x = inf_mean, y = var, color = model, fill = model))+
+#   geom_point(size = 4)+
+#   scale_color_manual(values = c("#224B5E","#6A8D80", "#ABB98B")) +
+#   geom_errorbarh(aes(xmax = inf_mean + inf_sd, xmin = inf_mean - inf_sd, height = 0), linewidth = 1)+
+#   xlab("Relative importance (%)")+
+#   ylab("Predictor variable")+
+#   labs(color = "Model") +
+#   guides(fill="none") +
+#   tidyquant::theme_tq()+
+#   theme(axis.text = element_text(size = 14, color = "black"), 
+#         axis.title = element_text(size = 16, color = "black"),
+#         strip.text = element_text(size = 16), 
+#         legend.title = element_text(size = 16), 
+#         legend.text = element_text(size = 14), 
+#         legend.position = "top", 
+#         legend.justification = "left") 
+
+#facet by model
+pred_fig <- avg_inf_sum %>%
+  ungroup() %>%
+  mutate(var = as.factor(var), 
+         var = fct_reorder(var, inf_mean)) %>%
+  ggplot(aes(x = inf_mean, y = var, color = model, fill = model))+
+  geom_errorbarh(aes(xmax = inf_mean + inf_sd, xmin = inf_mean - inf_sd, height = 0), linewidth = 1)+
+  geom_point(size = 3)+
+  scale_color_manual(values = c("#224B5E","#6A8D80", "#ABB98B")) +
+  xlab("Relative importance (%)")+
+  ylab("Predictor variable")+
+  guides(fill="none", color = "none") +
+  tidyquant::theme_tq()+
+  theme(axis.text = element_text(size = 14, color = "black"), 
+        axis.title = element_text(size = 16, color = "black"),
+        strip.text = element_text(size = 16), 
+        legend.title = element_text(size = 16), 
+        legend.text = element_text(size = 14), 
+        legend.position = "top", 
+        legend.justification = "left") +
+facet_wrap(~model, scales = "free_y"); pred_fig
+
+
+#########################################
+
+ggsave(here("figs/ms/fig7_pred/point_pred_facet.png"), pred_fig, width = 11, height = 5, units = c("in"))
   
 #ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
 ggsave(here("figs/ms/fig3_pred/base_pred.png"), base_pred, height = 7, width = 7, units = c("in"))
