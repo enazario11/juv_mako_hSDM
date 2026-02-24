@@ -82,6 +82,10 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   agi_avg <- mean(agi_list)
   #combo_avg <- mean(combo_list)
   
+  #save averaged raster files per model
+  assign("base_avg_rast", base_avg, envir = .GlobalEnv)
+  assign("do_avg_rast", do_avg, envir = .GlobalEnv)
+  assign("agi_avg_rast", agi_avg, envir = .GlobalEnv)
   
   #plot maps--------------------------------------------------------------------------------------------------------
   #land files

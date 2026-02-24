@@ -69,7 +69,7 @@ ggplot(shore, aes(long, lat)) +
   geom_polygon(aes(group=group), fill="grey75",lwd=1)+
   theme_ms_map()
 
-ggsave(here("figs/ms/fig1_concept_hyp/coast.png"), height = 7 , width = 5, units = c("in"))
+#ggsave(here("figs/ms/fig1_concept_hyp/coast.png"), height = 7 , width = 5, units = c("in"))
 
 ### Figure 2: locs over study area bathymetry ####
 #### presence location data ####
@@ -760,6 +760,78 @@ ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width
 
 all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
 ggsave(here("figs/ms/fig8_hsi_all/all_maps_avg_20.svg"), all_maps_avg, height = 7, width = 10, units = c("in"))
+
+    ### Calculate % area HSI > 0.75 in CCS, NEC, and NEP for each model #####
+calc_perc_area <- function(model_map, area){
+#shore crop
+  shore_sf  <- rnaturalearth::ne_countries(country = c("United States of America", "Canada", "Mexico"), 
+                           returnclass = "sf")
+  shore_vect <- vect(shore_sf)
+
+    if(area == "NEC"){
+      rast_nec_filt <- model_map %>% filter(y <= 12)
+      rast_nec <- terra::mask(rast_nec_filt, shore_vect, inverse = TRUE)
+
+      hsi_nec <- raster::clamp(rast_nec, lower = 0.25, values = FALSE)
+
+      hsi_area_map <- expanse(hsi_nec)
+      rast_area_map <- expanse(rast_nec)
+
+      perc_area <- (hsi_area_map/rast_area_map$area[1])*100
+      perc_area <- perc_area$area[1]
+    }
+  
+    if(area == "CCS"){
+      bbox <- ext(-130, -100, 30, 48)
+      rast_ccs_filt <- crop(model_map, bbox)
+
+      rast_ccs_crop <- crop(rast_ccs_filt, shore_vect)
+      rast_ccs  <- terra::mask(rast_ccs_crop, shore_vect, inverse = TRUE)
+
+      hsi_ccs <- raster::clamp(rast_ccs, lower = 0.25, values = FALSE)
+
+      hsi_area_map <- expanse(hsi_ccs)
+      rast_area_map <- expanse(rast_ccs)
+
+      perc_area <- (hsi_area_map/rast_area_map$area[1])*100
+      perc_area <- perc_area$area[1]
+    }
+  
+    if(area == "NEP"){
+     bbox <- ext(-130, -100, 30, 48)
+     rast_nep_filt <- model_map %>% filter(y > 12) 
+     rast_nep_filt  <- terra::mask(rast_nep_filt, bbox, inverse = TRUE)
+      
+     rast_nep_crop <- crop(rast_nep_filt, shore_vect)
+     rast_nep  <- terra::mask(rast_nep_crop, shore_vect, inverse = TRUE)
+
+     hsi_nep <- raster::clamp(rast_nep, lower = 0.25, values = FALSE)
+
+     hsi_area_map <- expanse(hsi_nep)
+     rast_area_map <- expanse(rast_nep)
+
+     perc_area <- (hsi_area_map/rast_area_map$area[1])*100
+     perc_area <- perc_area$area[1]
+
+    }
+  
+  return(perc_area)
+}
+
+#Base
+nec_base <- calc_perc_area(base_avg_rast, area = "NEC")
+ccs_base <- calc_perc_area(base_avg_rast, area = "CCS")
+nep_base <- calc_perc_area(base_avg_rast, area = "NEP")
+
+#DO
+nec_do <- calc_perc_area(do_avg_rast, area = "NEC")
+ccs_do <- calc_perc_area(do_avg_rast, area = "CCS")
+nep_do <- calc_perc_area(do_avg_rast, area = "NEP")
+
+#AGI
+nec_agi <- calc_perc_area(agi_avg_rast, area = "NEC")
+ccs_agi <- calc_perc_area(agi_avg_rast, area = "CCS")
+nep_agi <- calc_perc_area(agi_avg_rast, area = "NEP")
 
 
 ### Figure 9: ENSO HSI maps ####
