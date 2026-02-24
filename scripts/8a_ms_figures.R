@@ -819,20 +819,30 @@ calc_perc_area <- function(model_map, area){
 }
 
 #Base
-nec_base <- calc_perc_area(base_avg_rast, area = "NEC")
-ccs_base <- calc_perc_area(base_avg_rast, area = "CCS")
-nep_base <- calc_perc_area(base_avg_rast, area = "NEP")
+base_avg_rast2 <- base_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+
+nec_base <- calc_perc_area(base_avg_rast2, area = "NEC")
+ccs_base <- calc_perc_area(base_avg_rast2, area = "CCS")
+nep_base <- calc_perc_area(base_avg_rast2, area = "NEP")
 
 #DO
-nec_do <- calc_perc_area(do_avg_rast, area = "NEC")
-ccs_do <- calc_perc_area(do_avg_rast, area = "CCS")
-nep_do <- calc_perc_area(do_avg_rast, area = "NEP")
+do_avg_rast2 <- do_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+
+nec_do <- calc_perc_area(do_avg_rast2, area = "NEC")
+ccs_do <- calc_perc_area(do_avg_rast2, area = "CCS")
+nep_do <- calc_perc_area(do_avg_rast2, area = "NEP")
 
 #AGI
-nec_agi <- calc_perc_area(agi_avg_rast, area = "NEC")
-ccs_agi <- calc_perc_area(agi_avg_rast, area = "CCS")
-nep_agi <- calc_perc_area(agi_avg_rast, area = "NEP")
+agi_avg_rast2 <- agi_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
 
+nec_agi <- calc_perc_area(agi_avg_rast2, area = "NEC")
+ccs_agi <- calc_perc_area(agi_avg_rast2, area = "CCS")
+nep_agi <- calc_perc_area(agi_avg_rast2, area = "NEP")
+
+df <- data.frame(area = rep(c("NEC", "CCS", "NEP"), times = 3),
+            model_type = rep(c("base", "do", "agi"), each = 3),
+            perc_area  = c(nec_base, ccs_base, nep_base, nec_do, ccs_do, nep_do, nec_agi, ccs_agi,  nep_agi)
+)
 
 ### Figure 9: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
