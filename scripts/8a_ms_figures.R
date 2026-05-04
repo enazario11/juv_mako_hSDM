@@ -279,7 +279,7 @@ all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/
                              ms = "Y", 
                              iter = 20)
 
-ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.svg"), all_maps_avg, height = 7, width = 10, units = c("in"))
+ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 7, width = 10, units = c("in"))
 
 ### Figure 7: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)

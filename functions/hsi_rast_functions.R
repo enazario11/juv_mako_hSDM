@@ -134,8 +134,8 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   
   #generate AGI rasters ---------------------------------------------------------------------------------------
   source(here("functions/oxy_demand_functions_rev.R"))
-  OxyThresh_0m = 0.0702 #value converted from Vetter concentration data to atm according to salinity, temp
-  OxyThresh_250m = 0.0591 #value converted from Vetter concentration data to atm according to salinity, temp
+  OxyThresh_0m = 0.07193 #value converted from Vetter concentration data to atm according to salinity, temp
+  OxyThresh_250m = 0.06261 #value converted from Vetter concentration data to atm according to salinity, temp
   Tpref = 16.45201 #mean temp experienced by sharks at mean dive depth (50m)
   
   dir.create(here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name)), showWarnings = FALSE) 
@@ -182,10 +182,6 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   agi_rast <- c(rast_daily_0m_sub$votemper, AGI_ann_250m, AGI_daily_0m, bathy, AGI_seas_0m, rast_daily_0m_sub$vosaline, AGI_seas_250m, AGI_ann_0m, rast_daily_0m_sub$chl, AGI_daily_250m, bathy_sd, rast_daily_0m_sub$somxlavt, rast_daily_0m_sub$sossheig)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
   
-  #comb model
-  comb_rast <- c(rast_daily_0m_sub$votemper, AGI_ann_250m, bathy, rast_daily_0m_sub$vosaline, AGI_seas_250m, rast_daily_0m_sub$chl, AGI_daily_250m, bathy_sd, rast_daily_0m_sub$somxlavt, rast_daily_0m_sub$sossheig, rast_daily_0m_sub$o2, rast_ann_0m_sub$o2, rast_seas_0m_sub$o2_1)
-  names(comb_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
-  
   #save HSI raster input file ---------------------------------------------------------------------------------
   dir.create(here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name)), showWarnings = FALSE) 
   
@@ -197,10 +193,6 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   
     #AGI model
   writeCDF(agi_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"/", output_name,"_agi_rast.nc")))
-  
-  #comb model
-  writeCDF(comb_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/", output_name,"/", output_name,"_combo_rast.nc")))
-
   
 # end function  
 }
@@ -389,9 +381,6 @@ hsi_rast_gen_sd <- function(date_start = c("2003-01-01"), date_end = c("2015-12-
   
   #AGI model
   writeCDF(agi_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts_sd/", output_name,"/", output_name,"_agi_rast.nc")))
-  
-  #comb model
-  writeCDF(comb_rast, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts_sd/", output_name,"/", output_name,"_combo_rast.nc")))
   
   # end function  
 }
@@ -1589,7 +1578,7 @@ agi_maps_layerd <- function(rast_folder_base = NULL, rast_folder_LN = NULL, rast
                     label = paste0("La Niña: +", round(perc_area_250m_LN - perc_area_250m_base, 2), "%")), 
                 hjust = 1.05, vjust = 4, size = 8, color = "black")+
       geom_text(aes(x = Inf, y = Inf, 
-                    label = paste0("El Niño: -", round(perc_area_250m_base - perc_area_250m_EN, 2), "%")), 
+                    label = paste0("El Niño: +", round(perc_area_250m_base - perc_area_250m_EN, 2), "%")), 
                 hjust = 1.05, vjust = 6, size = 8, color = "black")+
       theme_map()+
       theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 18, color = "black"),

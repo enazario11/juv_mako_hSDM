@@ -3,10 +3,10 @@
 do_to_atm <- function(do, t, s, thresh = FALSE) {
   
   if (thresh == TRUE){
-  #use the salinity and temperature conditions to get unit to mmol/L
-  do_mmol_L <- respR::convert_DO(do, "mL/L", "mmol/L", S = s, t = t, P = 1.013253)
-  do <- do_mmol_L/0.001 #convert L to m^3
-  }
+      #use the salinity and temperature conditions to get unit to mmol/L
+      do_mmol_L <- respR::convert_DO(do, "mL/L", "mmol/L", S = s, t = t, P = 1.013253)
+      do <- do_mmol_L/0.001 #convert L to m^3
+    }
 
   # If input is in raster format, convert to vector
   rast_format <- inherits(do, "SpatRaster")
@@ -21,13 +21,10 @@ do_to_atm <- function(do, t, s, thresh = FALSE) {
 
   po2_atm <-  rep(NA_real_, length(do))
 
-  for(i in 1:length(do)){
-    if(!is.na(do[i]) && !is.na(t[i]) && !is.na(s[i])){
-        a_o2_bar <- marelac::gas_solubility(S = s[i], t = t[i], species = "O2")
-        a_o2_atm <- a_o2_bar * 0.9869
-        po2_atm[i] <- do[i] / a_o2_atm
-    }
-  }
+  do_mask <- !is.na(do[i]) && !is.na(t[i]) && !is.na(s[i])
+  a_o2_bar <- marelac::gas_solubility(S = s[do_mask], t = t[do_mask], species = "O2")
+  a_o2_atm <- a_o2_bar / 0.9869
+  po2_atm[do_mask] <- do[do_mask] / a_o2_atm
 
   # Handle the return value if raster
   if (rast_format) {

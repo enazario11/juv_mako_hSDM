@@ -39,7 +39,7 @@ dat250 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_250m.rds"))
 dat0_DOatm <- dat0 %>%
   mutate(pO2_0 = do_to_atm(do = o2_mean, t = votemper_mean, s = vosaline_mean))
 
-#0.07385
+#0.07193
 thresh0 <- do_to_atm(do = 2, t = median(dat0_DOatm$votemper_mean, na.rm = TRUE), s = median(dat0_DOatm$vosaline_mean, na.rm = TRUE), thresh = TRUE) #defualt do value is 2 mL/L from vetter et al., 2008
 
 hist(dat0_DOatm$pO2_0, xlim = c(0, 0.30)) 
@@ -49,7 +49,7 @@ abline(v = thresh0, lwd = 2)
 dat250_DOatm <- dat250 %>%
   mutate(pO2_250 = do_to_atm(do = o2_mean, t = votemper_mean, s = vosaline_mean))
 
-#0.06428
+#0.06261
 thresh250 <- do_to_atm(do = 2, t = median(dat250_DOatm$votemper_mean, na.rm = TRUE), s = median(dat250_DOatm$vosaline_mean, na.rm = TRUE), thresh = TRUE)
 
 hist(dat250_DOatm$pO2_250)
