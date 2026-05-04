@@ -10,10 +10,9 @@
   set.seed(1004)
   source(here("functions/hsi_rast_functions.R"))
   source(here("functions/BRT_evaluation_functions.R"))
-  source(here("functions/oxy_demand_functions.R"))
+  source(here("functions/oxy_demand_functions_rev.R"))
   source(here("functions/avg_functions.R"))
   source(here("functions/partial_plot.R"))
-  source(here("scripts/7a_diet_data.R"))
 }
 
 ### saved custom themes ####
@@ -69,7 +68,7 @@ ggplot(shore, aes(long, lat)) +
   geom_polygon(aes(group=group), fill="grey75",lwd=1)+
   theme_ms_map()
 
-#ggsave(here("figs/ms/fig1_concept_hyp/coast.png"), height = 7 , width = 5, units = c("in"))
+ggsave(here("figs/ms/fig1_concept_hyp/coast.png"), height = 7 , width = 5, units = c("in"))
 
 ### Figure 2: locs over study area bathymetry ####
 #### presence location data ####
@@ -109,38 +108,36 @@ theme_ms_map() +
 
 ggsave(here("figs/ms/fig2_tracks_bathy/tracks_bathy.png"), height = 7, width = 5, units = c("in"))
 
-### Figure 4: AGI maps ####
-#neutral year
-#hsi_rast_gen(date_start = c("2013-09-01"), date_end = c("2014-01-31"), season = "FW", output_name = "neut_FW_Sept2013_Jan2014")
+### Figure 3: AGI maps ####
+#neutral year - 2013/2014
+hsi_rast_gen(date_start = c("2013-09-01"), date_end = c("2014-01-31"), season = "FW", output_name = "neut_FW_Sept2013_Jan2014")
 
-#La Niña
-#hsi_rast_gen(date_start = c("2010-09-01"), date_end = c("2010-11-30"), season = "F", output_name = "LN_F_2010")
+#La Niña - 2007/2008
+hsi_rast_gen(date_start = c("2007-11-01"), date_end = c("2008-01-31"), season = "FW", output_name = "LN_FW_2007_2008")
 
+#La Niña - 2010
+hsi_rast_gen(date_start = c("2010-09-01"), date_end = c("2010-11-30"), season = "F", output_name = "LN_F_2010")
 
-#EL Niño
-#2014 
-#hsi_rast_gen(date_start = c("2014-11-01"), date_end = c("2015-01-31"), season = "FW", output_name = "EN_FW_Nov2014_Jan2015")
+#EL Niño - 2014/2015
+hsi_rast_gen(date_start = c("2014-11-01"), date_end = c("2015-01-31"), season = "FW", output_name = "EN_FW_Nov2014_Jan2015")
 
-
-agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/Jan13_Dec13"), 
+agi_250m_layered <- agi_maps_layerd(rast_folder_base = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/neut_FW_Sept2013_Jan2014"), 
                                     rast_folder_LN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/LN_F_2010"), 
                                     rast_folder_EN = here("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/EN_FW_Nov2014_Jan2015"))
 
-ggsave(here("figs/ms/fig4_agi/agi_250m_layered.png"), agi_250m_layered, height = 8, width = 9, units = c("in"))
+ggsave(here("figs/ms/fig3_agi/agi_250m_layered.png"), agi_250m_layered, height = 8, width = 9, units = c("in"))
 
-### Figure 5: performance metrics overall ####
+### Figure 4: performance metrics overall ####
 #entire domain and study period
-mod_metric_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters"), pattern = ".rds", full.names = TRUE)
+mod_metric_files <- list.files(here("data/brt/mod_outputs/revised"), pattern = ".rds", full.names = TRUE)
 
 base_file <- readRDS(mod_metric_files[2])
-do_file <- readRDS(mod_metric_files[4])
+do_file <- readRDS(mod_metric_files[3])
 agi_file <- readRDS(mod_metric_files[1])
-combo_file <- readRDS(mod_metric_files[3])
 
 base_file$mod_type <- "Base model"
 agi_file$mod_type <- "AGI model"
 do_file$mod_type <- "DO model"
-#combo_file$mod_type <- "DO+AGI combo model"
 
 mod_metrics <- rbind(base_file, agi_file, do_file)
 mod_metrics <- mod_metrics %>% mutate(st_id = "Overall")
@@ -149,31 +146,13 @@ mod_metrics <- mod_metrics %>% mutate(st_id = "Overall")
 mod_metrics <- mod_metrics %>% mutate(dev_exp = dev_exp*100)
 all_sum <- mod_metrics %>%
   group_by(mod_type) %>%
-  summarise(mean_auc = mean(AUC), 
-            sd_auc = sd(AUC), 
-            mean_tss = mean(TSS), 
-            sd_tss = sd(TSS), 
-            mean_dev = mean(dev_exp),
-            sd_dev = sd(dev_exp)) %>%
+  summarise(mean_auc = mean(AUC, na.rm = TRUE), 
+            sd_auc = sd(AUC, na.rm = TRUE), 
+            mean_tss = mean(TSS, na.rm = TRUE), 
+            sd_tss = sd(TSS, na.rm = TRUE), 
+            mean_dev = mean(dev_exp, na.rm = TRUE),
+            sd_dev = sd(dev_exp, na.rm = TRUE)) %>%
   ungroup() 
-  
-# analysis of variance
-#anova <- aov(TSS ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-#tukey <- TukeyHSD(anova)
-
-# compact letter display
-#cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-# dt_tss <- mod_metrics %>%
-#   group_by(mod_type) %>%
-#   summarise(mean_tss=mean(TSS), sd = sd(TSS)) %>%
-#   arrange(desc(mean_tss))
-
-# extracting the compact letter display and adding to the Tk table
-#cld <- as.data.frame.list(cld$mod_type)
-#dt_tss$cld <- cld$Letters
 
 #overall plots
 TSS_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type), 
@@ -231,403 +210,13 @@ dev_overall <- all_sum %>% mutate(mod_type = as.factor(mod_type),
         axis.title = element_text(size = 16)) 
 
 overall_metric_plots <- TSS_overall/AUC_overall/dev_overall
+ggsave(here("figs/ms/fig4_perf_metric/overall_metrics.png"), overall_metric_plots, height = 13, width = 5, units = c("in"))
 
-ggsave(here("figs/ms/fig5_metrics_all/overall_metrics.svg"), overall_metric_plots, height = 13, width = 5, units = c("in"))
+# Figure 5: predictor relative importance ####
+avg_inf_df <- avg_pred(base_mods = list.files(here("data/brt/mod_outputs/revised/base"), full.names = TRUE),
+                       do_mods = list.files(here("data/brt/mod_outputs/revised/do"), full.names = TRUE), 
+                       agi_mods = list.files(here("data/brt/mod_outputs/revised/agi"), full.names = TRUE)) 
 
-#Figure 6: performance metrics st ####
-#spatiotemporal analysis
-base_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/base_metrics.rds")) %>% mutate(mod_type = "Base model")
-do_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/do_metrics.rds")) %>% mutate(mod_type = "DO model")
-agi_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/agi_metrics.rds")) %>% mutate(mod_type = "AGI model")
-#combo_st <- readRDS(here("data/brt/mod_outputs/perf_metric_iters/brts_st/combo_metrics.rds")) %>% mutate    (mod_type = "DO+AGI model")
-
-all_st <- rbind(base_st, do_st, agi_st) %>%
-  mutate(region = NA, 
-         ENSO = NA, 
-         dev_exp = dev_exp*100)
-
-for(i in 1:nrow(all_st)){
-  if(grepl('ccs',all_st$st_id[i])){
-    all_st$region[i] = "CCS"
-  } 
-  if(grepl('nec',all_st$st_id[i])){
-    all_st$region[i] = "NEC"
-  } 
-  if(grepl('nep', all_st$st_id[i])){
-    all_st$region[i] = "NEP"
-  }
-  if(grepl('Overall',all_st$st_id[i])){
-    all_st$region[i] = "Overall"
-  }  
-  if(grepl('en',all_st$st_id[i])){
-    all_st$ENSO[i] = "El Niño"
-  } 
-  if(grepl('ln',all_st$st_id[i])){
-    all_st$ENSO[i] = "La Niña"
-  } 
-  if(grepl('neut', all_st$st_id[i])){
-    all_st$ENSO[i] = "Neutral"
-  }
-  if(grepl('Overall',all_st$st_id[i])){
-    all_st$ENSO[i] = "Overall"}
-}
-
-#spatiotemporal plots
-TSS_plot <- all_st %>% mutate(mod_type = as.factor(mod_type), 
-                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
-                               st_id = as.factor(st_id), 
-                               region = as.factor(region), 
-                               region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
-                               ENSO = as.factor(ENSO), 
-                               ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
-  ggplot(aes(x = mod_type, y=TSS)) +
-  geom_boxplot(aes(fill = region, color = region), position = position_dodge(width = 1), lwd = 1, alpha = 0.55)+
-  #geom_errorbar(aes(ymin = mean_tss - 2*sd_tss, ymax = mean_tss + 2*sd_tss, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  #geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
-  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_tss), color="#92351e", linewidth = 1.5) +
-  #geom_point(color="orange", size=6) +
-  theme_tq() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  facet_wrap(~ENSO, scales = "free_y")+
-  xlab("") +
-  ylab("TSS") + 
-  scale_fill_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  labs(fill = "Region:")+
-  guides(color = "none")+
-  #coord_cartesian(ylim = c(0.4, 0.65))+
-  theme(axis.text = element_text(size = 14, color = "black"),
-        axis.title = element_text(size = 16), 
-        legend.title = element_text(size = 16, color = "black"), 
-        legend.text = element_text(size = 14, color = "black"),
-        legend.position = "top", 
-        legend.justification = "left", 
-        strip.text.x = element_text(size = 14)) 
-#geom_text(aes(label = cld, y = mean_tss + 0.03), vjust = -0.5, size = 5)
-
-
-# analysis of variance
-#anova <- aov(AUC ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-#tukey <- TukeyHSD(anova)
-
-# compact letter display
-#cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-# dt_auc <- mod_metrics %>%
-#   group_by(mod_type) %>%
-#   summarise(mean_auc=mean(AUC), sd = sd(AUC)) %>%
-#   arrange(desc(mean_auc))
-
-# extracting the compact letter display and adding to the Tk table
-#cld <- as.data.frame.list(cld$mod_type)
-#dt_auc$cld <- cld$Letters
-
-AUC_plot <- all_st %>% mutate(mod_type = as.factor(mod_type), 
-                               mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
-                               st_id = as.factor(st_id), 
-                               region = as.factor(region), 
-                               region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
-                               ENSO = as.factor(ENSO), 
-                               ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
-  ggplot(aes(x = mod_type, y=AUC)) +
-  geom_boxplot(aes(fill = region, color = region), position = position_dodge(width = 1), lwd = 1, alpha = 0.55)+
-  #geom_errorbar(aes(ymin = mean_auc - 2*sd_auc, ymax = mean_auc + 2*sd_auc, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  #geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
-  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_auc), color="#92351e", linewidth = 1.5) +
-  #geom_point(color="orange", size=6) +
-  theme_tq() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  facet_wrap(~ENSO, scales = "free_y")+
-  xlab("") +
-  ylab("AUC") + 
-  scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  scale_fill_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  #coord_cartesian(ylim = c(0.4, 0.65))+
-  theme(axis.text = element_text(size = 14, color = "black"),
-        axis.title = element_text(size = 16), 
-        legend.title = element_text(size = 16, color = "black"), 
-        legend.text = element_text(size = 14, color = "black"),
-        legend.position = "none", 
-        strip.text.x = element_text(size = 14)) 
-#geom_text(aes(label = cld, y = mean_auc + 0.03), vjust = -0.5, size = 5)
-
-
-# analysis of variance
-#anova <- aov(dev_exp ~ mod_type, data = mod_metrics)
-
-# Tukey's test
-#tukey <- TukeyHSD(anova)
-
-# compact letter display
-#cld <- multcompView::multcompLetters4(anova, tukey, reversed = TRUE)
-
-# dt_dev <- mod_metrics %>%
-#   group_by(mod_type) %>%
-#   summarise(mean_dev=mean(dev_exp), sd = sd(dev_exp)) %>%
-#   arrange(desc(mean_dev))
-
-# extracting the compact letter display and adding to the Tk table
-#cld <- as.data.frame.list(cld$mod_type)
-#dt_dev$cld <- cld$Letters
-
-perc_exp_plot <- all_st %>% mutate(mod_type = as.factor(mod_type), 
-                                    mod_type = fct_relevel(mod_type, c("Base model", "AGI model", "DO model")), 
-                                    st_id = as.factor(st_id), 
-                                    region = as.factor(region), 
-                                    region = fct_relevel(region, c("NEP", "CCS", "NEC")), 
-                                    ENSO = as.factor(ENSO), 
-                                    ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
-  ggplot(aes(x = mod_type, y=dev_exp)) +
-  geom_boxplot(aes(fill = region, color = region), position = position_dodge(width = 1), lwd = 1, alpha = 0.55)+
-  #geom_errorbar(aes(ymin = mean_dev - 2*sd_dev, ymax = mean_dev + 2*sd_dev, color = region), size =  1, width = 0, linewidth = 1, position=position_dodge(width=0.5))+
-  #geom_point(aes(color = region), size = 4, position=position_dodge(width=0.5))+
-  #geom_segment(aes(x=mod_type, xend=mod_type, y=0.4, yend=mean_dev), color="#92351e", linewidth = 1.5) +
-  #geom_point(color="orange", size=6) +
-  theme_tq() +
-  theme(
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.ticks.x = element_blank()
-  ) +
-  facet_wrap(~ENSO, scales = "free_y")+
-  xlab("") +
-  ylab("% Deviance explained") + 
-  scale_color_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  scale_fill_manual(values = c("#224B5E", "#527875", "#83A58C"))+
-  #coord_cartesian(ylim = c(0.4, 0.65))+
-  theme(axis.text = element_text(size = 14, color = "black"),
-        axis.title = element_text(size = 16), 
-        legend.title = element_text(size = 16, color = "black"), 
-        legend.text = element_text(size = 14, color = "black"),
-        legend.position = "none", 
-        strip.text.x = element_text(size = 14)) 
-#geom_text(aes(label = cld, y = mean_dev + 0.03), vjust = -0.5, size = 5)
-
-all_metric_plots <- TSS_plot/AUC_plot/perc_exp_plot
-
-ggsave(here("figs/ms/fig6_metrics_st/Figure_6_Metrics_st.png"), all_metric_plots, height = 10, width = 13, units = c("in"))
-
-# Figure 7: predictor relative importance ####
-#list models
-base_mod <- readRDS(here("data/brt/mod_outputs/final_mods/brt_base_0m_dail_no_wind.rds"))
-do_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_do_0m_250m_dail_seas_ann.rds"))
-agi_mod_fin <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_0m_250m_dail_seas_ann.rds"))
-#do_agi_comb <- readRDS(here("data/brt/mod_outputs/final_mods/brt_agi_250_DO_0_dail_seas_ann.rds"))
-
-#base model 
-base_inf <- as.data.frame(ggBRT::ggInfluence(base_mod, plot = FALSE)) %>% rownames_to_column()
-colnames(base_inf) <- c("Predictor_variable", "relative_influence")
-base_inf$Predictor_variable <- gsub("bathy_mean", "z", base_inf$Predictor_variable)
-base_inf$Predictor_variable <- gsub("temp_mean", "temp", base_inf$Predictor_variable)
-base_inf$Predictor_variable <- gsub("sal_mean", "sal", base_inf$Predictor_variable)
-base_inf$Predictor_variable <- gsub("chl_mean", "chl-a", base_inf$Predictor_variable)
-base_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", base_inf$Predictor_variable)
-base_inf$Predictor_variable <- gsub("ssh_mean", "SSH", base_inf$Predictor_variable)
-base_inf$Predictor_variable <- gsub("mld_mean", "MLD", base_inf$Predictor_variable)
-
-inf_df <- data.frame(model = c("Base", "Base", "Base", "Base", "Base", "Base", "Base"), 
-                     var = base_inf$Predictor_variable, 
-                     inf_val = base_inf$relative_influence)
-
-#base_cols <- MetBrewer::met.brewer("OKeeffe2", n = length(unique(base_inf$Predictor_variable))+6, direction = -1)
-
-# base_inf2 <- base_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-#                                     ymax = cumsum(fraction),
-#                                     ymin = c(0, head(ymax, n=-1)),
-#                                     labelPosition = (ymax + ymin)/2)
-
-# base_pred <- ggplot(base_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-#                    fill = alpha(c("white"),0),
-#                    label.size = NA,
-#                    size = 4.5, hjust = .5,
-#                    nudge_x = 0.3, direction = "x",
-#                    segment.color = "transparent"
-#                    #segment.curvature = -0.1,
-#                    #segment.ncp = 3,
-#                    #segment.angle = 20, seed = 123
-#   ) +
-#   coord_polar(theta = "y", clip = "off") +
-#   xlim(c(2, 5)) +
-#   scale_fill_manual(values = base_cols) +
-#   theme(legend.position = "none", 
-#         plot.margin =  margin(-1,-1,-1,-1)) +
-#   theme_void() +
-#   guides(
-#     fill = "none"
-#   )
-
-#do model
-do_inf <- as.data.frame(ggBRT::ggInfluence(do_mod_fin, plot = FALSE)) %>% rownames_to_column()
-colnames(do_inf) <- c("Predictor_variable", "relative_influence")
-do_inf$Predictor_variable <- gsub("\\<o2_mean_0m\\>", "DO, daily, 0m", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("o2_mean_250m_ann", "DO, annual, 250m", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("o2_mean_0m_seas", "DO, seasonal, 0m", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("o2_mean_250m_seas", "DO, seasonal, 250m", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("temp_mean", "temp", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("sal_mean", "sal", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("bathy_mean", "z", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("chl_mean", "chl-a", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("o2_mean_0m_ann", "DO, annual, 0m", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("o2_mean_250m", "DO, daily, 250m", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_inf$Predictor_variable)
-do_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_inf$Predictor_variable)
-
-do_inf <- do_inf %>% mutate(model = "DO") 
-colnames(do_inf) <- c("var", "inf_val", "model")
-inf_df <- rbind(inf_df, do_inf)
-
-#do_cols <- NatParksPalettes::natparks.pals("Acadia", n = length(unique(do_inf$Predictor_variable))+20, direction = -1)
-
-# do_inf2 <- do_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-#                                  ymax = cumsum(fraction),
-#                                  ymin = c(0, head(ymax, n=-1)),
-#                                  labelPosition = (ymax + ymin)/2)
-# 
-# do_pred <- ggplot(do_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-#                    fill = alpha(c("white"),0),
-#                    label.size = NA,
-#                    size = 4.5, hjust = .5,
-#                    nudge_x = 0.63, direction = "x",
-#                    segment.color = "transparent"
-#                    #segment.curvature = -0.1,
-#                    #segment.ncp = 3,
-#                    #segment.angle = 20, seed = 123
-#   ) +
-#   coord_polar(theta = "y", clip = "off") +
-#   xlim(c(2, 5)) +
-#   scale_fill_manual(values = do_cols) +
-#   theme(legend.position = "none", 
-#         plot.margin =  margin(-1,-1,-1,-1)) +
-#   theme_void() +
-#   guides(
-#     fill = "none"
-#   )
-
-
-#agi model
-agi_inf <- as.data.frame(ggBRT::ggInfluence(agi_mod_fin, plot = FALSE)) %>% rownames_to_column()
-colnames(agi_inf) <- c("Predictor_variable", "relative_influence")
-agi_inf$Predictor_variable <- gsub("\\<AGI_0m\\>", "AGI, daily, 0m", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("AGI_250m_ann", "AGI, annual, 250m", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("AGI_0m_seas", "AGI, seasonal, 0m", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("AGI_250m_seas", "AGI, seasonal, 250m", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("temp_mean", "temp", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("sal_mean", "sal", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("bathy_mean", "z", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("chl_mean", "chl-a", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("AGI_0m_ann", "AGI, annual, 0m", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("AGI_250m", "AGI, daily, 250m", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", agi_inf$Predictor_variable)
-agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", agi_inf$Predictor_variable)
-
-agi_inf <- agi_inf %>% mutate(model = "AGI") 
-colnames(agi_inf) <- c("var", "inf_val", "model")
-inf_df <- rbind(inf_df, agi_inf)
-
-# agi_inf2 <- agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-#                                  ymax = cumsum(fraction),
-#                                  ymin = c(0, head(ymax, n=-1)),
-#                                  labelPosition = (ymax + ymin)/2)
-# agi_cols <- MetBrewer::met.brewer("Greek", n = length(unique(agi_inf$Predictor_variable))+5)
-# 
-# agi_pred <- ggplot(agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-#                    fill = alpha(c("white"),0),
-#                    label.size = NA,
-#                    size = 4.5, hjust = .5,
-#                    nudge_x = 0.7, direction = "x",
-#                    segment.color = "transparent"
-#                    #segment.curvature = -0.1,
-#                    #segment.ncp = 3,
-#                    #segment.angle = 20, seed = 123
-#   ) +
-#   coord_polar(theta = "y", clip = "off") +
-#   xlim(c(2, 5)) +
-#   scale_fill_manual(values = agi_cols) +
-#   theme(legend.position = "none", 
-#         plot.margin =  margin(-1,-1,-1,-1)) +
-#   theme_void() +
-#   guides(
-#     fill = "none"
-#   )
-
-#combo model
-# do_agi_inf <- as.data.frame(ggBRT::ggInfluence(do_agi_comb, plot = FALSE)) %>% rownames_to_column()
-# colnames(do_agi_inf) <- c("Predictor_variable", "relative_influence")
-# do_agi_inf$Predictor_variable <- gsub("\\<o2_mean_0m\\>", "DO, daily, 0m", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("AGI_250m_ann", "AGI, annual, 250m", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("o2_mean_0m_seas", "DO, seasonal, 0m", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("AGI_250m_seas", "AGI, seasonal, 250m", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("temp_mean", "temp", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("sal_mean", "sal", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("bathy_mean", "z", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("chl_mean", "chl-a", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("o2_mean_0m_ann", "DO, annual, 0m", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("AGI_250m", "AGI, daily, 250m", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("ssh_mean", "SSH", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("mld_mean", "MLD", do_agi_inf$Predictor_variable)
-# do_agi_inf$Predictor_variable <- gsub("bathy_sd", "z_sd", do_agi_inf$Predictor_variable)
-# 
-# do_agi_inf <- do_agi_inf %>% mutate(model = "DO+AGI combo") 
-# colnames(do_agi_inf) <- c("var", "inf_val", "model")
-# inf_df <- rbind(inf_df, do_agi_inf)
-
-# comb_cols <- NatParksPalettes::natparks.pals("BryceCanyon", n = length(unique(do_agi_inf$Predictor_variable))+30)
-# 
-# do_agi_inf2 <- do_agi_inf %>% mutate(fraction = relative_influence / sum(relative_influence),
-#                                ymax = cumsum(fraction),
-#                                ymin = c(0, head(ymax, n=-1)),
-#                                labelPosition = (ymax + ymin)/2)
-# 
-# do_agi_pred <- ggplot(do_agi_inf2, aes(fill = reorder(Predictor_variable, -relative_influence))) +
-#   geom_rect(aes(ymax = ymax, ymin = ymin, xmax = 4, xmin = 3)) +
-#   geom_text(aes(x = 3.5, y = labelPosition, label = paste0(round(relative_influence, digits = 0), "%")), color = "white", size = 4.5)+
-#   geom_label_repel(aes(x = 4, y = labelPosition, label = Predictor_variable),
-#                    fill = alpha(c("white"),0),
-#                    label.size = NA,
-#                    size = 4.5, hjust = .5,
-#                    nudge_x = 0.7, direction = "x",
-#                    segment.color = "transparent"
-#                    #segment.curvature = -0.1,
-#                    #segment.ncp = 3,
-#                    #segment.angle = 20, seed = 123
-#   ) +
-#   coord_polar(theta = "y", clip = "off") +
-#   xlim(c(2, 5)) +
-#   scale_fill_manual(values = comb_cols) +
-#   theme(legend.position = "none", 
-#         plot.margin = margin(-1,-1,-1,-1)) +
-#   theme_void() +
-#   guides(
-#     fill = "none"
-#   )
-
-avg_inf_df <- avg_pred(base_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE),
-                       do_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE), 
-                       agi_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE)) 
-                       #combo_mods = list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE))
-
-##### revised plot  #####
 avg_inf_sum <- avg_inf_df %>% 
   group_by(model, var) %>%
   summarise(inf_mean = mean(inf_val), 
@@ -653,73 +242,7 @@ avg_inf_sum <- avg_inf_sum %>%
          var = as.factor(var), 
          var = fct_relevel(var, c("AGI, annual, 250m", "AGI, daily, 0m", "AGI, seasonal, 0m", "AGI, seasonal, 250m","AGI, annual, 0m", "AGI, daily, 250m")))
 
-do_agi <- avg_inf_sum %>% 
-  filter(var_type != "Environmental predictor") %>% 
-  mutate(var = as.factor(var)) %>%
-  mutate(var = as.factor(var), var = fct_reorder(var, -inf_mean)) %>%
-  ggplot(aes(x = var, y = inf_mean))+
-  geom_bar(aes(fill = model), stat = "identity", position = position_dodge2(width = 0.8, preserve = "single"), color = "white")+
-  scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15)[2:4])+
-  xlab("")+
-  ylab("Relative importance (%)")+
-  labs(fill = "Model")+
-  facet_wrap(~var_type, scales = "free_x")+
- tidyquant::theme_tq()+
-  theme(axis.text.y = element_text(size = 14, color = "black"), 
-        axis.text.x = element_text(size = 14, color = "black", angle = 45, hjust = 1),
-        axis.title = element_text(size = 16, color = "black"),
-        strip.text = element_text(size = 16), 
-        legend.title = element_text(size = 16), 
-        legend.text = element_text(size = 14),
-        legend.position = "none")
-
-enviro <- avg_inf_sum %>%
-  filter(var_type == "Environmental predictor") %>% 
-  mutate(var = as.factor(var), var = fct_reorder(var, -inf_mean)) %>%
-  ggplot(aes(x = var, y = inf_mean))+
-  geom_bar(aes(fill = model), stat = "identity", position = "dodge", color = "white", width = 0.8)+
-  scale_fill_manual(values = met.brewer("Hokusai1", direction = -1, n = 15))+
-  xlab("")+
-  ylab("Relative importance (%)")+
-  scale_y_continuous(limits = c(0, 40), breaks = seq(0, 30, by = 10)) +
-  labs(fill = "Model")+
-  annotate(geom = "rect", fill = "#2c3e50", color = "#2c3e50", xmin = -Inf, xmax = +Inf, ymin = 34, ymax = +Inf)+
-  annotate(label = "Environmental predictor", geom = "text", color = "white", x = 4, y = 38, size = 6)+
-  tidyquant::theme_tq()+
-  theme(axis.text = element_text(size = 14, color = "black"), 
-        axis.title = element_text(size = 16, color = "black"),
-        strip.text = element_text(size = 16), 
-        legend.title = element_text(size = 16), 
-        legend.text = element_text(size = 14), 
-        legend.position = "top", 
-        legend.justification = "left")
-
-pred_fig <- enviro/do_agi
-pred_fig
-
-#### fiddle point-error bar plot ######
 avg_inf_sum$model <- factor(avg_inf_sum$model, levels=c('Base', 'DO', 'AGI'))
-
-# pred_fig <- avg_inf_sum %>%
-#   ungroup() %>%
-#   mutate(var = as.factor(var), 
-#          var = fct_reorder(var, inf_mean)) %>%
-#   ggplot(aes(x = inf_mean, y = var, color = model, fill = model))+
-#   geom_point(size = 4)+
-#   scale_color_manual(values = c("#224B5E","#6A8D80", "#ABB98B")) +
-#   geom_errorbarh(aes(xmax = inf_mean + inf_sd, xmin = inf_mean - inf_sd, height = 0), linewidth = 1)+
-#   xlab("Relative importance (%)")+
-#   ylab("Predictor variable")+
-#   labs(color = "Model") +
-#   guides(fill="none") +
-#   tidyquant::theme_tq()+
-#   theme(axis.text = element_text(size = 14, color = "black"), 
-#         axis.title = element_text(size = 16, color = "black"),
-#         strip.text = element_text(size = 16), 
-#         legend.title = element_text(size = 16), 
-#         legend.text = element_text(size = 14), 
-#         legend.position = "top", 
-#         legend.justification = "left") 
 
 #facet by model
 pred_fig <- avg_inf_sum %>%
@@ -743,172 +266,123 @@ pred_fig <- avg_inf_sum %>%
         legend.justification = "left") +
 facet_wrap(~model, scales = "free_y"); pred_fig
 
+ggsave(here("figs/ms/fig5_pred/point_pred_facet.png"), pred_fig, width = 11, height = 5, units = c("in"))
 
-#########################################
+### Figure 6: HSI maps study period ####
+#generate raster
+hsi_rast_gen(date_start = c("2003-01-01"), date_end = c("2015-12-31"), season = "SuFWSp", output_name = "Jan2003_Dec2015")
 
-ggsave(here("figs/ms/fig7_pred/point_pred_facet.png"), pred_fig, width = 11, height = 5, units = c("in"))
+#plot HSI
+all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan2003_Dec2015",
+                             mod_folder = "data/brt/mod_outputs/revised",
+                             fig_folder = "figs/ms/fig6_hsi_all",
+                             ms = "Y", 
+                             iter = 20)
+
+ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.svg"), all_maps_avg, height = 7, width = 10, units = c("in"))
+
+### Figure 7: ENSO HSI maps ####
+#have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
+#base year
+enso_base <- hsi_maps_enso_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/neut_FW_Sept2013_Jan2014", enso = "diff", test_type = "revised", iter = 20)
+
+#LN year - 2008
+enso_LN_08 <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008", test_type = "revised", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/neut_FW_Sept2013_Jan2014", enso = "LN", iter = 20)
+
+#LN year - 2010
+enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", test_type = "revised", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/neut_FW_Sept2013_Jan2014", enso = "LN", iter = 20)
+
+#EN year
+enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", test_type = "revised", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/neut_FW_Sept2013_Jan2014", enso = "EN", iter = 20)
+
+enso_all <- enso_base | enso_LN | enso_LN_08 | enso_EN
+ggsave(here("figs/fig7_enso/enso_maps.png"), enso_all, height = 10, width = 10, units = c("in"))
+
+#calculate % area HSI > 0.25 in NEC in strong LN year between models
+calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
   
-#ggsave(here("figs/ms/rel_inf_pred.png"), all_pred,  height = 15, width = 15, units = c("in"))
-ggsave(here("figs/ms/fig3_pred/base_pred.png"), base_pred, height = 7, width = 7, units = c("in"))
-ggsave(here("figs/ms/fig3_pred/do_pred.png"), do_pred, height = 7, width = 7, units = c("in"))
-ggsave(here("figs/ms/fig3_pred/agi_pred.png"), agi_pred, height = 7, width = 7, units = c("in"))
-ggsave(here("figs/ms/fig3_pred/do_agi_pred.png"), do_agi_pred, height = 7, width = 7, units = c("in"))
-
-### Figure 8: HSI maps study period ####
-#all_maps <- hsi_maps(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
-#ggsave(here("figs/ms/fig6_hsi_all/all_maps.png"), all_maps, height = 7, width = 7, units = c("in"))
-
-all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan03_Dec15", ms = "Y")
-ggsave(here("figs/ms/fig8_hsi_all/all_maps_avg_20.svg"), all_maps_avg, height = 7, width = 10, units = c("in"))
-
-    ### Calculate % area HSI > 0.75 in CCS, NEC, and NEP for each model #####
-calc_perc_area <- function(model_map, area){
-#shore crop
-  shore_sf  <- rnaturalearth::ne_countries(country = c("United States of America", "Canada", "Mexico"), 
-                           returnclass = "sf")
-  shore_vect <- vect(shore_sf)
-
-    if(area == "NEC"){
-      rast_nec_filt <- model_map %>% filter(y <= 12)
-      rast_nec <- terra::mask(rast_nec_filt, shore_vect, inverse = TRUE)
-
-      hsi_nec <- raster::clamp(rast_nec, lower = 0.25, values = FALSE)
-
-      hsi_area_map <- expanse(hsi_nec)
-      rast_area_map <- expanse(rast_nec)
-
-      perc_area <- (hsi_area_map/rast_area_map$area[1])*100
-      perc_area <- perc_area$area[1]
-    }
+  if(mod_type == "base"){  
+  names(mod_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
+  }
+  if(mod_type == "do"){
+  names(mod_rast) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
+  }
+  if(mod_type == "agi"){
+  names(mod_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
+  }
   
-    if(area == "CCS"){
-      bbox <- ext(-130, -100, 30, 48)
-      rast_ccs_filt <- crop(model_map, bbox)
-
-      rast_ccs_crop <- crop(rast_ccs_filt, shore_vect)
-      rast_ccs  <- terra::mask(rast_ccs_crop, shore_vect, inverse = TRUE)
-
-      hsi_ccs <- raster::clamp(rast_ccs, lower = 0.25, values = FALSE)
-
-      hsi_area_map <- expanse(hsi_ccs)
-      rast_area_map <- expanse(rast_ccs)
-
-      perc_area <- (hsi_area_map/rast_area_map$area[1])*100
-      perc_area <- perc_area$area[1]
-    }
+  #creating map dfs -------------------------------------------------------------------------------------------------
+  mod_folder <- list.files(here(paste0("data/brt/mod_outputs/revised/", test_type,"/", mod_type)), full.names = TRUE)
   
-    if(area == "NEP"){
-     bbox <- ext(-130, -100, 30, 48)
-     rast_nep_filt <- model_map %>% filter(y > 12) 
-     rast_nep_filt  <- terra::mask(rast_nep_filt, bbox, inverse = TRUE)
-      
-     rast_nep_crop <- crop(rast_nep_filt, shore_vect)
-     rast_nep  <- terra::mask(rast_nep_crop, shore_vect, inverse = TRUE)
+  bbox <- ext(-153, -103, 1, 49)
 
-     hsi_nep <- raster::clamp(rast_nep, lower = 0.25, values = FALSE)
+  map_list <- rast()
+  #for loop to create raster for each model iteration
+  for(i in 1:iter){
+    #creating map dfs -------------------------------------------------------------------------------------------------
+    print(i)
+    
+    #predict
+    mod_file <- readRDS(mod_folder[i])
+    map_pred <- predict(mod_rast, mod_file, type = "response", n.trees = mod_file$gbm.call$best.trees, na.rm = FALSE)
+    map_pred <- crop(map_pred, bbox)
+    map_list <- c(map_list, map_pred)
+  }
+  
+  #take average of rasters produced from each model
+  pred_avg <- mean(map_list)
 
-     hsi_area_map <- expanse(hsi_nep)
-     rast_area_map <- expanse(rast_nep)
+  # mask out land
+  land <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+  land <- vect(land)
 
-     perc_area <- (hsi_area_map/rast_area_map$area[1])*100
-     perc_area <- perc_area$area[1]
+  land <- crop(land, bbox)
+  pred_avg <- mask(pred_avg, land, inverse = TRUE)
+  
+  #filter for just NEC and calculate percent area w hsi > 0.75
+  rast_nec_filt <- pred_avg %>% filter(y <= 15)
 
-    }
+  hsi_nec <- raster::clamp(rast_nec_filt, lower = 0.25, values = FALSE)
+
+  hsi_area_map <- expanse(hsi_nec)
+  rast_area_map <- expanse(rast_nec_filt)
+
+  perc_area <- (hsi_area_map$area/rast_area_map$area)*100
   
   return(perc_area)
 }
 
 #Base
-base_avg_rast2 <- base_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+base_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_base_rast.nc"))
+base_ln_rast_10 <- base_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_base_10 <- calc_perc_area(mod_rast = base_ln_rast_10, mod_type = "base", test_type = "revised", iter = 20)
 
-nec_base <- calc_perc_area(base_avg_rast2, area = "NEC")
-ccs_base <- calc_perc_area(base_avg_rast2, area = "CCS")
-nep_base <- calc_perc_area(base_avg_rast2, area = "NEP")
+base_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_base_rast.nc"))
+base_ln_rast_08 <- base_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_base_08 <- calc_perc_area(mod_rast = base_ln_rast_08, mod_type = "base", test_type = "revised", iter = 20)
 
 #DO
-do_avg_rast2 <- do_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+do_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_do_rast.nc"))
+do_ln_rast_10 <- do_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_do_10 <- calc_perc_area(mod_rast = do_ln_rast_10, mod_type = "do", test_type = "revised", iter = 20)
 
-nec_do <- calc_perc_area(do_avg_rast2, area = "NEC")
-ccs_do <- calc_perc_area(do_avg_rast2, area = "CCS")
-nep_do <- calc_perc_area(do_avg_rast2, area = "NEP")
+do_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_do_rast.nc"))
+do_ln_rast_08 <- do_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_do_08 <- calc_perc_area(mod_rast = do_ln_rast_08, mod_type = "do", test_type = "revised", iter = 20)
 
 #AGI
-agi_avg_rast2 <- agi_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+agi_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_agi_rast.nc"))
+agi_ln_rast_10 <- agi_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_agi_10 <- calc_perc_area(mod_rast = agi_ln_rast_10, mod_type = "agi", test_type = "revised", iter = 20)
 
-nec_agi <- calc_perc_area(agi_avg_rast2, area = "NEC")
-ccs_agi <- calc_perc_area(agi_avg_rast2, area = "CCS")
-nep_agi <- calc_perc_area(agi_avg_rast2, area = "NEP")
+agi_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_agi_rast.nc"))
+agi_ln_rast_08 <- agi_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_agi_08 <- calc_perc_area(mod_rast = agi_ln_rast_08, mod_type = "agi", test_type = "revised", iter = 20)
 
-df <- data.frame(area = rep(c("NEC", "CCS", "NEP"), times = 3),
-            model_type = rep(c("base", "do", "agi"), each = 3),
-            perc_area  = c(nec_base, ccs_base, nep_base, nec_do, ccs_do, nep_do, nec_agi, ccs_agi,  nep_agi)
-)
-
-### Figure 9: ENSO HSI maps ####
-#have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
-
-#base year
-enso_base <- hsi_maps_enso_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff")
-
-#LN year 
-enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN")
-
-#EN year
-enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN")
-
-#diet data 
-#neutral year 
-diet_neutral <- rmpq_prey_year2 %>% ungroup() %>%
-  filter(perc_GII >= 1 & Year == 2013) %>% 
-  top_n(3) %>%
-  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
-  geom_bar(stat = "identity", fill = "#224B5E", alpha = 0.85) +
-  theme_minimal() + 
-  theme(axis.text.y=element_text(size=20, color = "black"), 
-        axis.title=element_text(size=22, color = "black"), 
-        axis.text.x = element_blank(),
-        panel.grid = element_blank()) +
-  xlab('')+
-  ylab('% GII')+
-  scale_x_discrete(position = "top") 
-ggsave(here("figs/ms/fig7_enso_diet/diet_neutral.png"), diet_neutral, height = 4, width = 6, units = c("in"))
-
-
-#LN year 
-diet_LN <- rmpq_prey_year2 %>% ungroup() %>%
-  filter(perc_GII >= 1 & Year == 2010) %>% 
-  top_n(3) %>%
-  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
-  geom_bar(stat = "identity", fill = "#224B5E", alpha = 0.85) +
-  theme_minimal() + 
-  theme(axis.text=element_blank(), 
-        axis.title=element_blank(), 
-        #axis.text.y = element_blank(), 
-        #axis.text.x = element_blank(),
-        panel.grid = element_blank()) +
-  xlab('')+
-  ylab('% GII')+
-  scale_x_discrete(position = "top") 
-ggsave(here("figs/ms/fig7_enso_diet/diet_LN.png"), diet_LN, height = 4, width = 6, units = c("in"))
-
-
-#EN year 
-diet_EN <- rmpq_prey_year2 %>%
-  filter(perc_GII >= 1 & Year == 2014) %>% 
-  top_n(3) %>%
-  ggplot(aes(x = reorder(Common_Name, -perc_GII), y = perc_GII)) +
-  geom_bar(stat = "identity", fill = "#224B5E", alpha = 0.85) +
-  theme_minimal() + 
-  theme(axis.text=element_blank(), 
-        axis.title=element_blank(), 
-        #axis.text.y = element_blank(), 
-        #axis.text.x = element_text(),
-        panel.grid = element_blank()) +
-  xlab('')+
-  ylab('% GII')+
-  scale_x_discrete(position = "top") 
-
-ggsave(here("figs/ms/fig7_enso_diet/diet_EN.png"), diet_EN, height = 4, width = 6, units = c("in"))
+df <- data.frame(area = rep(c("NEC_LN_2010", "NEC_LC_2008"), times = 3),
+            model_type = c("base", "do", "agi", "base", "do", "agi"),
+            perc_area  = c(nec_base_10, nec_base_08, nec_do_10, nec_do_08, nec_agi_10, nec_agi_08)
+); df
 
 ### Supplementary files ####
 #### ST1: Shark metadata ####
@@ -1362,31 +836,6 @@ ggsave(here("figs/ms/fig4_par/agi_0m.png"), agi_plots_0m, height = 5, width = 9,
 agi_plots_250m <- grid.arrange(grobs = list(plot_list[[10]], plot_list[[7]], plot_list[[1]]), ncol = 3)
 ggsave(here("figs/ms/fig4_par/agi_250m.png"), agi_plots_250m, height = 5, width = 9, units = c("in"))
 
-#DO, AGI combo model
-brt1.prerun_do_agi<- plot.gbm.4list(do_agi_comb)
-do_agi_boot <- gbm.bootstrap.functions(do_agi_comb, list.predictors=brt1.prerun_do_agi, n.reps=20)
-
-plot_list <- list()
-do_agi_names <- c("DO, daily, 0m", "AGI, annual, 250m", "DO, seasonal, 0m", "AGI, seasonal, 250m", "temp", "z", "sal", "AGI, daily, 250m", "chl-a", "DO, annual, 0m", "SSH", "MLD", "z_sd")
-for(i in 1:nrow(do_agi_comb$contributions)){
-  plot_temp <- ggPD_boot(do_agi_comb, 
-                         predictor = do_agi_comb$contributions[i, 1], 
-                         list.4.preds = brt1.prerun_do_agi, 
-                         booted.preds = do_agi_boot$function.preds, 
-                         type.ci = "ribbon",
-                         rug = T, 
-                         alpha.ci = 0.75, 
-                         y.label = "Probability of presence",
-                         x.label = paste(do_agi_names[i], "  (", 
-                                         round(agi_mod_fin$contributions[i, 2], 
-                                               1), "%)", sep = ""))
-  
-  plot_list[[i]] <- plot_temp
-}
-
-do_agi_plots <- do.call(grid.arrange, c(plot_list, ncol = 5))
-ggsave(here("figs/ms/supp_figs/par_plot_do_agi.png"), do_agi_plots, height = 7, width = 11, units = c("in"))
-
 #### SF 5: LOO CV ####
 year_base <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_base.rds")) %>% mutate(model = "Base")
 year_do <- readRDS(here("data/brt/mod_outputs/crw/evaluation/soo_year_do.rds")) %>% mutate(model = "DO")
@@ -1790,44 +1239,6 @@ fl_histo <- ggplot(fl_dat, aes(Fork.length..cm.))+
   tidyquant::theme_tq()
 
 ggsave(here("figs/ms/supp_figs/fl_histo.png"), fl_histo, width = 5, height = 4, units = c("in"))
-
-
-#### SF 15: ENSO HSI maps ####
-#have to save using export button otherwise adds border, using height of 750 and width 350 (200 for LN panel)
-
-#base year
-enso_base <- hsi_maps_enso_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "diff", main_text = FALSE)
-
-#LN year 
-enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/LN_F_2010", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "LN", main_text = FALSE)
-
-#EN year
-enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/Jan13_Dec13", enso = "EN", main_text = FALSE)
-
-#### SF 16: diet data time series ####
-#use functions to reorder the set of bars in each facet (from GitHub: dgrtwo/drlib)
-reorder_within <- function(x, by, within, fun = mean, sep = "___", ...) {
-  new_x <- paste(x, within, sep = sep)
-  stats::reorder(new_x, by, FUN = fun)
-}
-
-scale_x_reordered <- function(..., sep = "___") {
-  reg <- paste0(sep, ".+$")
-  ggplot2::scale_x_discrete(labels = function(x) gsub(reg, "", x), ...)
-}
-
-by_year <- rmpq_prey_year2 %>%
-  filter(GII > 4.06 & Year <= 2014 & Year >= 2003) %>% #25% quantile value
-  ggplot(aes(x = reorder_within(Common_Name, -GII, Year), y = GII)) +
-  geom_bar(stat = "identity", fill = "#92351e") +
-  scale_x_reordered()+
-  facet_wrap(~Year, scales = "free_x")+
-  theme_tq() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust = 0.95)) +
-  xlab('') 
-
-ggsave(here("figs/ms/supp_figs/diet_data_by_year.png"), width = 8, height = 9, units = c("in"))
-
 
 ### SF: DO difference plots ####
 map.world = map_data(map="world")

@@ -1,74 +1,63 @@
 ### libraries ####
-{library(tidyverse)
- library(here)
- library(gbm)
-  set.seed(1004)}
+library(tidyverse)
+library(here)
+library(gbm)
+library(doParallel)
+source("functions/brt_explore_quarto_function.R")
+set.seed(1004)
 
 ### load data ####
 # CRW daily data 
-dat_base_d <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% mutate(tag = as.factor(tag))
-dat_do_d <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% mutate(tag = as.factor(tag))
-dat_agi_d <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% mutate(tag = as.factor(tag))
+dat_base_d <- readRDS(here("data/locs_brts/crw_pas_dail/dat_base_daily.rds")) %>% mutate(tag = as.factor(tag))
+dat_do_d <- readRDS(here("data/locs_brts/crw_pas_dail/dat_do_daily.rds")) %>% mutate(tag = as.factor(tag))
+dat_agi_d <- readRDS(here("data/locs_brts/crw_pas_dail/dat_agi_daily.rds")) %>% mutate(tag = as.factor(tag))
 
-#### CRW seasonal data 
-dat_base_s <- readRDS(here("data/locs_brts/crw_pas_seas/dat_base_seas.rds")) %>% mutate(tag = as.factor(tag))
+# CRW seasonal data 
 dat_do_s <- readRDS(here("data/locs_brts/crw_pas_seas/dat_do_seas.rds")) %>% mutate(tag = as.factor(tag))
 dat_agi_s <- readRDS(here("data/locs_brts/crw_pas_seas/dat_agi_seas.rds")) %>% mutate(tag = as.factor(tag))
 
-#### CRW annual data 
-dat_base_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_base_ann.rds")) %>% mutate(tag = as.factor(tag))
+# CRW annual data 
 dat_do_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_do_ann.rds")) %>% mutate(tag = as.factor(tag))
 dat_agi_a <- readRDS(here("data/locs_brts/crw_pas_ann/dat_agi_ann.rds")) %>% mutate(tag = as.factor(tag))
 
-#### Add seasonal and annual data to daily data df for DO and AGI
-dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_60m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_60m, dat_do_a$o2_mean_250m)
+# Add seasonal and annual data to daily data df for DO and AGI
+dat_do_all <- cbind(dat_do_d, dat_do_s$o2_mean_0m, dat_do_s$o2_mean_250m, dat_do_a$o2_mean_0m, dat_do_a$o2_mean_250m)
 dat_do_all <- dat_do_all %>%
-  dplyr::rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m", 
-         "o2_mean_60m_seas" = "dat_do_s$o2_mean_60m", 
+  dplyr::rename("o2_mean_0m_seas" = "dat_do_s$o2_mean_0m",
          "o2_mean_250m_seas" = "dat_do_s$o2_mean_250m", 
-         "o2_mean_0m_ann" = "dat_do_a$o2_mean_0m", 
-         "o2_mean_60m_ann" = "dat_do_a$o2_mean_60m", 
+         "o2_mean_0m_ann" = "dat_do_a$o2_mean_0m",  
          "o2_mean_250m_ann" = "dat_do_a$o2_mean_250m")
 
-dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_60m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_60m, dat_agi_a$AGI_250m)
+dat_agi_all <- cbind(dat_agi_d, dat_agi_s$AGI_0m, dat_agi_s$AGI_250m, dat_agi_a$AGI_0m, dat_agi_a$AGI_250m)
 dat_agi_all <- dat_agi_all %>%
   dplyr::rename("AGI_0m_seas" = "dat_agi_s$AGI_0m",
-         "AGI_60m_seas" = "dat_agi_s$AGI_60m", 
          "AGI_250m_seas" = "dat_agi_s$AGI_250m", 
          "AGI_0m_ann" = "dat_agi_a$AGI_0m", 
-         "AGI_60m_ann" = "dat_agi_a$AGI_60m", 
          "AGI_250m_ann" = "dat_agi_a$AGI_250m")
 
-### combined DO and AGI df 
-dat_do_agi_all <- cbind(dat_do_all, dat_agi_all[,c(22, 25, 28)])
+# run brts
+pred_vars_base = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd")
+pred_vars_do = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "o2_mean_0m", "o2_mean_250m", "o2_mean_0m_seas", "o2_mean_0m_ann", "o2_mean_250m_seas", "o2_mean_250m_ann")
+pred_vars_agi = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "AGI_0m", "AGI_250m", "AGI_0m_seas", "AGI_0m_ann", "AGI_250m_seas", "AGI_250m_ann")
 
-### function to run for loop across cores to run model simulations ####
 n_cores <- detectCores()
 cluster <- makeCluster(n_cores-2)
 registerDoParallel(cluster)
 
-brt_run_sims <- function(dat_file, n_iter = 20, mod_type, save_folder){
-  
-  if(mod_type == "base"){
-    pred_vars = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd")
-  }
-  if(mod_type == "do"){
-    pred_vars = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "o2_mean_0m", "o2_mean_250m", "o2_mean_0m_seas", "o2_mean_0m_ann", "o2_mean_250m_seas", "o2_mean_250m_ann")
-  }
-  if(mod_type == "agi"){
-    pred_vars = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "AGI_0m", "AGI_250m", "AGI_0m_seas", "AGI_0m_ann", "AGI_250m_seas", "AGI_250m_ann")
-  }
-  if(mod_type == "combo"){
-    pred_vars = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "o2_mean_0m", "o2_mean_0m_seas", "o2_mean_0m_ann", "AGI_250m", "AGI_250m_seas", "AGI_250m_ann")
-  }
-  
-  foreach(i = 1:n_iter, .packages = c("here", "gbm", "dismo", "tidyverse")) %dopar% {
-    
+brt_run <- function(dat_file, mod_type, save_folder, pred_vars, n_iter = 20){
+   set.seed(1004)   
+
     #test vs train files
-    dat_temp <- dat_file %>% 
+    dat_file$row_id <- 1:nrow(dat_file)
+    
+    foreach(i = 1:n_iter, .packages = c("here", "gbm", "dismo", "tidyverse")) %dopar% {
+      set.seed(1004 + i)
+
+      dat_temp <- dat_file %>% 
       sample_frac(0.25)
     
     dat_test <-  subset(dat_file, row_id %in% dat_temp$row_id)
+  
     #save test file
     saveRDS(dat_test, file = here(paste0(save_folder, mod_type, "/", "test/", mod_type,"_", "test", i, ".rds")))
     
@@ -87,36 +76,23 @@ brt_run_sims <- function(dat_file, n_iter = 20, mod_type, save_folder){
     )
     )
     
-  saveRDS(brt_iter, file = here(paste0(save_folder, mod_type, "/", mod_type,"_", i, ".rds")))  
-  
-  #end parallel
-  }
-  
-#end function
-}
+  saveRDS(brt_iter, file = here(paste0(save_folder, mod_type, "/", mod_type,"_", i, ".rds"))) 
+    } #end parallel    
+    } #end function
 
-### run brt iterations ####
-#### entire domain and study period 
 # base model
-dat_base_d$row_id <- 1:nrow(dat_base_d)
-brt_run_sims(dat_file = dat_base_d, mod_type = "base", save_folder = "data/brt/mod_outputs/perf_metric_iters/")
+brt_run(dat_file = dat_base_d, mod_type = "base", pred_vars = pred_vars_base, save_folder = "data/brt/mod_outputs/revised/")
 
 #do model
-dat_do_all$row_id <- 1:nrow(dat_do_all)
-brt_run_sims(dat_file = dat_do_all, mod_type = "do", save_folder = "data/brt/mod_outputs/perf_metric_iters/")
+brt_run(dat_file = dat_do_all, mod_type = "do", pred_vars = pred_vars_do, save_folder = "data/brt/mod_outputs/revised/")
 
 #agi model
-dat_agi_all$row_id <- 1:nrow(dat_agi_all)
-brt_run_sims(dat_file = dat_agi_all, mod_type = "agi", save_folder = "data/brt/mod_outputs/perf_metric_iters/")
+brt_run(dat_file = dat_agi_all, mod_type = "agi", pred_vars = pred_vars_agi, save_folder = "data/brt/mod_outputs/revised/")
 
-#combo model
-dat_do_agi_all$row_id <- 1:nrow(dat_do_agi_all)
-brt_run_sims(dat_file = dat_do_agi_all, mod_type = "combo", save_folder = "data/brt/mod_outputs/perf_metric_iters/")
+stopCluster(cluster)
 
-stopCluster(cl = cluster)
-
-### performance metrics ####
-brt_perf_metric <- function(mod_files, test_files, mod_type, domain = "all"){
+#get performance metrics
+brt_perf_metric <- function(mod_files, test_files, test_type, mod_type, domain = "all"){
   
   #read in model and test file locations
   mod_files = list.files(mod_files, full.names = TRUE, pattern = ".rds")
@@ -158,25 +134,20 @@ brt_perf_metric <- function(mod_files, test_files, mod_type, domain = "all"){
 
   } #end loop per brt iteration
   
-  saveRDS(temp_df, here(paste0("data/brt/mod_outputs/perf_metric_iters/", mod_type, "_metrics.rds")))
+  base::saveRDS(object = temp_df, file = paste0("data/brt/mod_outputs/", test_type, "/", test_type, "_", mod_type, "_metrics.rds"))
   return(temp_df)
   
 } #end function
 
 #performance metrics entire domain and study period
 #base model
-base_metrics <- brt_perf_metric(mod_type = "base", mod_files = "data/brt/mod_outputs/perf_metric_iters/base", test_files = "data/brt/mod_outputs/perf_metric_iters/base/test")
+base_metrics <- brt_perf_metric(mod_type = "base", test_type = "revised", mod_files = "data/brt/mod_outputs/revised/base", test_files = "data/brt/mod_outputs/revised/base/test")
 
 #do model
-do_metrics <- brt_perf_metric(mod_type = "do", mod_files = "data/brt/mod_outputs/perf_metric_iters/do", test_files="data/brt/mod_outputs/perf_metric_iters/do/test")
+do_metrics <- brt_perf_metric(mod_type = "do", test_type = "revised", mod_files = "data/brt/mod_outputs/revised/do", test_files="data/brt/mod_outputs/revised/do/test")
 
 #agi model
-agi_metrics <- brt_perf_metric(mod_type = "agi", mod_files = "data/brt/mod_outputs/perf_metric_iters/agi", test_files = "data/brt/mod_outputs/perf_metric_iters/agi/test")
-
-#combo model
-combo_metrics <- brt_perf_metric(mod_type = "combo", mod_files = "data/brt/mod_outputs/perf_metric_iters/combo", test_files = "data/brt/mod_outputs/perf_metric_iters/combo/test")
-
-
+agi_metrics <- brt_perf_metric(mod_type = "agi", test_type = "revised",  mod_files = "data/brt/mod_outputs/revised/agi", test_files = "data/brt/mod_outputs/revised/agi/test")
 
 
 

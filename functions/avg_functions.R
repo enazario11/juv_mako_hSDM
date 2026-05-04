@@ -15,7 +15,7 @@ library(ggpubr)
 set.seed(1004)
 
 ### average over study period ####
-hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
+hsi_maps_avg <- function(rast_folder, mod_folder, fig_folder, ms = c("Y", "N"), iter){
   #only makes maps from base model and the final DO and AGI models. Does not include maps from overfit DO and AGI models. 
   
   #load raster files -----------------------------------------------------------------------------------------------
@@ -39,10 +39,9 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   extent <- c(-153, -103, 1 , 49)
   
   # load model locations ---------------------------------------------------------------------------------------------
-  base_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE)
-  do_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE)
-  agi_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE)
-  #combo_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE)
+  base_mod_files <- list.files(here(paste0(mod_folder, "/base")), full.names = TRUE)
+  do_mod_files <- list.files(here(paste0(mod_folder, "/do")), full.names = TRUE)
+  agi_mod_files <- list.files(here(paste0(mod_folder, "/agi")), full.names = TRUE)
   
   base_list <- rast()
   do_list <- rast()
@@ -56,32 +55,37 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     
     #predict
     base_mod <- readRDS(base_mod_files[i])
-    base_pred <- predict(base_rast, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+    base_pred <- predict(base_rast, base_mod, type = "response", n.trees = base_mod$gbm.call$best.trees, na.rm = FALSE)
     base_pred <- crop(base_pred, extent)
     base_list <- c(base_list, base_pred)
     
     do_mod <- readRDS(do_mod_files[i])
-    do_pred <- predict(do_rast, do_mod, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+    do_pred <- predict(do_rast, do_mod, type = "response", n.trees = do_mod$gbm.call$best.trees, na.rm = FALSE)
     do_pred <- crop(do_pred, extent)
     do_list <- c(do_list, do_pred)
     
     agi_mod <- readRDS(agi_mod_files[i])
-    agi_pred <- predict(agi_rast, agi_mod, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+    agi_pred <- predict(agi_rast, agi_mod, type = "response", n.trees = agi_mod$gbm.call$best.trees, na.rm = FALSE)
     agi_pred <- crop(agi_pred, extent)
     agi_list <- c(agi_list, agi_pred)
-    
-    # do_agi_comb <- readRDS(combo_mod_files[i])
-    # do_agi_combo <- predict(do_agi_rast, do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
-    # do_agi_combo <- crop(do_agi_combo, extent)
-    # combo_list <- c(combo_list, do_agi_combo)
     
   }
   
   base_avg <- mean(base_list)
   do_avg <- mean(do_list)
   agi_avg <- mean(agi_list)
-  #combo_avg <- mean(combo_list)
   
+  # mask out land
+  bbox <- ext(-153, -103, 1, 49)
+
+  land <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+  land <- vect(land)
+
+  land <- crop(land, bbox)
+  base_avg <- terra::mask(base_avg, land, inverse = TRUE)
+  do_avg <- terra::mask(do_avg, land, inverse = TRUE)
+  agi_avg <- terra::mask(agi_avg, land, inverse = TRUE)
+
   #save averaged raster files per model
   assign("base_avg_rast", base_avg, envir = .GlobalEnv)
   assign("do_avg_rast", do_avg, envir = .GlobalEnv)
@@ -94,11 +98,11 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
   
   #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
-  
+  base_hsi <- terra::clamp(base_avg, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
+
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_avg)
-  perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
+  perc_area_base <- (hsi_area_base$area/rast_area_base$area)*100
 
   base_map <- ggplot() +
     geom_spatraster(data = base_avg) +
@@ -108,20 +112,20 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     scale_fill_whitebox_c(palette = "deep", direction = -1) +
     ggtitle("Base model") +
     geom_text(aes(x = Inf, y = Inf, 
-                  label = paste0(round(perc_area_base$area[1], 2), "%")), 
+                  label = paste0(round(perc_area_base, 2), "%")), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     theme_map() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none")
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/base_avg_all.png"), base_map, height = 5, width = 5)}
+  #if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/base_avg_all.png"), base_map, height = 5, width = 5)}
   
   #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi <- raster::clamp(do_avg, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_avg)
-  perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
+  perc_area_do <- (hsi_area_do$area/rast_area_do$area)*100
 
   do_map <- ggplot() +
     geom_spatraster(data = do_avg) +
@@ -131,7 +135,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     scale_fill_whitebox_c(palette = "deep", direction = -1) +
     ggtitle("DO model") + 
     geom_text(aes(x = Inf, y = Inf, 
-                  label = paste0(round(perc_area_do$area[1], 2), "%")), 
+                  label = paste0(round(perc_area_do, 2), "%")), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     theme_map() +
     theme(axis.text.y = element_blank(), 
@@ -139,15 +143,15 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
           axis.text.x = element_text(angle = 45, hjust = 1),
           legend.position = "none")
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/do_avg_all.png"), do_map, height = 5, width = 5)}
+  #if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/do_avg_all.png"), do_map, height = 5, width = 5)}
   
   #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi <- raster::clamp(agi_avg, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_avg)
-  perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
+  perc_area_agi <- (hsi_area_agi$area/rast_area_agi$area)*100
 
   agi_map <- ggplot() +
     geom_spatraster(data = agi_avg) +
@@ -156,7 +160,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
     scale_fill_whitebox_c(palette = "deep", direction = -1)  +
     geom_text(aes(x = Inf, y = Inf, 
-                  label = paste0(round(perc_area_agi$area[1], 2), "%")), 
+                  label = paste0(round(perc_area_agi, 2), "%")), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
     ggtitle("AGI model") +
     theme_map() +
@@ -164,7 +168,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
           axis.text.y = element_blank(), 
           axis.title.y = element_blank())
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/agi_avg_all.png"), agi_map, height = 5, width = 5)}
+  #if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/agi_avg_all.png"), agi_map, height = 5, width = 5)}
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
@@ -213,8 +217,7 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
           legend.title = element_text(size = 16),
           legend.text = element_text(size = 14))
   
-  if(ms == "Y"){ggsave(here("figs/ms/fig8_hsi_all/indiv_panels/diff_all.png"), agi_do_diff, height = 5, width = 5)}
-  
+  if(ms == "Y"){ggsave(here(fig_folder, "/diff_all.png"), agi_do_diff, height = 5, width = 5)}
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
   all_maps <- (base_map|do_map|agi_map)+
@@ -226,14 +229,13 @@ hsi_maps_avg <- function(rast_folder, ms = c("Y", "N"), iter = 20){
 }
 
 # enso diet maps ####
-hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
+hsi_maps_enso_avg <- function(rast_folder, enso, iter  = 20, test_type){
   #only makes maps from base model and the final DO and AGI models. Does not include maps from overfit DO and AGI models. 
   
   #load raster files -----------------------------------------------------------------------------------------------
   base_rast_file <- list.files(here(rast_folder), pattern = "base", full.names = TRUE)
   do_rast_file <- list.files(here(rast_folder), pattern = "do", full.names = TRUE)
   agi_rast_file <- list.files(here(rast_folder), pattern = "agi", full.names = TRUE)
-  #do_agi_file <- list.files(here(rast_folder), pattern = "comb", full.names = TRUE)
   
   base_rast <- rast(base_rast_file)
   names(base_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
@@ -244,21 +246,16 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
   agi_rast <- rast(agi_rast_file)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
   
-  # do_agi_rast <- rast(do_agi_file)
-  # names(do_agi_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
-  # 
   extent <- c(-153, -103, 1 , 49)
   
   #creating map dfs -------------------------------------------------------------------------------------------------
-  base_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE)
-  do_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE)
-  agi_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE)
-  #combo_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE)
+  base_mod_files <- list.files(here(paste0("data/brt/mod_outputs/", test_type,"/base")), full.names = TRUE)
+  do_mod_files <- list.files(here(paste0("data/brt/mod_outputs/", test_type,"/do")), full.names = TRUE)
+  agi_mod_files <- list.files(here(paste0("data/brt/mod_outputs/", test_type,"/agi")), full.names = TRUE)
   
   base_list <- rast()
   do_list <- rast()
   agi_list <- rast()
-  #combo_list <- rast()
   
   #for loop to create raster for each model iteration
   for(i in 1:iter){
@@ -267,32 +264,36 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
     
     #predict
     base_mod <- readRDS(base_mod_files[i])
-    base_pred <- predict(base_rast, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+    base_pred <- predict(base_rast, base_mod, type = "response", n.trees = base_mod$gbm.call$best.trees, na.rm = FALSE)
     base_pred <- crop(base_pred, extent)
     base_list <- c(base_list, base_pred)
     
     do_mod <- readRDS(do_mod_files[i])
-    do_pred <- predict(do_rast, do_mod, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+    do_pred <- predict(do_rast, do_mod, type = "response", n.trees = do_mod$gbm.call$best.trees, na.rm = FALSE)
     do_pred <- crop(do_pred, extent)
     do_list <- c(do_list, do_pred)
     
     agi_mod <- readRDS(agi_mod_files[i])
-    agi_pred <- predict(agi_rast, agi_mod, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+    agi_pred <- predict(agi_rast, agi_mod, type = "response", n.trees = agi_mod$gbm.call$best.trees, na.rm = FALSE)
     agi_pred <- crop(agi_pred, extent)
     agi_list <- c(agi_list, agi_pred)
-    
-    # do_agi_comb <- readRDS(combo_mod_files[i])
-    # do_agi_combo <- predict(do_agi_rast, do_agi_comb, type = "response", n.trees = do_agi_comb$gbm.call$best.trees, na.rm = FALSE)
-    # do_agi_combo <- crop(do_agi_combo, extent)
-    # combo_list <- c(combo_list, do_agi_combo)
-    
   }
   
   #take average of rasters produced from each model
   base_avg <- mean(base_list)
   do_avg <- mean(do_list)
   agi_avg <- mean(agi_list)
-  #combo_avg <- mean(combo_list)
+
+  # mask out land
+  bbox <- ext(-153, -103, 1, 49)
+
+  land <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+  land <- vect(land)
+
+  land <- crop(land, bbox)
+  base_avg <- terra::mask(base_avg, land, inverse = TRUE)
+  do_avg <- terra::mask(do_avg, land, inverse = TRUE)
+  agi_avg <- terra::mask(agi_avg, land, inverse = TRUE)
   
   #plot maps --------------------------------------------------------------------------------------------------------
   #land files
@@ -301,11 +302,11 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
   
   #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi <- raster::clamp(base_avg, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_avg)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
-  print(paste0("Base hsi > 0.75:", " ", round(perc_area_base$area[1], 2), "%"))
+  print(paste0("Base hsi > 0.5:", " ", round(perc_area_base$area[1], 2), "%"))
   
   base_map <- ggplot() +
     geom_spatraster(data = base_avg) +
@@ -326,12 +327,12 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
   
   #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi <- raster::clamp(do_avg, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_avg)
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
-  print(paste0("DO hsi > 0.75:", " ", round(perc_area_do$area[1], 2), "%"))
+  print(paste0("DO hsi > 0.5:", " ", round(perc_area_do$area[1], 2), "%"))
 
     do_map <- ggplot() +
       geom_spatraster(data = do_avg) +
@@ -351,12 +352,12 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
   
   #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi <- raster::clamp(agi_avg, lower = 0.50, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_avg)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
-  print(paste0("agi hsi > 0.75:", " ", round(perc_area_agi$area[1], 2), "%"))
+  print(paste0("agi hsi > 0.5:", " ", round(perc_area_agi$area[1], 2), "%"))
 
     agi_map <- ggplot() +
       geom_spatraster(data = agi_avg) +
@@ -373,30 +374,6 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
             axis.text.y = element_blank(),
             axis.title.y = element_blank(),
             legend.position = "none")   
-  
-  #do agi combo map
-  #calculate percent area polygon takes up of raster 
-  # combo_hsi <- raster::clamp(combo_avg, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
-  # 
-  # hsi_area_combo <- expanse(combo_hsi)
-  # rast_area_combo <- expanse(combo_avg)
-  # perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
-  # print(paste0("combo hsi > 0.75:", " ", round(perc_area_combo$area[1], 2), "%"))
-  # 
-  # combo_map <- ggplot() +
-  #   geom_spatraster(data = combo_avg) +
-  #   geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-  #   scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-  #   scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-  #   scale_fill_whitebox_c(palette = "deep", direction = -1) +
-  #   geom_text(aes(x = Inf, y = Inf, 
-  #                 label = paste0(round(perc_area_combo$area[1], 2), "%")), 
-  #             hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
-  #   theme_map() +
-  #   theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
-  #         axis.text.y = element_blank(),
-  #         axis.title.y = element_blank(),
-  #         legend.position = "none")
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
     if(enso == "EN"){
@@ -437,14 +414,13 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter = 20){
 }
 
 
-hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, enso, iter = 20){
+hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, test_type, enso, iter = 20){
   
   ### NEUTRAL
   #load raster files -----------------------------------------------------------------------------------------------
   base_rast_file <- list.files(here(neut_rast_folder), pattern = "base", full.names = TRUE)
   do_rast_file <- list.files(here(neut_rast_folder), pattern = "do", full.names = TRUE)
   agi_rast_file <- list.files(here(neut_rast_folder), pattern = "agi", full.names = TRUE)
-  #do_agi_file <- list.files(here(neut_rast_folder), pattern = "comb", full.names = TRUE)
   
   base_rast <- rast(base_rast_file)
   names(base_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
@@ -455,16 +431,13 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
   agi_rast <- rast(agi_rast_file)
   names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
   
-  # do_agi_rast <- rast(do_agi_file)
-  # names(do_agi_rast) <- c("temp_mean", "AGI_250m_ann", "bathy_mean", "sal_mean", "AGI_250m_seas", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean", "o2_mean_0m", "o2_mean_0m_ann", "o2_mean_0m_seas")
-  # 
   extent <- c(-153, -103, 1 , 49)
   
   #creating map dfs -------------------------------------------------------------------------------------------------
   #predict
-  base_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/base"), full.names = TRUE)
-  do_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/do"), full.names = TRUE)
-  agi_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/agi"), full.names = TRUE)
+  base_mod_files <- list.files(here(paste0("data/brt/mod_outputs/", test_type, "/base")), full.names = TRUE)
+  do_mod_files <- list.files(here(paste0("data/brt/mod_outputs/", test_type, "/do")), full.names = TRUE)
+  agi_mod_files <- list.files(here(paste0("data/brt/mod_outputs/", test_type, "/agi")), full.names = TRUE)
   #combo_mod_files <- list.files(here("data/brt/mod_outputs/perf_metric_iters/combo"), full.names = TRUE)
   
   base_list <- rast()
@@ -479,17 +452,17 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
     
     #predict
     base_mod <- readRDS(base_mod_files[i])
-    base_pred <- predict(base_rast, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+    base_pred <- predict(base_rast, base_mod, type = "response", n.trees = base_mod$gbm.call$best.trees, na.rm = FALSE)
     base_pred <- crop(base_pred, extent)
     base_list <- c(base_list, base_pred)
     
     do_mod <- readRDS(do_mod_files[i])
-    do_pred <- predict(do_rast, do_mod, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+    do_pred <- predict(do_rast, do_mod, type = "response", n.trees = do_mod$gbm.call$best.trees, na.rm = FALSE)
     do_pred <- crop(do_pred, extent)
     do_list <- c(do_list, do_pred)
     
     agi_mod <- readRDS(agi_mod_files[i])
-    agi_pred <- predict(agi_rast, agi_mod, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+    agi_pred <- predict(agi_rast, agi_mod, type = "response", n.trees = agi_mod$gbm.call$best.trees, na.rm = FALSE)
     agi_pred <- crop(agi_pred, extent)
     agi_list <- c(agi_list, agi_pred)
     
@@ -503,7 +476,17 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
   base_avg_neut <- mean(base_list)
   do_avg_neut <- mean(do_list)
   agi_avg_neut <- mean(agi_list)
-  #combo_avg_neut <- mean(combo_list)
+
+  # mask out land
+  bbox <- ext(-153, -103, 1, 49)
+
+  land <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+  land <- vect(land)
+
+  land <- crop(land, bbox)
+  base_avg_neut <- terra::mask(base_avg_neut, land, inverse = TRUE)
+  do_avg_neut <- terra::mask(do_avg_neut, land, inverse = TRUE)
+  agi_avg_neut <- terra::mask(agi_avg_neut, land, inverse = TRUE)
   
   ### ENSO
   #load raster files -----------------------------------------------------------------------------------------------
@@ -538,17 +521,17 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
     
     #predict
     base_mod <- readRDS(base_mod_files[i])
-    base_pred <- predict(base_rast_enso, base_mod, type = "response", n.tress = base_mod$gbm.call$best.trees, na.rm = FALSE)
+    base_pred <- predict(base_rast_enso, base_mod, type = "response", n.trees = base_mod$gbm.call$best.trees, na.rm = FALSE)
     base_pred <- crop(base_pred, extent)
     base_list <- c(base_list, base_pred)
     
     do_mod <- readRDS(do_mod_files[i])
-    do_pred <- predict(do_rast_enso, do_mod, type = "response", n.tress = do_mod$gbm.call$best.trees, na.rm = FALSE)
+    do_pred <- predict(do_rast_enso, do_mod, type = "response", n.trees = do_mod$gbm.call$best.trees, na.rm = FALSE)
     do_pred <- crop(do_pred, extent)
     do_list <- c(do_list, do_pred)
     
     agi_mod <- readRDS(agi_mod_files[i])
-    agi_pred <- predict(agi_rast_enso, agi_mod, type = "response", n.tress = agi_mod$gbm.call$best.trees, na.rm = FALSE)
+    agi_pred <- predict(agi_rast_enso, agi_mod, type = "response", n.trees = agi_mod$gbm.call$best.trees, na.rm = FALSE)
     agi_pred <- crop(agi_pred, extent)
     agi_list <- c(agi_list, agi_pred)
     
@@ -562,7 +545,11 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
   base_avg_enso <- mean(base_list)
   do_avg_enso <- mean(do_list)
   agi_avg_enso <- mean(agi_list)
-  #combo_avg_enso <- mean(combo_list)
+ 
+  # mask out land
+  base_avg_enso <- terra::mask(base_avg_enso, land, inverse = TRUE)
+  do_avg_enso <- terra::mask(do_avg_enso, land, inverse = TRUE)
+  agi_avg_enso <- terra::mask(agi_avg_enso, land, inverse = TRUE)
   
   # create difference rasters ------------------------------------------------------------------------------------------
   #make difference maps
@@ -578,13 +565,13 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
   
   #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_avg_neut, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi <- raster::clamp(base_avg_neut, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_avg_neut)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
   
   #enso area
-  base_hsi_enso <- raster::clamp(base_avg_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi_enso <- raster::clamp(base_avg_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base_enso <- expanse(base_hsi_enso)
   rast_area_base_enso <- expanse(base_avg_enso)
   perc_area_base_enso <- (hsi_area_base_enso/rast_area_base_enso$area[1])*100
@@ -612,14 +599,14 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
   
   #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi <- raster::clamp(do_avg_neut, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_avg_neut)
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
   
   #enso area
-  do_hsi_enso <- raster::clamp(do_avg_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi_enso <- raster::clamp(do_avg_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_do_enso <- expanse(do_hsi_enso)
   rast_area_do_enso <- expanse(do_avg_enso)
   perc_area_do_enso <- (hsi_area_do_enso/rast_area_do_enso$area[1])*100
@@ -645,14 +632,14 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
   
   #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_avg_neut, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi <- raster::clamp(agi_avg_neut, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_avg_neut)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
   
   #enso area
-  agi_hsi_enso <- raster::clamp(agi_avg_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi_enso <- raster::clamp(agi_avg_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_agi_enso <- expanse(agi_hsi_enso)
   rast_area_agi_enso <- expanse(agi_avg_enso)
   perc_area_agi_enso <- (hsi_area_agi_enso/rast_area_agi_enso$area[1])*100
@@ -675,50 +662,19 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, ens
             axis.title.y = element_blank(),
             axis.text.x = element_blank(),
             axis.title.x = element_blank())
-    
-  
-  #do agi combo map
-  #calculate percent area polygon takes up of raster 
-  # combo_hsi <- raster::clamp(combo_avg_neut, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
-  # 
-  # hsi_area_combo <- expanse(combo_hsi)
-  # rast_area_combo <- expanse(combo_avg_neut)
-  # perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
-  # 
-  # #enso area
-  # combo_hsi_enso <- raster::clamp(combo_avg_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
-  # hsi_area_combo_enso <- expanse(combo_hsi_enso)
-  # rast_area_combo_enso <- expanse(combo_avg_enso)
-  # perc_area_combo_enso <- (hsi_area_combo_enso/rast_area_combo_enso$area[1])*100
-  # 
-  # #calculate difference
-  # perc_combo <- paste0(round(perc_area_combo_enso$area[1] - perc_area_combo$area[1], 2), "%")
-  # 
-  # combo_map <- ggplot() +
-  #   geom_spatraster(data = diff_do_agi_combo) +
-  #   geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
-  #   scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
-  #   scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-  #   scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
-  #   geom_text(aes(x = Inf, y = Inf, 
-  #                 label = perc_combo), 
-  #             hjust = 1.1, vjust = 2, size = 3.4, color = "black")+
-  #   theme_map() +
-  #   theme(axis.text.x = element_text(angle = 45, hjust = 0.5), 
-  #         axis.text.y = element_blank(),
-  #         axis.title.y = element_blank(),
-  #         legend.position = "none")
   
   #combine and return maps ------------------------------------------------------------------------------------------------------
   
     if(enso == "EN"){
-      all_maps <- (base_map)/(do_map)/(agi_map+theme(
+      all_maps <- (base_map+
+        labs(title = "LN"))/(do_map)/(agi_map+theme(
         axis.text.x = element_text(color = "black", angle = 45, hjust = 0.3, size = 14), 
         axis.title.x = element_text(size = 16, color = "black", vjust = 0.3)))+
         plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "% change")
     } 
     if(enso == "LN"){
-      all_maps <- (base_map)/(do_map)/(agi_map+theme(
+      all_maps <- (base_map+
+        labs(title = "LN"))/(do_map)/(agi_map+theme(
         axis.text.x = element_text(color = "black", angle = 45, hjust = 0.3, size = 14), 
         axis.title.x = element_text(size = 16, color = "black", vjust = 0.3)))
     }

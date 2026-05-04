@@ -11,14 +11,9 @@ set.seed(1004)
 
 ### load data ####
 #CRW data
-dat_base <- readRDS(here("data/locs_brts/crw_pas/dat_base.rds")) %>% subset(select = -c(rep))
-dat_do <- readRDS(here("data/locs_brts/crw_pas/dat_do.rds")) %>% subset(select = -c(rep))
-dat_agi <- readRDS(here("data/locs_brts/crw_pas/dat_agi.rds")) %>% subset(select = -c(rep))
-
-#Bkg data
-back_base <- readRDS(here("data/locs_brts/bckg_pas/dat_base_back.rds"))
-back_do <- readRDS(here("data/locs_brts/bckg_pas/dat_do_back.rds"))
-back_agi <- readRDS(here("data/locs_brts/bckg_pas/dat_agi_back.rds"))
+dat_base <- readRDS(here("data/locs_brts/crw_pas_dail/dat_base.rds")) %>% subset(select = -c(rep))
+dat_do <- readRDS(here("data/locs_brts/crw_pas_dail/dat_do.rds")) %>% subset(select = -c(rep))
+dat_agi <- readRDS(here("data/locs_brts/crw_pas_dail/dat_agi.rds")) %>% subset(select = -c(rep))
 
 ### optimize hyperparameters (CRW PAs) ####
 #base
@@ -83,60 +78,6 @@ tc.best_do <- gbmFit_do$bestTune$interaction.depth # 3 or 4 trees doesn't make a
 
 lr.best_agi <- gbmFit_agi$bestTune$shrinkage #0.01 or 0.05, 0.05 somewhat better for 3 trees and 0.01 somewhat better for 4 trees. 
 tc.best_agi <- gbmFit_agi$bestTune$interaction.depth #3 and 4 trees look about the same in terms of accuracy as reported by cv. All close to ~ 0.08
-
-# Based on above results, for the CRW PA models, I should use a lr of 0.05, tree complexity of 3, bag fraction of 0.75, and model that selects the optimal number of trees rather than a set number. 
-
-### optimize hyperparameters (Bkg PAs) ####
-#base
-back_base_nas <- na.omit(back_base)
-
-#do
-back_do_nas <- na.omit(back_do)
-
-#agi
-back_agi_nas <- na.omit(back_agi)
-
-# Now test which combination of parameters works best. For some reason, the presence/absence variable must be a factor. Took ~30 min to run. 
-#base model
-gbmFit_base_back <- caret::train(factor(PA) ~ chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                            data = back_base_nas, 
-                            method = "gbm", 
-                            trControl = fitControl, 
-                            verbose = FALSE, 
-                            tuneGrid = gbmGrid)
-#saveRDS(gbmFit_base_back, here("data/brt/hp_tuning/gbmFit_base_back.rds"))
-plot(gbmFit_base_back)
-
-#do model
-gbmFit_do_back <- caret::train(factor(PA) ~ o2_mean_0m + o2_mean_60m + o2_mean_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                          data = back_do_nas, 
-                          method = "gbm", 
-                          trControl = fitControl, 
-                          verbose = FALSE, 
-                          tuneGrid = gbmGrid)
-#saveRDS(gbmFit_do_back, here("data/brt/hp_tuning/gbmFit_do_back.rds"))
-plot(gbmFit_do_back)
-
-#agi model
-gbmFit_agi_back <- caret::train(factor(PA) ~ AGI_0m + AGI_60m + AGI_250m + chl_mean + temp_mean + sal_mean + uo_mean + uostr_mean + vo_mean + vostr_mean + ssh_mean + mld_mean + bathy_mean + bathy_sd, 
-                           data = back_agi_nas, 
-                           method = "gbm", 
-                           trControl = fitControl, 
-                           verbose = FALSE, 
-                           tuneGrid = gbmGrid)
-
-#saveRDS(gbmFit_agi_back, here("data/brt/hp_tuning/gbmFit_agi_back.rds"))
-plot(gbmFit_agi_back)
-
-# Save the best values for learning rate and tree complexity. I will ultimately use gbm.step to select the best number of trees. 
-gbmFit_base_back$bestTune$shrinkage #0.1 or 0.05 (~ 0.88) -- within 0.01 accuracy reported by CV
-gbmFit_base_back$bestTune$interaction.depth #either 3 or 4 -- within 0.1 accuracy reported by CV
-
-gbmFit_do_back$bestTune$shrinkage #0.1 or 0.05 (~0.90) -- within 0.01 accuracy reported by CV
-gbmFit_do_back$bestTune$interaction.depth #All tree depths between 2-5 were within 0.01 accuracy. So could use any. 
-
-gbmFit_agi_back$bestTune$shrinkage # 0.1 and 0.05 are both very close -- within 0.01 accuracy of each other
-gbmFit_agi_back$bestTune$interaction.depth #tree depths of 3 and 4 resulted in similar accuracy (within 0.01)
 
 # Based on above results, for the CRW PA models, I should use a lr of 0.05, tree complexity of 3, bag fraction of 0.75, and model that selects the optimal number of trees rather than a set number. 
 
@@ -230,35 +171,3 @@ readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_agi_seas_crw.rds")) %>% plot()
 
 #lr notes: 0.01 marginally better than 0.05
 #tc notees: 3 
-
-#### back annual ####
-hyperparam_tune(fitControl = fitControl, gbmGrid = gbmGrid, 
-                base_input = "data/locs_brts/back_pas_ann/dat_base_ann.rds", 
-                do_input = "data/locs_brts/back_pas_ann/dat_do_ann.rds",
-                agi_input = "data/locs_brts/back_pas_ann/dat_agi_ann.rds",
-                hp_file_dest = "data/brt/hp_tuning/annual", 
-                res = "ann", pa = "back")
-
-readRDS(here("data/brt/hp_tuning/annual/gbmFit_base_ann_back.rds")) %>% plot()
-readRDS(here("data/brt/hp_tuning/annual/gbmFit_do_ann_back.rds")) %>% plot()
-readRDS(here("data/brt/hp_tuning/annual/gbmFit_agi_ann_back.rds")) %>% plot()
-
-#lr notes: 0.05 is top, marginally better than 0.1 and then 0.01
-#tc notees: 3-5 marginally different
-
-#### back seasonal ####
-hyperparam_tune(fitControl = fitControl, gbmGrid = gbmGrid, 
-                base_input = "data/locs_brts/back_pas_seas/dat_base_seas.rds", 
-                do_input = "data/locs_brts/back_pas_seas/dat_do_seas.rds",
-                agi_input = "data/locs_brts/back_pas_seas/dat_agi_seas.rds",
-                hp_file_dest = "data/brt/hp_tuning/seasonal", 
-                res = "seas", pa = "back")
-
-readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_base_seas_back.rds")) %>% plot()
-readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_do_seas_back.rds")) %>% plot()
-readRDS(here("data/brt/hp_tuning/seasonal/gbmFit_agi_seas_back.rds")) %>% plot()
-
-#lr notes: 0.05 is top, marginally better than 0,1 and then 0.01
-#tc notees: 3 is better, accuracy tends to drop for 4
-
-

@@ -30,7 +30,7 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   
   rast_file_ann_0m <- rast(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_0m_annual.nc"))
   rast_file_ann_250m <- rast(here("data/enviro/psat_spot_all/all_processed/annual_res/dat_250m_annual.nc"))
-  
+
   #get start and end dates into date object --------------------------------------------------------------
   date_start <- as.Date(date_start)
   date_end <- as.Date(date_end)
@@ -90,7 +90,6 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   names(rast_seas_0m_sub) <- c("somxlavt_1", "vosaline_1", "sossheig_1", "votemper_1", "vozocrtx_1", "sozotaux_1", "vomecrty_1", "sometauy_1", "chl_1", "o2_1")
   names(rast_seas_250m_sub) <- c("vosaline_1", "votemper_1", "o2_1")
   
-  
   #subset annual raster files ---------------------------------------------------------------------------------
   rast_ann_0m_sub <- NULL
   rast_ann_250m_sub <- NULL
@@ -134,40 +133,40 @@ hsi_rast_gen <- function(date_start = c("2003-01-01"), date_end = c("2015-12-31"
   bathy_sd <- rast(here("data/enviro/psat_spot_all/bathy_gebco/processed/bathy_sd_0.25.nc"))
   
   #generate AGI rasters ---------------------------------------------------------------------------------------
-  source(here("functions/oxy_demand_functions.R"))
-  OxyThresh_0m = 0.04928389 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 0m
-  OxyThresh_250m = 0.03816138 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 250m
+  source(here("functions/oxy_demand_functions_rev.R"))
+  OxyThresh_0m = 0.0702 #value converted from Vetter concentration data to atm according to salinity, temp
+  OxyThresh_250m = 0.0591 #value converted from Vetter concentration data to atm according to salinity, temp
   Tpref = 16.45201 #mean temp experienced by sharks at mean dive depth (50m)
   
   dir.create(here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name)), showWarnings = FALSE) 
   
     #daily rast AGI
   demand_daily_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_daily_0m_sub$votemper)
-  atm_daily_0m <- rast_to_atm(do = rast_daily_0m_sub$o2, so = rast_daily_0m_sub$vosaline, temp = rast_daily_0m_sub$votemper, depth = 0)
+  atm_daily_0m <- do_to_atm(do = rast_daily_0m_sub$o2, s = rast_daily_0m_sub$vosaline, t = rast_daily_0m_sub$votemper)
   AGI_daily_0m <- atm_daily_0m/demand_daily_0m
   writeCDF(AGI_daily_0m, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name, "/", output_name, "_daily_agi_0m.nc")))
   
   demand_daily_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_daily_250m_sub$votemper)
-  atm_daily_250m <- rast_to_atm(do = rast_daily_250m_sub$o2, so = rast_daily_250m_sub$vosaline, temp = rast_daily_250m_sub$votemper, depth = 250)
+  atm_daily_250m <- do_to_atm(do = rast_daily_250m_sub$o2, s = rast_daily_250m_sub$vosaline, t = rast_daily_250m_sub$votemper)
   AGI_daily_250m <- atm_daily_250m/demand_daily_250m
   writeCDF(AGI_daily_250m, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts/agi_rasts/", output_name,"/", output_name, "_daily_agi_250m.nc")))
   
     #seas rast AGI
   demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_sub$votemper_1)
-  atm_seas_0m <- rast_to_atm(do = rast_seas_0m_sub$o2_1, so = rast_seas_0m_sub$vosaline_1, temp = rast_seas_0m_sub$votemper_1, depth = 0)
+  atm_seas_0m <- do_to_atm(do = rast_seas_0m_sub$o2_1, s = rast_seas_0m_sub$vosaline_1, t = rast_seas_0m_sub$votemper_1)
   AGI_seas_0m <- atm_seas_0m/demand_seas_0m
   
   demand_seas_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_seas_250m_sub$votemper_1)
-  atm_seas_250m <- rast_to_atm(do = rast_seas_250m_sub$o2_1, so = rast_seas_250m_sub$vosaline_1, temp = rast_seas_250m_sub$votemper_1, depth = 250)
+  atm_seas_250m <- do_to_atm(do = rast_seas_250m_sub$o2_1, s = rast_seas_250m_sub$vosaline_1, t = rast_seas_250m_sub$votemper_1)
   AGI_seas_250m <- atm_seas_250m/demand_seas_250m
   
    #ann rast AGI
   demand_ann_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_ann_0m_sub$votemper)
-  atm_ann_0m <- rast_to_atm(do = rast_ann_0m_sub$o2, so = rast_ann_0m_sub$vosaline, temp = rast_ann_0m_sub$votemper, depth = 0)
+  atm_ann_0m <- do_to_atm(do = rast_ann_0m_sub$o2, s = rast_ann_0m_sub$vosaline, t = rast_ann_0m_sub$votemper)
   AGI_ann_0m <- atm_ann_0m/demand_ann_0m
   
   demand_ann_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_ann_250m_sub$votemper)
-  atm_ann_250m <- rast_to_atm(do = rast_ann_250m_sub$o2, so = rast_ann_250m_sub$vosaline, temp = rast_ann_250m_sub$votemper, depth = 250)
+  atm_ann_250m <- do_to_atm(do = rast_ann_250m_sub$o2, s = rast_ann_250m_sub$vosaline, t = rast_ann_250m_sub$votemper)
   AGI_ann_250m <- atm_ann_250m/demand_ann_250m
   
   #combine rasters --------------------------------------------------------------------------------------------
@@ -326,7 +325,7 @@ hsi_rast_gen_sd <- function(date_start = c("2003-01-01"), date_end = c("2015-12-
   bathy_sd <- rast(here("data/enviro/psat_spot_all/bathy_gebco/processed/bathy_sd_0.25.nc"))
   
   #generate AGI rasters ---------------------------------------------------------------------------------------
-  source(here("functions/oxy_demand_functions.R"))
+  source(here("functions/oxy_demand_functions_rev.R"))
   OxyThresh_0m = 0.04928389 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 0m
   OxyThresh_250m = 0.03816138 #value converted from Vetter concentration data to atm according to salinity, temp, and pressure at 250m
   Tpref = 16.45201 #mean temp experienced by sharks at mean dive depth (50m)
@@ -336,31 +335,31 @@ hsi_rast_gen_sd <- function(date_start = c("2003-01-01"), date_end = c("2015-12-
   
   #daily rast AGI
   demand_daily_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_daily_0m_sub$votemper)
-  atm_daily_0m <- rast_to_atm(do = rast_daily_0m_sub$o2, so = rast_daily_0m_sub$vosaline, temp = rast_daily_0m_sub$votemper, depth = 0)
+  atm_daily_0m <- do_to_atm(do = rast_daily_0m_sub$o2, s = rast_daily_0m_sub$vosaline, t = rast_daily_0m_sub$votemper)
   AGI_daily_0m <- atm_daily_0m/demand_daily_0m
   writeCDF(AGI_daily_0m, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts_sd/agi_rasts/", output_name, "/", output_name, "_daily_agi_0m.nc")))
   
   demand_daily_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_daily_250m_sub$votemper)
-  atm_daily_250m <- rast_to_atm(do = rast_daily_250m_sub$o2, so = rast_daily_250m_sub$vosaline, temp = rast_daily_250m_sub$votemper, depth = 250)
+  atm_daily_250m <- do_to_atm(do = rast_daily_250m_sub$o2, so = rast_daily_250m_sub$vosaline, temp = rast_daily_250m_sub$votemper)
   AGI_daily_250m <- atm_daily_250m/demand_daily_250m
   writeCDF(AGI_daily_250m, filename = here(paste0("data/enviro/psat_spot_all/hsi_rasts_sd/agi_rasts/", output_name,"/", output_name, "_daily_agi_250m.nc")))
   
   #seas rast AGI
   demand_seas_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_seas_0m_sub$votemper_1)
-  atm_seas_0m <- rast_to_atm(do = rast_seas_0m_sub$o2_1, so = rast_seas_0m_sub$vosaline_1, temp = rast_seas_0m_sub$votemper_1, depth = 0)
+  atm_seas_0m <- do_to_atm(do = rast_seas_0m_sub$o2_1, s = rast_seas_0m_sub$vosaline_1, t = rast_seas_0m_sub$votemper_1)
   AGI_seas_0m <- atm_seas_0m/demand_seas_0m
   
   demand_seas_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_seas_250m_sub$votemper_1)
-  atm_seas_250m <- rast_to_atm(do = rast_seas_250m_sub$o2_1, so = rast_seas_250m_sub$vosaline_1, temp = rast_seas_250m_sub$votemper_1, depth = 250)
+  atm_seas_250m <- do_to_atm(do = rast_seas_250m_sub$o2_1, s = rast_seas_250m_sub$vosaline_1, t = rast_seas_250m_sub$votemper_1)
   AGI_seas_250m <- atm_seas_250m/demand_seas_250m
   
   #ann rast AGI
   demand_ann_0m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_0m, T_C = rast_ann_0m_sub$votemper)
-  atm_ann_0m <- rast_to_atm(do = rast_ann_0m_sub$o2, so = rast_ann_0m_sub$vosaline, temp = rast_ann_0m_sub$votemper, depth = 0)
+  atm_ann_0m <- do_to_atm(do = rast_ann_0m_sub$o2, s = rast_ann_0m_sub$vosaline, t = rast_ann_0m_sub$votemper)
   AGI_ann_0m <- atm_ann_0m/demand_ann_0m
   
   demand_ann_250m <- OxyDemand(Tpref = Tpref, PO2_thresh = OxyThresh_250m, T_C = rast_ann_250m_sub$votemper)
-  atm_ann_250m <- rast_to_atm(do = rast_ann_250m_sub$o2, so = rast_ann_250m_sub$vosaline, temp = rast_ann_250m_sub$votemper, depth = 250)
+  atm_ann_250m <- do_to_atm(do = rast_ann_250m_sub$o2, s = rast_ann_250m_sub$vosaline, t = rast_ann_250m_sub$votemper)
   AGI_ann_250m <- atm_ann_250m/demand_ann_250m
   
   #combine rasters --------------------------------------------------------------------------------------------
