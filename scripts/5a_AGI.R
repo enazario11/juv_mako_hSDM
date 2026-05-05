@@ -6,33 +6,8 @@ library(respR)
 source(here("functions/oxy_demand_functions_rev.R"))
 
 ### read data ####
-#fix duplicates
 dat0 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_0m.rds")) 
-# dat0<- dat0 %>% 
-#     group_by(tag, PA, rep) %>%
-#     distinct(dt, .keep_all = TRUE) %>%
-#     ungroup()
-
-#fix duplicates
 dat250 <- readRDS(here("data/locs_w_covar/psat_spot/cmem_locs_covar_250m.rds"))
-# dat250 <- dat250 %>% 
-#     group_by(tag, PA, rep) %>%
-#     distinct(dt, .keep_all = TRUE) %>%
-#     ungroup()
-
-# # ~0.5% of salinity values are missing. Linearly interpolate them. If edge case, replace with median (n < 30)
-# dat0 <- dat0 |> 
-#   group_by(tag, PA, rep) |> 
-#   mutate(vosaline_mean = na.approx(vosaline_mean, na.rm = FALSE), 
-#          vosaline_mean = ifelse(is.na(vosaline_mean), median(vosaline_mean, na.rm = TRUE), vosaline_mean)) |> 
-#   ungroup()
-
-# #interpolate (2%) and replace msissing salinity values. Replace edge case NAs (n = 195)
-# dat250 <- dat250 |> 
-#   group_by(tag, PA, rep) |> 
-#   mutate(vosaline_mean = na.approx(vosaline_mean, na.rm = FALSE),
-#          vosaline_mean = ifelse(is.na(vosaline_mean), median(vosaline_mean, na.rm = TRUE), vosaline_mean)) |> 
-#   ungroup()
 
 ### convert DO to atm ####
 # 0m

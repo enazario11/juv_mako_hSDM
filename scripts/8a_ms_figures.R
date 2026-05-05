@@ -312,7 +312,7 @@ calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
   }
   
   #creating map dfs -------------------------------------------------------------------------------------------------
-  mod_folder <- list.files(here(paste0("data/brt/mod_outputs/revised/", test_type,"/", mod_type)), full.names = TRUE)
+  mod_folder <- list.files(here(paste0("data/brt/mod_outputs/revised/", mod_type)), pattern = ".rds", full.names = TRUE)
   
   bbox <- ext(-153, -103, 1, 49)
 
@@ -337,10 +337,10 @@ calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
   land <- vect(land)
 
   land <- crop(land, bbox)
-  pred_avg <- mask(pred_avg, land, inverse = TRUE)
+  pred_avg <- terra::mask(pred_avg, land, inverse = TRUE)
   
   #filter for just NEC and calculate percent area w hsi > 0.75
-  rast_nec_filt <- pred_avg %>% filter(y <= 15)
+  rast_nec_filt <- pred_avg %>% filter(y <= 12)
 
   hsi_nec <- raster::clamp(rast_nec_filt, lower = 0.25, values = FALSE)
 
@@ -355,29 +355,29 @@ calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
 #Base
 base_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_base_rast.nc"))
 base_ln_rast_10 <- base_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_base_10 <- calc_perc_area(mod_rast = base_ln_rast_10, mod_type = "base", test_type = "revised", iter = 20)
+nec_base_10 <- calc_perc_area(mod_rast = base_ln_rast_10, mod_type = "base", iter = 20)
 
 base_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_base_rast.nc"))
 base_ln_rast_08 <- base_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_base_08 <- calc_perc_area(mod_rast = base_ln_rast_08, mod_type = "base", test_type = "revised", iter = 20)
+nec_base_08 <- calc_perc_area(mod_rast = base_ln_rast_08, mod_type = "base", iter = 20)
 
 #DO
 do_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_do_rast.nc"))
 do_ln_rast_10 <- do_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_do_10 <- calc_perc_area(mod_rast = do_ln_rast_10, mod_type = "do", test_type = "revised", iter = 20)
+nec_do_10 <- calc_perc_area(mod_rast = do_ln_rast_10, mod_type = "do", iter = 20)
 
 do_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_do_rast.nc"))
 do_ln_rast_08 <- do_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_do_08 <- calc_perc_area(mod_rast = do_ln_rast_08, mod_type = "do", test_type = "revised", iter = 20)
+nec_do_08 <- calc_perc_area(mod_rast = do_ln_rast_08, mod_type = "do", iter = 20)
 
 #AGI
 agi_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_agi_rast.nc"))
 agi_ln_rast_10 <- agi_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_agi_10 <- calc_perc_area(mod_rast = agi_ln_rast_10, mod_type = "agi", test_type = "revised", iter = 20)
+nec_agi_10 <- calc_perc_area(mod_rast = agi_ln_rast_10, mod_type = "agi", iter = 20)
 
 agi_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_agi_rast.nc"))
 agi_ln_rast_08 <- agi_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_agi_08 <- calc_perc_area(mod_rast = agi_ln_rast_08, mod_type = "agi", test_type = "revised", iter = 20)
+nec_agi_08 <- calc_perc_area(mod_rast = agi_ln_rast_08, mod_type = "agi", iter = 20)
 
 df <- data.frame(area = rep(c("NEC_LN_2010", "NEC_LC_2008"), times = 3),
             model_type = c("base", "do", "agi", "base", "do", "agi"),
@@ -965,7 +965,6 @@ temp_0m_map <- ggplot() +
         legend.text = element_text(size = 14, color = "black"))
 
 ggsave(here("figs/ms/supp_figs/temp_2003_2015_0m.png"), temp_0m_map, height = 3, width = 6, units = c("in"))
-
 
 ##### Temp vs. DO by season and spatially #####
 #get observed location + covariate data

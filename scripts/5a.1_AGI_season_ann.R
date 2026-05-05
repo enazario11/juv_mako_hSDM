@@ -8,59 +8,11 @@ source(here("functions/oxy_demand_functions_rev.R"))
 ### read data ####
 #annual
 dat0_ann <- readRDS(here("data/locs_w_covar/psat_spot/annual/cmem_locs_covar_0m_ann.rds"))
-# dat0_ann <- dat0_ann %>% 
-#     group_by(tag, PA, rep) %>%
-#     distinct(dt, .keep_all = TRUE) %>%
-#     ungroup()
-
-#fix duplicates
 dat250_ann <- readRDS(here("data/locs_w_covar/psat_spot/annual/cmem_locs_covar_250m_ann.rds"))
-# dat250_ann <- dat250_ann %>% 
-#     group_by(tag, PA, rep) %>%
-#     distinct(dt, .keep_all = TRUE) %>%
-#     ungroup()
-
-# # ~0.5% of salinity values are missing. Linearly interpolate them. If edge case, replace with median (n < 30)
-# dat0_ann <- dat0_ann |> 
-#   group_by(tag, PA, rep) |> 
-#   mutate(vosaline_mean = na.approx(vosaline_mean, na.rm = FALSE), 
-#          vosaline_mean = ifelse(is.na(vosaline_mean), median(vosaline_mean, na.rm = TRUE), vosaline_mean)) |> 
-#   ungroup()
-
-# #interpolate (2%) and replace msissing salinity values. Replace edge case NAs (n = 195)
-# dat250_ann <- dat250_ann |> 
-#   group_by(tag, PA, rep) |> 
-#   mutate(vosaline_mean = na.approx(vosaline_mean, na.rm = FALSE),
-#          vosaline_mean = ifelse(is.na(vosaline_mean), median(vosaline_mean, na.rm = TRUE), vosaline_mean)) |> 
-#   ungroup()
 
 #seasonal
 dat0_seas <- readRDS(here("data/locs_w_covar/psat_spot/seasonal/cmem_locs_covar_0m_seas.rds"))
-# dat0_seas <- dat0_seas %>% 
-#     group_by(tag, PA, rep) %>%
-#     distinct(dt, .keep_all = TRUE) %>%
-#     ungroup()
-
-#fix duplicates
 dat250_seas <- readRDS(here("data/locs_w_covar/psat_spot/seasonal/cmem_locs_covar_250m_seas.rds"))
-# dat250_seas <- dat250_seas %>% 
-#     group_by(tag, PA, rep) %>%
-#     distinct(dt, .keep_all = TRUE) %>%
-#     ungroup()
-
-# # ~0.5% of salinity values are missing. Linearly interpolate them. If edge case, replace with median (n < 30)
-# dat0_seas <- dat0_seas |> 
-#   group_by(tag, PA, rep) |> 
-#   mutate(vosaline_mean = na.approx(vosaline_mean, na.rm = FALSE), 
-#          vosaline_mean = ifelse(is.na(vosaline_mean), median(vosaline_mean, na.rm = TRUE), vosaline_mean)) |> 
-#   ungroup()
-
-# #interpolate (2%) and replace msissing salinity values. Replace edge case NAs (n = 195)
-# dat250_seas <- dat250_seas |> 
-#   group_by(tag, PA, rep) |> 
-#   mutate(vosaline_mean = na.approx(vosaline_mean, na.rm = FALSE),
-#          vosaline_mean = ifelse(is.na(vosaline_mean), median(vosaline_mean, na.rm = TRUE), vosaline_mean)) |> 
-#   ungroup()
 
 ### CRW AGI calcs ####
 #### Annual ####
