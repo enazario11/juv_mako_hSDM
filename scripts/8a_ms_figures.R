@@ -401,7 +401,7 @@ md_df2 <- md_df %>%
 #write.csv(md_df2, here("data/presence_locs/metadata_sum.csv"))
 
 #### SF 3: Model exploration performance metrics ####
-output_sum <- read.csv(here::here("data/brt/mod_outputs/brt_supp_table.csv"))
+output_sum <- read.csv(here::here("data/brt/mod_outputs/explore/brt_supp_table.csv"))
 output_sum$deviance_exp <- output_sum$deviance_exp*100
 
 mod_metrics <- ggplot(output_sum, aes(AUC, TSS, color = deviance_exp, label = model)) +

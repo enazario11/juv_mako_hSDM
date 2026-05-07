@@ -167,9 +167,10 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/background/refined/brt_do_0m_6
 
 ```
 
-## DO/AGI Combo 
+## DO/AGI Combo
 
-Here, dissolved oxygen was included at 0m and at all temporal resolutions, while AGI was included at 250m and all temporal resolutions. 
+Here, dissolved oxygen was included at 0m and at all temporal resolutions, while AGI was included at 250m and all temporal resolutions.
+
 ```{r}
 #| warning: false
 #| fig-width: 12
@@ -215,7 +216,6 @@ null.dev =  calc.deviance(test_ensemble_df$PA ,rep(mean(test_ensemble_df$PA),len
 (dev=(null.dev - ext.residual.deviance)/null.dev) 
 
 ```
-
 
 ## AGI final - crw
 
@@ -1156,7 +1156,7 @@ par_plot_func(agi_mod_fin, vars = c("AGI_250m", "AGI_250m_seas", "AGI_250m_ann")
 
 ## Performance metric comparisons
 
-20 iterations were performed for each model type. Then an anova and post-hoc Tukey tests were run to evaluate the pairwise comparisons. Letters represent relative significance. 
+20 iterations were performed for each model type. Then an anova and post-hoc Tukey tests were run to evaluate the pairwise comparisons. Letters represent relative significance.
 
 ```{r}
 #| echo: false

@@ -21,10 +21,13 @@ do_to_atm <- function(do, t, s, thresh = FALSE) {
 
   po2_atm <-  rep(NA_real_, length(do))
 
-  do_mask <- !is.na(do[i]) && !is.na(t[i]) && !is.na(s[i])
-  a_o2_bar <- marelac::gas_solubility(S = s[do_mask], t = t[do_mask], species = "O2")
-  a_o2_atm <- a_o2_bar / 0.9869
-  po2_atm[do_mask] <- do[do_mask] / a_o2_atm
+  for(i in 1:length(do)){
+    if(!is.na(do[i]) && !is.na(t[i]) && !is.na(s[i])){
+        a_o2_bar <- marelac::gas_solubility(S = s[i], t = t[i], species = "O2")
+        a_o2_atm <- a_o2_bar / 0.9869
+        po2_atm[i] <- do[i] / a_o2_atm
+    }
+  }
 
   # Handle the return value if raster
   if (rast_format) {
