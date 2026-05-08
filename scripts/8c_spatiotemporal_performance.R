@@ -103,7 +103,7 @@ dat_base_st %>% group_by(region) %>% summarise(count = n())
 dat_base_st %>% group_by(enso) %>% summarise(count = n())
 
 ### stratified sampling w/ 20 BRT iterations ####
-brt_st <- function(dat_file, n_iter = 5, mod_type, save_folder, group){
+brt_st <- function(dat_file, n_iter = 20, mod_type, save_folder, group){
   
   #predictor vars
   if(mod_type == "base"){
@@ -507,7 +507,7 @@ auc_stress_e <- sum_enso %>% mutate(mod_type = as.factor(mod_type),
         legend.justification = "left", 
         strip.text.x = element_text(size = 14))
 
-        auc_stress_e <- sum_enso %>% mutate(mod_type = as.factor(mod_type), 
+auc_neut_e <- sum_enso %>% mutate(mod_type = as.factor(mod_type), 
                                 mod_type = fct_relevel(mod_type, c("Base model", "DO model", "AGI model")), 
                                 ENSO = as.factor(ENSO), 
                                 ENSO = fct_relevel(ENSO, c("Neutral", "El Niño", "La Niña"))) %>%
@@ -539,10 +539,10 @@ auc_stress_e <- sum_enso %>% mutate(mod_type = as.factor(mod_type),
 tss_enso <- ggarrange(TSS_neut_e, TSS_stress_e, common.legend = TRUE)
 ggsave(here("figs/ms/supp_figs/st_perform/tss_enso.png"), tss_enso, width = 10, height = 5, units = c("in"))
 
-dev_enso <- ggarrange(dev_neu_e, dev_stress_e, common.legend = TRUE)
+dev_enso <- ggarrange(dev_neut_e, dev_stress_e, common.legend = TRUE)
 ggsave(here("figs/ms/supp_figs/st_perform/dev_enso.png"), dev_enso, width = 10, height = 5, units = c("in"))
 
-auc_enso <- ggarrange(auc_neu_e, auc_stress_e, common.legend = TRUE)
+auc_enso <- ggarrange(auc_neut_e, auc_stress_e, common.legend = TRUE)
 ggsave(here("figs/ms/supp_figs/st_perform/auc_enso.png"), auc_enso, width = 10, height = 5, units = c("in"))
 
 #region boxplots
@@ -728,10 +728,10 @@ auc_stress_r <- sum_reg %>% mutate(mod_type = as.factor(mod_type),
 tss_reg <- ggarrange(TSS_neut_r, TSS_stress_r, common.legend = TRUE)
 ggsave(here("figs/ms/supp_figs/st_perform/tss_reg.png"), tss_reg, width = 10, height = 5, units = c("in"))
 
-dev_reg <- ggarrange(dev_neu_r, dev_stress_r, common.legend = TRUE)
+dev_reg <- ggarrange(dev_neut_r, dev_stress_r, common.legend = TRUE)
 ggsave(here("figs/ms/supp_figs/st_perform/dev_reg.png"), dev_reg, width = 10, height = 5, units = c("in"))
 
-auc_reg <- ggarrange(auc_neu_r, auc_stress_r, common.legend = TRUE)
+auc_reg <- ggarrange(auc_neut_r, auc_stress_r, common.legend = TRUE)
 ggsave(here("figs/ms/supp_figs/st_perform/auc_reg.png"), auc_reg, width = 10, height = 5, units = c("in"))
 
 

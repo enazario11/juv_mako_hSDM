@@ -425,7 +425,7 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/explore/models/do_all_depths_a
 
 # agi_0m_250m_daily_seasonal_annual_crw
 pred_vars_agi7 = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "AGI_0m", "AGI_250m", "AGI_0m_seas", "AGI_0m_ann", "AGI_250m_seas", "AGI_250m_ann")
-brt_run(dat_file = dat_all_agi, pred_vars = pred_vars_do7, save_file = "data/brt/mod_outputs/explore/models/agi_0m_250m_daily_seasonal_annual_crw")
+brt_run(dat_file = dat_agi_all, pred_vars = pred_vars_do7, save_file = "data/brt/mod_outputs/explore/models/agi_0m_250m_daily_seasonal_annual_crw")
 
 test_data14 <- readRDS(here("data/brt/mod_outputs/explore/models/agi_0m_250m_daily_seasonal_annual_crw_test.rds"))
 explore_brt(mod_file_path = "data/brt/mod_outputs/explore/models/agi_0m_250m_daily_seasonal_annual_crw.rds", 
@@ -440,44 +440,13 @@ explore_brt(mod_file_path = "data/brt/mod_outputs/explore/models/do_0m_250m_dail
             test_data = test_data15)
 
 # do_agi_combo_crw
-dat_do_agi_all <- cbind(dat_do_all, dat_agi_all[,c(19, 22, 24, 26, 27, 29)])
+dat_do_agi_all <- cbind(dat_do_all, dat_agi_all[,c(20, 24, 27)])
 pred_vars_do_agi1 = c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "o2_mean_0m", "o2_mean_0m_seas", "o2_mean_0m_ann", "AGI_250m", "AGI_250m_seas", "AGI_250m_ann")
 brt_run(dat_file = dat_do_agi_all, pred_vars = pred_vars_do_agi1, save_file = "data/brt/mod_outputs/explore/models/do_agi_combo_crw")
 
 test_data16 <- readRDS(here("data/brt/mod_outputs/explore/models/do_agi_combo_crw_test.rds"))
 explore_brt(mod_file_path = "data/brt/mod_outputs/explore/models/do_agi_combo_crw.rds", 
             test_data = test_data16)
-
-# do_agi_ensemble
-    #run agi only model
-pred_vars_agi8 = c("AGI_0m", "AGI_250m", "AGI_0m_seas", "AGI_0m_ann", "AGI_250m_seas", "AGI_250m_ann")
-brt_run(dat_file = dat_agi_all, pred_vars = pred_vars_agi8, save_file = "data/brt/mod_outputs/explore/models/brt_agi_only")
-
-    #load do final model 
-    agi_mod <- readRDS(here("data/brt/mod_outputs/explore/models/brt_agi_only.rds"))
-    do_mod <- readRDS(here("data/brt/mod_outputs/explore/models/do_0m_250m_daily_seasonal_annual_crw.rds"))
-
-    # make df of predictions from each model
-    test_df_do <- readRDS(here("data/brt/mod_outputs/explore/models/do_0m_250m_daily_seasonal_annual_crw_test.rds"))
-    test_df_agi <- readRDS(here("data/brt/mod_outputs/explore/models/brt_agi_only_test.rds"))
-
-    pred_testdata <- data.frame(
-      do = predict.gbm(do_mod, test_df_do,
-                      n.trees = do_mod$gbm.call$best.trees,
-                      type = "response"),
-      agi = predict.gbm(agi_mod, test_df_agi,
-                        n.trees = agi_mod$gbm.call$best.trees,
-                        type = "response")
-    )
-
-    summary(pred_testdata)
-
-    # Mean of probabilities
-    mean_prob <- rowMeans(pred_testdata)
-
-    # performance measures for "mean of probabilities"
-    (perf_mean_prob <- mecofun::evalSDM(test_df$PA, mean_prob))
-
 
 
 

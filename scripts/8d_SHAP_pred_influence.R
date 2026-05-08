@@ -8,7 +8,7 @@
 
 # SHAP -- spatiotemporal analyses to understand drivers of LN predictions
 ### target point
-target_loc <- vect(cbind(-141,15), crs="EPSG:4326")
+target_loc <- vect(cbind(-141,12), crs="EPSG:4326")
 
 ### load models
 brt_do <- readRDS(here("data/brt/mod_outputs/revised/brts_st/enso/do/do_1.rds"))

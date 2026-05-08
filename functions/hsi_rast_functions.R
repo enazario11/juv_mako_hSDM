@@ -494,7 +494,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi <- raster::clamp(base_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
@@ -518,7 +518,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi <- raster::clamp(do_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_pred)
@@ -545,7 +545,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
     #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi <- raster::clamp(agi_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_pred)
@@ -580,7 +580,7 @@ hsi_maps <- function(rast_folder, ms = c("Y", "N")){
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
-  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(do_agi_combo)
@@ -695,7 +695,7 @@ hsi_maps_enso <- function(rast_folder, enso, main_text = TRUE){
   
   #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi <- raster::clamp(base_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
@@ -720,7 +720,7 @@ hsi_maps_enso <- function(rast_folder, enso, main_text = TRUE){
 
   #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi <- raster::clamp(do_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_pred)
@@ -765,7 +765,7 @@ hsi_maps_enso <- function(rast_folder, enso, main_text = TRUE){
 
   #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi <- raster::clamp(agi_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_pred)
@@ -824,7 +824,7 @@ hsi_maps_enso <- function(rast_folder, enso, main_text = TRUE){
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
-  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  combo_hsi <- raster::clamp(do_agi_combo, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(do_agi_combo)
@@ -1013,13 +1013,13 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso, m
   
   #base map
   #calculate percent area polygon takes up of raster 
-  base_hsi <- raster::clamp(base_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi <- raster::clamp(base_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base <- expanse(base_hsi)
   rast_area_base <- expanse(base_pred)
   perc_area_base <- (hsi_area_base/rast_area_base$area[1])*100
   
   #enso area
-  base_hsi_enso <- raster::clamp(base_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  base_hsi_enso <- raster::clamp(base_pred_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_base_enso <- expanse(base_hsi_enso)
   rast_area_base_enso <- expanse(base_pred_enso)
   perc_area_base_enso <- (hsi_area_base_enso/rast_area_base_enso$area[1])*100
@@ -1047,14 +1047,14 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso, m
   
   #do map
   #calculate percent area polygon takes up of raster 
-  do_hsi <- raster::clamp(do_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi <- raster::clamp(do_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_do <- expanse(do_hsi)
   rast_area_do <- expanse(do_pred)
   perc_area_do <- (hsi_area_do/rast_area_do$area[1])*100
 
   #enso area
-  do_hsi_enso <- raster::clamp(do_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  do_hsi_enso <- raster::clamp(do_pred_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_do_enso <- expanse(do_hsi_enso)
   rast_area_do_enso <- expanse(do_pred_enso)
   perc_area_do_enso <- (hsi_area_do_enso/rast_area_do_enso$area[1])*100
@@ -1101,14 +1101,14 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso, m
   
   #agi map
   #calculate percent area polygon takes up of raster 
-  agi_hsi <- raster::clamp(agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi <- raster::clamp(agi_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_agi <- expanse(agi_hsi)
   rast_area_agi <- expanse(agi_pred)
   perc_area_agi <- (hsi_area_agi/rast_area_agi$area[1])*100
   
   #enso area
-  agi_hsi_enso <- raster::clamp(agi_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  agi_hsi_enso <- raster::clamp(agi_pred_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_agi_enso <- expanse(agi_hsi_enso)
   rast_area_agi_enso <- expanse(agi_pred_enso)
   perc_area_agi_enso <- (hsi_area_agi_enso/rast_area_agi_enso$area[1])*100
@@ -1155,14 +1155,14 @@ hsi_maps_difference_enso <- function(neut_rast_folder, enso_rast_folder, enso, m
   
   #do agi combo map
   #calculate percent area polygon takes up of raster 
-  combo_hsi <- raster::clamp(do_agi_pred, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  combo_hsi <- raster::clamp(do_agi_pred, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   
   hsi_area_combo <- expanse(combo_hsi)
   rast_area_combo <- expanse(do_agi_pred)
   perc_area_combo <- (hsi_area_combo/rast_area_combo$area[1])*100
 
   #enso area
-  combo_hsi_enso <- raster::clamp(do_agi_pred_enso, lower = 0.75, values = FALSE) #create raster of values with HSI > 0.75
+  combo_hsi_enso <- raster::clamp(do_agi_pred_enso, lower = 0.5, values = FALSE) #create raster of values with HSI > 0.75
   hsi_area_combo_enso <- expanse(combo_hsi_enso)
   rast_area_combo_enso <- expanse(do_agi_pred_enso)
   perc_area_combo_enso <- (hsi_area_combo_enso/rast_area_combo_enso$area[1])*100
