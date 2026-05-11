@@ -250,7 +250,7 @@ pred_fig <- avg_inf_sum %>%
   mutate(var = as.factor(var), 
          var = fct_reorder(var, inf_mean)) %>%
   ggplot(aes(x = inf_mean, y = var, color = model, fill = model))+
-  geom_errorbarh(aes(xmax = inf_mean + inf_sd, xmin = inf_mean - inf_sd, height = 0), linewidth = 1)+
+  geom_pointrange(aes(xmax = inf_mean + inf_sd, xmin = inf_mean - inf_sd), linewidth = 1)+
   geom_point(size = 3)+
   scale_color_manual(values = c("#224B5E","#6A8D80", "#ABB98B")) +
   xlab("Relative importance (%)")+
@@ -295,8 +295,8 @@ enso_LN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spo
 #EN year
 enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/EN_FW_Nov2014_Jan2015", test_type = "revised", neut_rast_folder = "data/enviro/psat_spot_all/hsi_rasts/neut_FW_Sept2013_Jan2014", enso = "EN", iter = 20)
 
-enso_all <- enso_base | enso_LN | enso_LN_08 | enso_EN
-ggsave(here("figs/fig7_enso/enso_maps.png"), enso_all, height = 10, width = 10, units = c("in"))
+enso_all <- enso_base | enso_LN_08 | enso_LN | enso_EN
+ggsave(here("figs/ms/fig7_hsi_enso/enso_maps.png"), enso_all, height = 12, width = 12, units = c("in"))
 
 #calculate % area HSI > 0.25 in NEC in strong LN year between models
 calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
