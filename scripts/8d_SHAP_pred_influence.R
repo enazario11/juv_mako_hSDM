@@ -39,7 +39,8 @@ predictor <- Predictor$new(brt_do, data = x, y = train_do$PA, predict.function =
 shapley <- Shapley$new(predictor, x.interest = target_env_do)
 
 print(shapley$results)
-plot(shapley)
+do_shap <- plot(shapley) + tidyquant::theme_tq()
+ggsave(here("figs/ms/supp_figs/shap/do_shap.png"), do_shap, width = 6, height = 6, units = c("in"))
 
 # AGI 
 # Training data
@@ -60,5 +61,6 @@ predictor <- Predictor$new(brt_agi, data = x, y = train_agi$PA, predict.function
 shapley <- Shapley$new(predictor, x.interest = target_env_agi)
 
 print(shapley$results)
-plot(shapley)
+agi_shap <- plot(shapley) + tidyquant::theme_tq()
+ggsave(here("figs/ms/supp_figs/shap/agi_shap.png"), agi_shap, width = 6, height = 6, units = c("in"))
 
