@@ -281,6 +281,83 @@ all_maps_avg <- hsi_maps_avg(rast_folder = "data/enviro/psat_spot_all/hsi_rasts/
 
 ggsave(here("figs/ms/fig6_hsi_all/all_maps_avg_20.png"), all_maps_avg, height = 7, width = 10, units = c("in"))
 
+#calculate % area HSI > 0.05 in three regions across study period between models
+calc_perc_area <- function(model_map, area){
+#shore crop
+  shore_sf  <- rnaturalearth::ne_countries(country = c("United States of America", "Canada", "Mexico"), 
+                           returnclass = "sf")
+  shore_vect <- vect(shore_sf)
+
+    if(area == "NEC"){
+      rast_nec_filt <- model_map %>% filter(y <= 12)
+      rast_nec <- terra::mask(rast_nec_filt, shore_vect, inverse = TRUE)
+
+      hsi_nec <- raster::clamp(rast_nec, lower = 0.5, values = FALSE)
+
+      hsi_area_map <- expanse(hsi_nec)
+      rast_area_map <- expanse(rast_nec)
+
+      perc_area <- (hsi_area_map/rast_area_map$area[1])*100
+      perc_area <- perc_area$area[1]
+    }
+
+    if(area == "CCS"){
+      bbox <- ext(-130, -100, 30, 48)
+      rast_ccs_filt <- crop(model_map, bbox)
+
+      rast_ccs_crop <- crop(rast_ccs_filt, shore_vect)
+      rast_ccs  <- terra::mask(rast_ccs_crop, shore_vect, inverse = TRUE)
+
+      hsi_ccs <- raster::clamp(rast_ccs, lower = 0.5, values = FALSE)
+
+      hsi_area_map <- expanse(hsi_ccs)
+      rast_area_map <- expanse(rast_ccs)
+
+      perc_area <- (hsi_area_map/rast_area_map$area[1])*100
+      perc_area <- perc_area$area[1]
+    }
+
+    if(area == "NEP"){
+     bbox <- ext(-130, -100, 30, 48)
+     rast_nep_filt <- model_map %>% filter(y > 12) 
+     rast_nep_filt  <- terra::mask(rast_nep_filt, bbox, inverse = TRUE)
+
+     rast_nep_crop <- crop(rast_nep_filt, shore_vect)
+     rast_nep  <- terra::mask(rast_nep_crop, shore_vect, inverse = TRUE)
+
+     hsi_nep <- raster::clamp(rast_nep, lower = 0.5, values = FALSE)
+
+     hsi_area_map <- expanse(hsi_nep)
+     rast_area_map <- expanse(rast_nep)
+
+     perc_area <- (hsi_area_map/rast_area_map$area[1])*100
+     perc_area <- perc_area$area[1]
+
+    }
+
+  return(perc_area)
+}
+
+base_avg_rast2 <- base_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_base <- calc_perc_area(base_avg_rast2, area = "NEC")
+ccs_base <- calc_perc_area(base_avg_rast2, area = "CCS")
+nep_base <- calc_perc_area(base_avg_rast2, area = "NEP")
+
+do_avg_rast2 <- do_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_do <- calc_perc_area(do_avg_rast2, area = "NEC")
+ccs_do <- calc_perc_area(do_avg_rast2, area = "CCS")
+nep_do <- calc_perc_area(do_avg_rast2, area = "NEP")
+
+agi_avg_rast2 <- agi_avg_rast %>% filter(y > 2) #filter out weird artefact of averaging rasters
+nec_agi <- calc_perc_area(agi_avg_rast2, area = "NEC")
+ccs_agi <- calc_perc_area(agi_avg_rast2, area = "CCS")
+nep_agi <- calc_perc_area(agi_avg_rast2, area = "NEP")
+
+df <- data.frame(area = rep(c("NEC", "CCS", "NEP"), times = 3),
+            model_type = rep(c("base", "do", "agi"), each = 3),
+            perc_area  = c(nec_base, ccs_base, nep_base, nec_do, ccs_do, nep_do, nec_agi, ccs_agi,  nep_agi)
+)
+
 ### Figure 7: ENSO HSI maps ####
 #have to save using export button otherwise adds border, using height of 750 and width 500 (LN width 300)
 #base year
@@ -298,8 +375,8 @@ enso_EN <- hsi_maps_difference_enso_avg(enso_rast_folder = "data/enviro/psat_spo
 enso_all <- enso_base | enso_LN_08 | enso_LN | enso_EN
 ggsave(here("figs/ms/fig7_hsi_enso/enso_maps.png"), enso_all, height = 12, width = 12, units = c("in"))
 
-#calculate % area HSI > 0.25 in NEC in strong LN year between models
-calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
+#calculate % area HSI > 0.5 in NEC in strong LN year between models
+calc_perc_area_enso <- function(mod_rast, mod_type, test_type, iter){
   
   if(mod_type == "base"){  
   names(mod_rast) <- c("bathy_mean", "temp_mean", "sal_mean", "chl_mean", "ssh_mean", "bathy_sd", "mld_mean")
@@ -339,10 +416,10 @@ calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
   land <- crop(land, bbox)
   pred_avg <- terra::mask(pred_avg, land, inverse = TRUE)
   
-  #filter for just NEC and calculate percent area w hsi > 0.75
+  #filter for just NEC and calculate percent area w hsi > 0.5
   rast_nec_filt <- pred_avg %>% filter(y <= 12)
 
-  hsi_nec <- raster::clamp(rast_nec_filt, lower = 0.25, values = FALSE)
+  hsi_nec <- raster::clamp(rast_nec_filt, lower = 0.5, values = FALSE)
 
   hsi_area_map <- expanse(hsi_nec)
   rast_area_map <- expanse(rast_nec_filt)
@@ -355,29 +432,29 @@ calc_perc_area <- function(mod_rast, mod_type, test_type, iter){
 #Base
 base_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_base_rast.nc"))
 base_ln_rast_10 <- base_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_base_10 <- calc_perc_area(mod_rast = base_ln_rast_10, mod_type = "base", iter = 20)
+nec_base_10 <- calc_perc_area_enso(mod_rast = base_ln_rast_10, mod_type = "base", iter = 20)
 
 base_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_base_rast.nc"))
 base_ln_rast_08 <- base_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_base_08 <- calc_perc_area(mod_rast = base_ln_rast_08, mod_type = "base", iter = 20)
+nec_base_08 <- calc_perc_area_enso(mod_rast = base_ln_rast_08, mod_type = "base", iter = 20)
 
 #DO
 do_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_do_rast.nc"))
 do_ln_rast_10 <- do_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_do_10 <- calc_perc_area(mod_rast = do_ln_rast_10, mod_type = "do", iter = 20)
+nec_do_10 <- calc_perc_area_enso(mod_rast = do_ln_rast_10, mod_type = "do", iter = 20)
 
 do_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_do_rast.nc"))
 do_ln_rast_08 <- do_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_do_08 <- calc_perc_area(mod_rast = do_ln_rast_08, mod_type = "do", iter = 20)
+nec_do_08 <- calc_perc_area_enso(mod_rast = do_ln_rast_08, mod_type = "do", iter = 20)
 
 #AGI
 agi_ln_rast_10 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_F_2010/LN_F_2010_agi_rast.nc"))
 agi_ln_rast_10 <- agi_ln_rast_10 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_agi_10 <- calc_perc_area(mod_rast = agi_ln_rast_10, mod_type = "agi", iter = 20)
+nec_agi_10 <- calc_perc_area_enso(mod_rast = agi_ln_rast_10, mod_type = "agi", iter = 20)
 
 agi_ln_rast_08 <- rast(here("data/enviro/psat_spot_all/hsi_rasts/LN_FW_2007_2008/LN_FW_2007_2008_agi_rast.nc"))
 agi_ln_rast_08 <- agi_ln_rast_08 %>% filter(y > 2) #filter out weird artefact of averaging rasters
-nec_agi_08 <- calc_perc_area(mod_rast = agi_ln_rast_08, mod_type = "agi", iter = 20)
+nec_agi_08 <- calc_perc_area_enso(mod_rast = agi_ln_rast_08, mod_type = "agi", iter = 20)
 
 df <- data.frame(area = rep(c("NEC_LN_2010", "NEC_LC_2008"), times = 3),
             model_type = c("base", "do", "agi", "base", "do", "agi"),

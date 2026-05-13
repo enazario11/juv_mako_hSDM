@@ -7,8 +7,9 @@
   set.seed(1004)}
 
 # SHAP -- spatiotemporal analyses to understand drivers of LN predictions
-### target point
-target_loc <- vect(cbind(-141,12), crs="EPSG:4326")
+### target area
+target_loc <- vect(cbind(-141,15), crs="EPSG:4326") 
+
 
 ### load models
 brt_do <- readRDS(here("data/brt/mod_outputs/revised/brts_st/enso/do/do_1.rds"))
@@ -30,17 +31,17 @@ train_do <- filter(dat_do_st, !(row_id %in% test_do$row_id)) %>%
 do_rast <- rast("data/enviro/psat_spot_all/hsi_rasts/LN_F_Oct26_2010/LN_F_Oct26_2010_do_rast.nc")
 names(do_rast) <- c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")
 target_env_do <- terra::extract(do_rast, target_loc) %>% 
-  as_tibble() %>% 
-  select(-ID)
+  as_tibble() %>%
+  dplyr::select(-ID)
 
 #plot
-x = train_do[, c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "o2_mean_0m", "o2_mean_250m", "o2_mean_0m_seas", "o2_mean_0m_ann", "o2_mean_250m_seas", "o2_mean_250m_ann")]
+x = train_do[, c("o2_mean_0m", "o2_mean_250m_ann", "o2_mean_0m_seas", "temp_mean", "o2_mean_250m_seas", "bathy_mean", "sal_mean", "chl_mean", "o2_mean_0m_ann", "o2_mean_250m", "ssh_mean", "mld_mean", "bathy_sd")]
 predictor <- Predictor$new(brt_do, data = x, y = train_do$PA, predict.function = pred_fun)
 shapley <- Shapley$new(predictor, x.interest = target_env_do)
 
 print(shapley$results)
 do_shap <- plot(shapley) + tidyquant::theme_tq()
-ggsave(here("figs/ms/supp_figs/shap/do_shap.png"), do_shap, width = 6, height = 6, units = c("in"))
+ggsave(here("figs/ms/supp_figs/shap/do_shap.png"), do_shap, width = 6, height = 5, units = c("in"))
 
 # AGI 
 # Training data
@@ -53,14 +54,14 @@ agi_rast <- rast("data/enviro/psat_spot_all/hsi_rasts/LN_F_Oct26_2010/LN_F_Oct26
 names(agi_rast) <- c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")
 target_env_agi <- terra::extract(agi_rast, target_loc) %>% 
   as_tibble() %>% 
-  select(-ID)
+  dplyr::select(-ID)
 
 #plot
-x = train_agi[,c("chl_mean", "temp_mean", "sal_mean", "ssh_mean", "mld_mean", "bathy_mean", "bathy_sd", "AGI_0m", "AGI_250m", "AGI_0m_seas", "AGI_0m_ann", "AGI_250m_seas", "AGI_250m_ann")]
+x = train_agi[,c("temp_mean", "AGI_250m_ann", "AGI_0m", "bathy_mean", "AGI_0m_seas", "sal_mean", "AGI_250m_seas", "AGI_0m_ann", "chl_mean", "AGI_250m", "bathy_sd", "mld_mean", "ssh_mean")]
 predictor <- Predictor$new(brt_agi, data = x, y = train_agi$PA, predict.function = pred_fun)
 shapley <- Shapley$new(predictor, x.interest = target_env_agi)
 
 print(shapley$results)
 agi_shap <- plot(shapley) + tidyquant::theme_tq()
-ggsave(here("figs/ms/supp_figs/shap/agi_shap.png"), agi_shap, width = 6, height = 6, units = c("in"))
+ggsave(here("figs/ms/supp_figs/shap/agi_shap.png"), agi_shap, width = 6, height = 5, units = c("in"))
 
