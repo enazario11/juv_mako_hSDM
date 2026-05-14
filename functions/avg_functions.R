@@ -414,7 +414,7 @@ hsi_maps_enso_avg <- function(rast_folder, enso, iter  = 20, test_type){
 }
 
 
-hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, test_type, enso, iter = 20){
+hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, test_type, enso, iter = 20, id = NULL){
   
   ### NEUTRAL
   #load raster files -----------------------------------------------------------------------------------------------
@@ -558,6 +558,11 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, tes
   diff_do <- diff(c(do_avg_neut, do_avg_enso))*100
   #diff_do_agi_combo <- diff(c(combo_avg_neut, combo_avg_enso))*100
   
+  #save difference raster files per model
+  assign(paste0("diff_base_", id), diff_base, envir = .GlobalEnv)
+  assign(paste0("diff_do_", id), diff_do, envir = .GlobalEnv)
+  assign(paste0("diff_agi_", id), diff_agi, envir = .GlobalEnv)
+
   #plot maps --------------------------------------------------------------------------------------------------------
   #land files
   map.world = map_data(map="world")
