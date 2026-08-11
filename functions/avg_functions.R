@@ -552,10 +552,15 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, tes
   agi_avg_enso <- terra::mask(agi_avg_enso, land, inverse = TRUE)
   
   # create difference rasters ------------------------------------------------------------------------------------------
-  #make difference maps
-  diff_base <- diff(c(base_avg_neut, base_avg_enso))*100
-  diff_agi <- diff(c(agi_avg_neut, agi_avg_enso))*100
-  diff_do <- diff(c(do_avg_neut, do_avg_enso))*100
+  #make difference maps -- subtraction revise 
+  diff_base <-base_avg_enso - base_avg_neut
+  diff_agi <- agi_avg_enso - agi_avg_neut
+  diff_do <- do_avg_enso - do_avg_neut
+  
+  #make differences maps -- percent method
+  # diff_base <- diff(c(base_avg_neut, base_avg_enso))*100
+  # diff_agi <- diff(c(agi_avg_neut, agi_avg_enso))*100
+  # diff_do <- diff(c(do_avg_neut, do_avg_enso))*100
   #diff_do_agi_combo <- diff(c(combo_avg_neut, combo_avg_enso))*100
   
   #save difference raster files per model
@@ -590,7 +595,7 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, tes
     geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
     scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
     scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-    scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
+    scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(-1, 1)) +
     geom_text(aes(x = Inf, y = Inf, 
                   label = perc_base), 
               hjust = 1.1, vjust = 2, size = 6, color = "black")+
@@ -624,7 +629,7 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, tes
       geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
       scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
       scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-      scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1)+
+      scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(-1, 1))+
       geom_text(aes(x = Inf, y = Inf, 
                     label = perc_do), 
                 hjust = 1.1, vjust = 2, size = 6, color = "black")+
@@ -657,7 +662,7 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, tes
       geom_map(data = testt,map = testt,aes(map_id = region, x = long, y = lat), fill = "grey75", color = "black") +
       scale_x_continuous(expand =c(0,0),limits = c(-153,-103)) +
       scale_y_continuous(expand=c(0,0),limits = c(1,49)) +
-      scale_fill_whitebox_c(palette = "muted", limits = c(-100, 100), direction = -1) +
+      scale_fill_whitebox_c(palette = "muted", direction = -1, limits = c(-1, 1)) +
       geom_text(aes(x = Inf, y = Inf, 
                     label = perc_agi), 
                 hjust = 1.1, vjust = 2, size = 6, color = "black")+
@@ -675,7 +680,7 @@ hsi_maps_difference_enso_avg <- function(neut_rast_folder, enso_rast_folder, tes
         labs(title = "LN"))/(do_map)/(agi_map+theme(
         axis.text.x = element_text(color = "black", angle = 45, hjust = 0.3, size = 14), 
         axis.title.x = element_text(size = 16, color = "black", vjust = 0.3)))+
-        plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "% change")
+        plot_layout(guides = "collect") & theme(legend.position = 'right', legend.title = element_text(size = 16), legend.text = element_text(size = 14)) & labs(fill = "HSI difference")
     } 
     if(enso == "LN"){
       all_maps <- (base_map+

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 496.83 500">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: ArialMT, Arial;
+        font-size: 12px;
+      }
+    </style>
+  </defs>
+  <image width="1500" height="3900" transform="translate(304.52) scale(.13)" xlink:href="overall_metrics.png"/>
+  <text class="cls-1" transform="translate(0 12.98)"><tspan x="0" y="0">Figure 4</tspan></text>
+</svg>
